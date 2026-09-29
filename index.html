@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parks &amp; Camping – NPS Internal</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>🏞️ Parks &amp; Camping <small>NPS internal directory</small></h1>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="grid" role="tab">Park Grid</button>
+    <button class="tab" data-tab="map" role="tab">Map</button>
+    <button class="tab" data-tab="visited" role="tab">Visited</button>
+    <button class="tab" data-tab="about" role="tab">Settings &amp; About</button>
+  </nav>
+</header>
+
+<section class="filters" id="filters">
+  <input id="q" type="search" placeholder="Search parks…" aria-label="Search">
+  <select id="fState" aria-label="State"><option value="">All states / territories</option></select>
+  <select id="fDesig" aria-label="Designation"><option value="">All designations (Park, Seashore, Monument…)</option></select>
+  <select id="fVisited" aria-label="Status">
+    <option value="">Checked &amp; unchecked</option><option value="1">Checked only</option><option value="0">Unchecked only</option>
+  </select>
+  <button id="clear" type="button">Clear</button>
+  <span id="count" class="count"></span>
+</section>
+
+<main>
+  <section id="tab-grid" class="panel active">
+    <div class="toolbar">
+      <span>Columns:</span>
+      <div class="seg" id="cols">
+        <button data-c="1">1</button><button data-c="2">2</button><button data-c="4">4</button>
+      </div>
+      <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
+    </div>
+    <div id="grid" class="grid"></div>
+  </section>
+
+  <section id="tab-map" class="panel">
+    <div class="toolbar">
+      <div class="seg" id="jump">
+        <button data-v="lower48">Lower 48</button><button data-v="ak">Alaska</button>
+        <button data-v="hi">Hawaiʻi</button><button data-v="terr">Territories</button>
+      </div>
+      <span>Map size:</span>
+      <div class="seg" id="msize"><button data-h="50">S</button><button data-h="75">M</button><button data-h="100">L</button></div>
+      <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
+      <label class="dotctl"><input type="checkbox" id="labels"> Names</label>
+      <label class="dotctl"><input type="checkbox" id="rose" checked> Compass</label>
+      <span class="legend"><i class="dot off"></i> unchecked <i class="dot on"></i> checked</span>
+    </div>
+    <div id="map"></div>
+  </section>
+
+  <section id="tab-visited" class="panel">
+    <div class="toolbar"><strong id="vcount"></strong>
+      <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label></div>
+    <ul id="vlist" class="vlist"></ul>
+  </section>
+
+  <section id="tab-about" class="panel">
+    <div class="about">
+      <h2>Settings</h2>
+      <p><label>Dot size (whole site) <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label></p>
+      <p><button id="export">Export checked list</button> <button id="reset">Reset all checks</button></p>
+      <h2>About</h2>
+      <p>Internal reference for NPS units. Checks are saved in this browser only.</p>
+      <p>Data is hand-compiled from public NPS information and is a subset of all NPS units; coordinates are approximate. Verify against
+      <a href="https://www.nps.gov/findapark/index.htm" target="_blank" rel="noopener">nps.gov/findapark</a>.</p>
+      <p>Basemaps: USGS National Map, Esri World Topographic / Shaded Relief, OpenTopoMap (OpenStreetMap contributors, SRTM).</p>
+    </div>
+  </section>
+</main>
+
+<script src="vendor/leaflet.js"></script>
+<script src="data/parks.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
