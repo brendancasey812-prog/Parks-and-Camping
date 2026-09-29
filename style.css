@@ -24,7 +24,7 @@ body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--
 .card .banner{height:calc(70px + 4vw);background:linear-gradient(135deg,var(--h1),var(--h2));position:relative}
 .card .banner .dot{position:absolute;top:.6rem;right:.6rem;cursor:pointer}
 .card .body{padding:.8rem 1rem 1rem}
-.card h3{margin:0 0 .2rem;font-size:1.05rem}
+.card h3 a{color:inherit;text-decoration:none}.card h3 a:hover{text-decoration:underline}.card h3{margin:0 0 .2rem;font-size:1.05rem}
 .card .meta{font-size:.8rem;color:#5a6a61;margin-bottom:.4rem}
 .card p{margin:0;font-size:.9rem;line-height:1.4}
 .vlist{list-style:none;padding:0;margin:0;columns:3 260px}.vlist li{padding:.3rem 0;display:flex;gap:.5rem;align-items:center}

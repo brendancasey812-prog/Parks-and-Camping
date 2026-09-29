@@ -4,14 +4,9 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.
              set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 const STATE_NAMES={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",AS:"American Samoa",PR:"Puerto Rico",VI:"U.S. Virgin Islands",GU:"Guam",MP:"Northern Mariana Islands"};
-const D=window.DESIGNATIONS;
-const parks=window.PARKS_RAW.map((r,i)=>({id:r[0]+"|"+r[1]+"|"+r[2],name:r[0],d:r[1],states:r[2].split(","),lat:r[3],lng:r[4],
-  blurb:r[1]==="NP"?window.PARK_BLURBS[r[0]]:""}));
-const SUFFIX={NRIV:"National River",NPW:"Parkway",PARK:"",NRA:"National Recreation Area",NPRES:"National Preserve"};
-parks.forEach(p=>{
-  const suf=p.d in SUFFIX?SUFFIX[p.d]:D[p.d];
-  p.title=(!suf||p.name.includes(suf.replace("National ",""))||p.name.includes(" Park "))?p.name:p.name+" "+suf;
-});
+const parks=window.PARKS_RAW.map(r=>({id:r[5],name:r[0],title:r[0],d:r[1],states:r[2],lat:r[3],lng:r[4],url:r[6],approx:!!r[7],
+  blurb:r[1]==="National Park"?(window.PARK_BLURBS[r[0]]||""):""}));
+const DESIG=[...new Set(parks.map(p=>p.d))].sort();
 
 let checked=new Set(store.get("checked",[]));
 const save=()=>store.set("checked",[...checked]);
@@ -21,7 +16,7 @@ const filt={q:"",st:"",d:"",v:""};
 const stSel=$("#fState"),dSel=$("#fDesig");
 [...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>(STATE_NAMES[a]||a).localeCompare(STATE_NAMES[b]||b))
   .forEach(s=>stSel.add(new Option(STATE_NAMES[s]||s,s)));
-Object.entries(D).forEach(([k,v])=>{ if(parks.some(p=>p.d===k)) dSel.add(new Option(v,k)); });
+DESIG.forEach(d=>dSel.add(new Option(d+" ("+parks.filter(p=>p.d===d).length+")",d)));
 function visible(){
   const q=filt.q.toLowerCase();
   return parks.filter(p=>(!q||p.title.toLowerCase().includes(q)||p.states.some(s=>(STATE_NAMES[s]||s).toLowerCase().includes(q)))
@@ -60,8 +55,8 @@ function renderGrid(list){
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
     <div class="banner" style="--h1:hsl(${hue(p)},35%,32%);--h2:hsl(${hue(p)+40},45%,55%)">
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
-    <div class="body"><h3>${p.title}</h3>
-    <div class="meta">${D[p.d]} · ${p.states.map(s=>STATE_NAMES[s]||s).slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
+    <div class="body"><h3><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></h3>
+    <div class="meta">${p.d} · ${p.states.map(s=>STATE_NAMES[s]||s).slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
     ${p.blurb?`<p>${p.blurb}</p>`:""}</div></article>`).join("");
 }
 $("#grid").onclick=e=>{const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
@@ -86,8 +81,8 @@ const layers={
 const views={lower48:[[24.5,-125],[49.5,-66.5]],ak:[[51,-170],[71.5,-129]],hi:[[18.8,-160.5],[22.4,-154.7]],terr:[[-15,-171],[19,-64]]};
 let markers=new Map(),group;
 const radius=()=>Math.max(3,(2+map.getZoom()*0.9)*dotScale);
-const style=p=>checked.has(p.id)?{fillColor:"#d32f2f",color:"#7f1414",fillOpacity:.95,weight:1.5}
-                                :{fillColor:"#9aa0a6",color:"#5f6368",fillOpacity:.85,weight:1.2};
+const style=p=>({...(checked.has(p.id)?{fillColor:"#d32f2f",color:"#7f1414",fillOpacity:.95,weight:1.5}
+                                :{fillColor:"#9aa0a6",color:"#5f6368",fillOpacity:.85,weight:1.2}),dashArray:p.approx?"3 2":null});
 function initMap(){
   if(map)return;
   map=L.map("map",{minZoom:2,worldCopyJump:true,zoomSnap:.5});
@@ -98,7 +93,7 @@ function initMap(){
   group=L.layerGroup().addTo(map);
   parks.forEach(p=>{
     const m=L.circleMarker([p.lat,p.lng],{radius:6,...style(p)});
-    m.bindTooltip(p.title,{className:"lbl"});
+    m.bindTooltip(p.title+(p.approx?" (approx. location)":""),{className:"lbl"});
     m.on("click",()=>toggle(p.id));   // click a dot to check / uncheck
     markers.set(p.id,m);
   });
