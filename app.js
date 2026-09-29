@@ -4,28 +4,52 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.
              set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 const STATE_NAMES={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",AS:"American Samoa",PR:"Puerto Rico",VI:"U.S. Virgin Islands",GU:"Guam",MP:"Northern Mariana Islands"};
-const parks=window.PARKS_RAW.map(r=>({id:r[5],name:r[0],title:r[0],d:r[1],states:r[2],lat:r[3],lng:r[4],url:r[6],approx:!!r[7],
-  blurb:r[1]==="National Park"?(window.PARK_BLURBS[r[0]]||""):""}));
+const parks=window.PARKS_RAW.map(r=>({id:r[5],name:r[0],title:r[0],d:r[1],states:r[2].map(s=>STATE_NAMES[s]||s),code:r[5],lat:r[3],lng:r[4],url:r[6],approx:!!r[7],
+  blurb:window.PARK_BLURBS[r[0]]||""}));
 const DESIG=[...new Set(parks.map(p=>p.d))].sort();
 
 let checked=new Set(store.get("checked",[]));
 const save=()=>store.set("checked",[...checked]);
-const filt={q:"",st:"",d:"",v:""};
 
-// ---------- filters ----------
-const stSel=$("#fState"),dSel=$("#fDesig");
-[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>(STATE_NAMES[a]||a).localeCompare(STATE_NAMES[b]||b))
-  .forEach(s=>stSel.add(new Option(STATE_NAMES[s]||s,s)));
-DESIG.forEach(d=>dSel.add(new Option(d+" ("+parks.filter(p=>p.d===d).length+")",d)));
-function visible(){
-  const q=filt.q.toLowerCase();
-  return parks.filter(p=>(!q||p.title.toLowerCase().includes(q)||p.states.some(s=>(STATE_NAMES[s]||s).toLowerCase().includes(q)))
-    &&(!filt.st||p.states.includes(filt.st))&&(!filt.d||p.d===filt.d)
-    &&(filt.v===""||(filt.v==="1")===checked.has(p.id)));
+// ---------- filters (multi-select dropdowns with search) ----------
+const filt={q:"",st:new Set(),d:new Set(),v:new Set()};
+const msInstances=[];
+function multiSelect(root,label,options,set){
+  root.classList.add("ms");
+  root.innerHTML=`<button type="button" class="ms-btn"><span class="ms-label"></span><span class="ms-badge" hidden></span><svg width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+  <div class="ms-panel" hidden><input type="search" class="ms-search" placeholder="Search ${label.toLowerCase()}…" aria-label="Search ${label}">
+  <div class="ms-actions"><button type="button" data-a="all">Select shown</button><button type="button" data-a="none">Clear</button></div>
+  <ul class="ms-list"></ul></div>`;
+  const btn=root.querySelector(".ms-btn"),panel=root.querySelector(".ms-panel"),search=root.querySelector(".ms-search"),list=root.querySelector(".ms-list"),badge=root.querySelector(".ms-badge");
+  const lab=root.querySelector(".ms-label");
+  const shown=()=>options.filter(o=>o.text.toLowerCase().includes(search.value.toLowerCase()));
+  function draw(){
+    list.innerHTML=shown().map(o=>`<li><label><input type="checkbox" value="${o.value.replace(/"/g,"&quot;")}" ${set.has(o.value)?"checked":""}><span>${o.text}</span>${o.n!=null?`<em>${o.n}</em>`:""}</label></li>`).join("")||"<li class='ms-empty'>No matches</li>";
+    lab.textContent=label;badge.hidden=!set.size;badge.textContent=set.size;
+  }
+  btn.onclick=e=>{e.stopPropagation();const open=panel.hidden;msInstances.forEach(m=>m.close());if(open){panel.hidden=false;root.classList.add("open");search.value="";draw();search.focus()}};
+  panel.onclick=e=>e.stopPropagation();
+  list.onchange=e=>{const c=e.target;c.checked?set.add(c.value):set.delete(c.value);draw();refresh()};
+  search.oninput=draw;
+  panel.querySelector(".ms-actions").onclick=e=>{const a=e.target.dataset.a;if(!a)return;
+    if(a==="all")shown().forEach(o=>set.add(o.value));else set.clear();draw();refresh()};
+  msInstances.push({close(){panel.hidden=true;root.classList.remove("open")},draw});
+  draw();
 }
-function bind(el,key,ev){el.addEventListener(ev,()=>{filt[key]=el.value;refresh()})}
-bind($("#q"),"q","input");bind(stSel,"st","change");bind(dSel,"d","change");bind($("#fVisited"),"v","change");
-$("#clear").onclick=()=>{["#q","#fState","#fDesig","#fVisited"].forEach(s=>$(s).value="");Object.assign(filt,{q:"",st:"",d:"",v:""});refresh()};
+document.addEventListener("click",()=>msInstances.forEach(m=>m.close()));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(m=>m.close())});
+const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
+multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st);
+multiSelect($("#fDesig"),"Designation",DESIG.map(d=>({value:d,text:d,n:parks.filter(p=>p.d===d).length})),filt.d);
+multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
+function visible(){
+  const q=filt.q.toLowerCase().trim();
+  return parks.filter(p=>(!q||(p.title+" "+p.d+" "+p.code+" "+p.states.join(" ")).toLowerCase().includes(q))
+    &&(!filt.st.size||p.states.some(s=>filt.st.has(s)))&&(!filt.d.size||filt.d.has(p.d))
+    &&(!filt.v.size||filt.v.has(checked.has(p.id)?"1":"0")));
+}
+$("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
+$("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
 let map;
@@ -49,14 +73,14 @@ let cols=store.get("cols",4);
 function setCols(c){cols=c;$("#grid").style.setProperty("--cols",c);store.set("cols",c);
   $$("#cols button").forEach(b=>b.classList.toggle("on",+b.dataset.c===c));}
 $$("#cols button").forEach(b=>b.onclick=()=>setCols(+b.dataset.c));
-const hue=p=>{let h=0;for(const c of p.d)h=(h*31+c.charCodeAt(0))%360;return h};
+const hue=p=>{let h=0;for(const c of p.name)h=(h*31+c.charCodeAt(0))%70;return 150+h}; // greens to blues
 function toggle(id){checked.has(id)?checked.delete(id):checked.add(id);save();refresh()}
 function renderGrid(list){
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
-    <div class="banner" style="--h1:hsl(${hue(p)},35%,32%);--h2:hsl(${hue(p)+40},45%,55%)">
+    <div class="banner" style="--h1:hsl(${hue(p)},42%,18%);--h2:hsl(${hue(p)+18},38%,38%)">
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
     <div class="body"><h3><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></h3>
-    <div class="meta">${p.d} · ${p.states.map(s=>STATE_NAMES[s]||s).slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
+    <div class="meta">${p.d} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
     ${p.blurb?`<p>${p.blurb}</p>`:""}</div></article>`).join("");
 }
 $("#grid").onclick=e=>{const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};

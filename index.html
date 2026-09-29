@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Parks &amp; Camping – NPS Internal</title>
 <link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <h1>🏞️ Parks &amp; Camping <small>NPS internal directory</small></h1>
+  <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>Parks &amp; Camping <small>Unit directory</small></h1>
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="grid" role="tab">Park Grid</button>
     <button class="tab" data-tab="map" role="tab">Map</button>
@@ -19,13 +21,11 @@
 </header>
 
 <section class="filters" id="filters">
-  <input id="q" type="search" placeholder="Search parks…" aria-label="Search">
-  <select id="fState" aria-label="State"><option value="">All states / territories</option></select>
-  <select id="fDesig" aria-label="Designation"><option value="">All designations (Park, Seashore, Monument…)</option></select>
-  <select id="fVisited" aria-label="Status">
-    <option value="">Checked &amp; unchecked</option><option value="1">Checked only</option><option value="0">Unchecked only</option>
-  </select>
-  <button id="clear" type="button">Clear</button>
+  <input id="q" type="search" placeholder="Search…" aria-label="Search">
+  <div id="fState"></div>
+  <div id="fDesig"></div>
+  <div id="fVisited"></div>
+  <button id="clear" type="button" class="ghost">Clear filters</button>
   <span id="count" class="count"></span>
 </section>
 

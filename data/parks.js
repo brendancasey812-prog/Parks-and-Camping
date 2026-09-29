@@ -61,6 +61,8 @@ window.PARK_BLURBS = {
   "White Sands": "Gleaming white gypsum dunes in New Mexico.",
   "Wind Cave": "Boxwork cave formations beneath Black Hills prairie.",
   "Wrangell–St. Elias": "Largest national park, with nine of the 16 highest US peaks.",
+  "Redwood": "Tallest trees on Earth, shared with California state parks along the north coast.",
+  "Sequoia & Kings Canyon": "Neighboring Sierra Nevada parks with giant sequoias, deep canyons and the General Sherman tree.",
   "Yellowstone": "First national park: geysers, hot springs, bison and wolves.",
   "Yosemite": "Granite cliffs, waterfalls and giant sequoias in the Sierra Nevada.",
   "Zion": "Sheer sandstone cliffs and the Virgin River Narrows."
