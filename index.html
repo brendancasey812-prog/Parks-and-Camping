@@ -15,6 +15,7 @@
   <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>Parks &amp; Camping <small>Unit directory</small></h1>
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="grid" role="tab">Park Grid</button>
+    <button class="tab" data-tab="list" role="tab">List Format</button>
     <button class="tab" data-tab="map" role="tab">Map</button>
     <button class="tab" data-tab="visited" role="tab">Visited</button>
     <button class="tab" data-tab="about" role="tab">Settings &amp; About</button>
@@ -42,6 +43,20 @@
     <div id="grid" class="grid"></div>
   </section>
 
+  <section id="tab-list" class="panel">
+    <div class="toolbar">
+      <div class="seg" id="dataset"><button data-ds="nps">National (NPS)</button><button data-ds="ca">California State Parks</button></div>
+      <label class="dotctl"><input type="checkbox" id="editAll"> Edit names &amp; designations</label>
+      <button id="csv" type="button">Export CSV</button><button id="resetEdits" type="button">Reset edits</button>
+      <span id="lcount" class="lcount"></span>
+    </div>
+    <p class="hint">Click any Nearest City or Highlights cell to edit it. Visited and Year Last Visited are editable too; changes are saved in this browser.</p>
+    <div class="tablewrap"><table id="ltable" class="lt"><thead><tr>
+      <th data-k="name">Name</th><th data-k="d">Designation</th><th data-k="city">Nearest City / Community</th>
+      <th data-k="visited">Visited</th><th data-k="year">Year Last Visited</th><th data-k="hl">Highlights</th></tr></thead>
+      <tbody id="lbody"></tbody></table></div>
+  </section>
+
   <section id="tab-map" class="panel">
     <div class="toolbar">
       <div class="seg" id="jump">
@@ -52,6 +67,7 @@
       <div class="seg" id="msize"><button data-h="50">S</button><button data-h="75">M</button><button data-h="100">L</button></div>
       <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
       <label class="dotctl"><input type="checkbox" id="labels"> Names</label>
+      <label class="dotctl" title="Off by default"><input type="checkbox" id="showCA"> California State Parks</label>
       <label class="dotctl"><input type="checkbox" id="rose" checked> Compass</label>
       <span class="legend"><span title="Units without exact coordinates sit near their state center">◌ approx. spots</span> <i class="dot off"></i> unchecked <i class="dot on"></i> checked</span>
     </div>
@@ -81,6 +97,7 @@
 
 <script src="vendor/leaflet.js"></script>
 <script src="data/parks.js"></script>
+<script src="data/details.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
