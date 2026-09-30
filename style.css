@@ -101,3 +101,5 @@ input[type=range]{accent-color:var(--pine)}
 .cm-l{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:.3rem}
 .cm-list{max-height:220px}.toolbar button:disabled{opacity:.45;cursor:default}
 .colmenu>*{flex-shrink:0}
+.lbl a{color:#1b6d73;font-weight:600;text-decoration:underline;pointer-events:auto;cursor:pointer}.lbl a:hover{color:#0f3b30}.lbl small{opacity:.7}
+.leaflet-tooltip.lbl{pointer-events:auto}

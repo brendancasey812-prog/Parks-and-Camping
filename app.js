@@ -133,6 +133,8 @@ let markers=new Map(),group;
 const radius=()=>Math.max(3,(2+map.getZoom()*0.9)*dotScale);
 const style=p=>({...(checked.has(p.id)?{fillColor:"#d32f2f",color:"#7f1414",fillOpacity:.95,weight:1.5}
                                 :{fillColor:"#9aa0a6",color:"#5f6368",fillOpacity:.85,weight:1.2}),dashArray:p.approx?"3 2":null,...(p.kind==="ca"?{color:checked.has(p.id)?"#7f1414":"#1b6d73",weight:2.5}:{})});
+const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
+const tipHtml=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(p.title)}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
 function initMap(){
   if(map)return;
   map=L.map("map",{minZoom:2,worldCopyJump:true,zoomSnap:.5});
@@ -143,13 +145,14 @@ function initMap(){
   group=L.layerGroup().addTo(map);
   [...parks,...caParks].forEach(p=>{
     const m=L.circleMarker([p.lat,p.lng],{radius:6,...style(p)});
-    m.bindTooltip(p.title+(p.kind==="ca"?" (CA State Parks)":"")+(p.approx?" (approx. location)":""),{className:"lbl"});
+    m.bindTooltip(tipHtml(p),{className:"lbl",interactive:true});
     m.on("click",()=>toggle(p.id));   // click a dot to check / uncheck
     markers.set(p.id,m);
   });
   const RoseCtl=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","rose");d.id="roseEl";
     d.innerHTML='<svg viewBox="-50 -50 100 100"><circle r="47" fill="none" stroke="#22302a" stroke-width="1"/><path d="M0-42L7 0 0 42-7 0Z" fill="#fff" stroke="#22302a"/><path d="M-42 0L0-7 42 0 0 7Z" fill="#fff" stroke="#22302a"/><path d="M0-42L7 0-7 0Z" fill="#d32f2f"/><path d="M0 42L7 0-7 0Z" fill="#22302a"/><path d="M-30-30L0-4 30-30 4 0 30 30 0 4-30 30-4 0Z" fill="#9aa0a6" opacity=".55"/><text y="-44" text-anchor="middle" font-size="14" font-weight="700" fill="#22302a" transform="translate(0,-2)">N</text><text y="52" text-anchor="middle" font-size="10" fill="#22302a">S</text><text x="-50" y="4" font-size="10" fill="#22302a">W</text><text x="42" y="4" font-size="10" fill="#22302a">E</text></svg>';return d}});
   new RoseCtl({position:"bottomleft"}).addTo(map);
+  ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
   map.on("zoomend",restyle);
   map.fitBounds(views.lower48);
   applyLabels();$("#rose").onchange({target:$("#rose")});
@@ -173,8 +176,8 @@ function setMH(v){document.documentElement.style.setProperty("--mh",v);store.set
 $$("#msize button").forEach(b=>b.onclick=()=>setMH(b.dataset.h));
 $("#labels").onchange=e=>{store.set("labels",e.target.checked);applyLabels()};
 function applyLabels(){if(!map)return;const on=$("#labels").checked;
-  markers.forEach((m,id)=>{const t=byId.get(id).title;m.unbindTooltip();
-    m.bindTooltip(t,{className:"lbl",permanent:on,direction:"right",offset:[6,0]});});renderMap(mapList());}
+  markers.forEach((m,id)=>{const t=tipHtml(byId.get(id));m.unbindTooltip();
+    m.bindTooltip(t,{className:"lbl",interactive:true,permanent:on,direction:"right",offset:[6,0]});});renderMap(mapList());}
 $("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);refresh()};
 $("#rose").onchange=e=>{store.set("rose",e.target.checked);$("#roseEl")&&($("#roseEl").style.display=e.target.checked?"":"none")};
 
