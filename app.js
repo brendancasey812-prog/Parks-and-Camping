@@ -13,6 +13,8 @@ function splitCity(str,fallbackStates){
   const sts=[...new Set(segs.map(x=>x.s).filter(Boolean))];
   return {city:segs.map(x=>x.c).join(" / "),state:(sts.length?sts:fallbackStates.slice(0,2)).join(" / ")};
 }
+const NP_DESIG=new Set(["National Park","National Park and Preserve","National Parks","National and State Parks"]);
+parks.forEach(p=>{p.np63=NP_DESIG.has(p.d)&&p.code!=="WOTR"});   // Wolf Trap is a "National Park for the Performing Arts", not one of the 63
 parks.forEach(p=>{const dt=(window.NAT_DETAILS||{})[p.code]||["",""];p.kind="nps";const cs=splitCity(dt[0],p.states);p.city=cs.city;p.state=cs.state;p.hl=dt[1]});
 const caParks=(window.CA_PARKS||[]).map(r=>({id:"CA:"+r[0]+"|"+r[1],name:r[0],title:r[0],
   d:r[1],states:["California"],code:"",lat:r[3],lng:r[4],url:"",approx:false,blurb:"",kind:"ca",city:r[2],state:"California",hl:r[5]}));
@@ -58,12 +60,12 @@ document.addEventListener("click",()=>msInstances.forEach(m=>m.close()));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(m=>m.close())});
 const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
 multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st);
-multiSelect($("#fDesig"),"Designation",DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length})),filt.d);
+multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the 63 (Sequoia & Kings Canyon count as 2)",n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
   return src.filter(p=>(!q||(fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+p.code+" "+p.states.join(" ")).toLowerCase().includes(q))
-    &&(!filt.st.size||p.states.some(s=>filt.st.has(s)))&&(!filt.d.size||filt.d.has(p.d))
+    &&(!filt.st.size||p.states.some(s=>filt.st.has(s)))&&(!filt.d.size||filt.d.has(p.d)||(filt.d.has("__NP63")&&p.np63))
     &&(!filt.v.size||filt.v.has(checked.has(p.id)?"1":"0")));
 }
 $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
