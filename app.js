@@ -79,11 +79,11 @@ let cols=store.get("cols",4);
 function setCols(c){cols=c;$("#grid").style.setProperty("--cols",c);store.set("cols",c);
   $$("#cols button").forEach(b=>b.classList.toggle("on",+b.dataset.c===c));}
 $$("#cols button").forEach(b=>b.onclick=()=>setCols(+b.dataset.c));
-const hue=p=>{let h=0;for(const c of p.name)h=(h*31+c.charCodeAt(0))%70;return 150+h}; // greens to blues
+const hue=p=>{let h=0;for(const c of p.name)h=(h*31+c.charCodeAt(0))%45;return 128+h}; // greens to blues
 function toggle(id){checked.has(id)?checked.delete(id):checked.add(id);save();refresh()}
 function renderGrid(list){
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
-    <div class="banner" style="--h1:hsl(${hue(p)},42%,18%);--h2:hsl(${hue(p)+18},38%,38%)">
+    <div class="banner" style="--h1:hsl(${hue(p)},48%,14%);--h2:hsl(${hue(p)+10},40%,30%)">
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
     <div class="body"><h3><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></h3>
     <div class="meta">${p.d} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
