@@ -62,6 +62,12 @@ function showTab(t){
 }
 $$(".tab").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
+// ---------- theme ----------
+function setTheme(t){const r=document.documentElement;t==="light"||t==="dark"?r.dataset.theme=t:delete r.dataset.theme;
+  store.set("theme",t);$$("#theme button").forEach(b=>b.classList.toggle("on",b.dataset.t===t))}
+$$("#theme button").forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
+setTheme(store.get("theme","system"));
+
 // ---------- dot size (site wide) ----------
 let dotScale=store.get("dot",1);
 function setDot(v){dotScale=+v;document.documentElement.style.setProperty("--dot",v);store.set("dot",v);
