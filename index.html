@@ -46,15 +46,23 @@
   <section id="tab-list" class="panel">
     <div class="toolbar">
       <div class="seg" id="dataset"><button data-ds="nps">National (NPS)</button><button data-ds="ca">California State Parks</button></div>
-      <label class="dotctl"><input type="checkbox" id="editAll"> Edit names &amp; designations</label>
+      <button id="undo" type="button" title="Undo (Ctrl+Z)">↶ Undo</button><button id="redo" type="button" title="Redo (Ctrl+Y)">↷ Redo</button>
+      <button id="addRow" type="button">+ Add row</button><button id="delRows" type="button" title="Deletes selected custom rows you added">Delete row</button>
+      <button id="clearColFilters" type="button">Clear column filters</button>
       <button id="csv" type="button">Export CSV</button><button id="resetEdits" type="button">Reset edits</button>
       <span id="lcount" class="lcount"></span>
     </div>
-    <p class="hint">Click any Nearest City or Highlights cell to edit it. Visited and Year Last Visited are editable too; changes are saved in this browser.</p>
-    <div class="tablewrap"><table id="ltable" class="lt"><thead><tr>
-      <th data-k="name">Name</th><th data-k="d">Designation</th><th data-k="city">Nearest City / Community</th>
-      <th data-k="visited">Visited</th><th data-k="year">Year Last Visited</th><th data-k="hl">Highlights</th></tr></thead>
+    <p class="hint">Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Use the ▾ in a header to sort or filter.</p>
+    <div class="tablewrap" id="tablewrap" tabindex="0"><table id="ltable" class="lt"><thead><tr><th class="rn"></th>
+      <th data-k="name"><span class="ht">Name</span><button class="fbtn" type="button" aria-label="Filter Name">▾</button></th>
+      <th data-k="d"><span class="ht">Designation</span><button class="fbtn" type="button" aria-label="Filter Designation">▾</button></th>
+      <th data-k="city"><span class="ht">Nearest City / Community</span><button class="fbtn" type="button" aria-label="Filter city">▾</button></th>
+      <th data-k="state"><span class="ht">State</span><button class="fbtn" type="button" aria-label="Filter State">▾</button></th>
+      <th data-k="visited"><span class="ht">Visited</span><button class="fbtn" type="button" aria-label="Filter Visited">▾</button></th>
+      <th data-k="year"><span class="ht">Year Last Visited</span><button class="fbtn" type="button" aria-label="Filter Year">▾</button></th>
+      <th data-k="hl"><span class="ht">Highlights</span><button class="fbtn" type="button" aria-label="Filter Highlights">▾</button></th></tr></thead>
       <tbody id="lbody"></tbody></table></div>
+    <div id="colmenu" class="colmenu" hidden></div>
   </section>
 
   <section id="tab-map" class="panel">
