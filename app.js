@@ -130,14 +130,18 @@ const layers={
 };
 const views={lower48:[[24.5,-125],[49.5,-66.5]],ak:[[51,-170],[71.5,-129]],hi:[[18.8,-160.5],[22.4,-154.7]],terr:[[-15,-171],[19,-64]]};
 let markers=new Map(),group;
-const radius=()=>Math.max(3,(2+map.getZoom()*0.9)*dotScale);
+const radius=()=>Math.max(coarse?6:3,(2+map.getZoom()*0.9)*dotScale);
 const style=p=>({...(checked.has(p.id)?{fillColor:"#d32f2f",color:"#7f1414",fillOpacity:.95,weight:1.5}
                                 :{fillColor:"#9aa0a6",color:"#5f6368",fillOpacity:.85,weight:1.2}),dashArray:p.approx?"3 2":null,...(p.kind==="ca"?{color:checked.has(p.id)?"#7f1414":"#1b6d73",weight:2.5}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
-const tipHtml=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(p.title)}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
+const coarse=matchMedia("(pointer:coarse)").matches;
+const typeLine=p=>`<div class="tt">${esc(p.d||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`;
+const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(p.title)}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
+const tipFull=p=>tipName(p)+typeLine(p);
 function initMap(){
   if(map)return;
-  map=L.map("map",{minZoom:2,worldCopyJump:true,zoomSnap:.5});
+  map=L.map("map",{minZoom:2,worldCopyJump:true,zoomSnap:0,zoomDelta:.75,wheelPxPerZoomLevel:110,wheelDebounceTime:20,
+    touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true});
   const base=Object.fromEntries(Object.entries(layers).map(([k,f])=>[k,f()]));
   base[store.get("base","Esri Topographic")]?.addTo(map)||base["Esri Topographic"].addTo(map);
   L.control.layers(base,null,{position:"topright"}).addTo(map);
@@ -145,14 +149,19 @@ function initMap(){
   group=L.layerGroup().addTo(map);
   [...parks,...caParks].forEach(p=>{
     const m=L.circleMarker([p.lat,p.lng],{radius:6,...style(p)});
-    m.bindTooltip(tipHtml(p),{className:"lbl",interactive:true});
-    m.on("click",()=>toggle(p.id));   // click a dot to check / uncheck
+    m.bindTooltip(tipFull(p),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});
+    m.on("click",()=>{                 // desktop: click toggles; touch: tap opens a card
+      if(!coarse){toggle(p.id);return}
+      L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
+        `<strong>${esc(p.title)}</strong>${typeLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
+         <a href="${esc(infoUrl(p))}" target="_blank" rel="noopener">Info page ↗</a></div>`).openOn(map);});
     markers.set(p.id,m);
   });
   const RoseCtl=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","rose");d.id="roseEl";
     d.innerHTML='<svg viewBox="-50 -50 100 100"><circle r="47" fill="none" stroke="#22302a" stroke-width="1"/><path d="M0-42L7 0 0 42-7 0Z" fill="#fff" stroke="#22302a"/><path d="M-42 0L0-7 42 0 0 7Z" fill="#fff" stroke="#22302a"/><path d="M0-42L7 0-7 0Z" fill="#d32f2f"/><path d="M0 42L7 0-7 0Z" fill="#22302a"/><path d="M-30-30L0-4 30-30 4 0 30 30 0 4-30 30-4 0Z" fill="#9aa0a6" opacity=".55"/><text y="-44" text-anchor="middle" font-size="14" font-weight="700" fill="#22302a" transform="translate(0,-2)">N</text><text y="52" text-anchor="middle" font-size="10" fill="#22302a">S</text><text x="-50" y="4" font-size="10" fill="#22302a">W</text><text x="42" y="4" font-size="10" fill="#22302a">E</text></svg>';return d}});
   new RoseCtl({position:"bottomleft"}).addTo(map);
   ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
+  map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup()}});
   map.on("zoomend",restyle);
   map.fitBounds(views.lower48);
   applyLabels();$("#rose").onchange({target:$("#rose")});
@@ -176,8 +185,10 @@ function setMH(v){document.documentElement.style.setProperty("--mh",v);store.set
 $$("#msize button").forEach(b=>b.onclick=()=>setMH(b.dataset.h));
 $("#labels").onchange=e=>{store.set("labels",e.target.checked);applyLabels()};
 function applyLabels(){if(!map)return;const on=$("#labels").checked;
-  markers.forEach((m,id)=>{const t=tipHtml(byId.get(id));m.unbindTooltip();
-    m.bindTooltip(t,{className:"lbl",interactive:true,permanent:on,direction:"right",offset:[6,0]});});renderMap(mapList());}
+  markers.forEach((m,id)=>{const q=byId.get(id);m.unbindTooltip();m.off("mouseover mouseout");
+    if(on){m.bindTooltip(tipName(q),{className:"lbl",interactive:true,permanent:true,direction:"right",offset:[6,0]});
+      m.on("mouseover",()=>m.setTooltipContent(tipFull(q)));m.on("mouseout",()=>m.setTooltipContent(tipName(q)))}
+    else m.bindTooltip(tipFull(q),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});});renderMap(mapList());}
 $("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);refresh()};
 $("#rose").onchange=e=>{store.set("rose",e.target.checked);$("#roseEl")&&($("#roseEl").style.display=e.target.checked?"":"none")};
 
@@ -270,6 +281,7 @@ tbody.addEventListener("focusout",e=>{if(editing&&e.target===cell(editing.r,edit
 tbody.addEventListener("mousedown",e=>{
   const td=e.target.closest("td");if(!td||e.button!==0)return;const tr=td.parentElement,r=+tr.dataset.r;
   if(editing&&td===cell(editing.r,editing.c))return;if(editing)endEdit(true);
+  if(coarse&&td.dataset.c&&!td.classList.contains("rn")&&act.r===r&&act.c===+td.dataset.c&&!e.target.matches("input")&&sel.r0===sel.r1&&sel.c0===sel.c1){startEdit(r,+td.dataset.c);return}
   if(td.classList.contains("rn")){act={r,c:0};sel={r0:r,c0:0,r1:r,c1:COLS.length-1};if(e.shiftKey){sel.r0=Math.min(sel.r0,act.r)}applySel();wrap.focus();e.preventDefault();return}
   const c=+td.dataset.c;
   if(e.target.matches("input")){act={r,c};sel={r0:r,c0:c,r1:r,c1:c};return}
