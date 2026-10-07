@@ -38,7 +38,7 @@ const save=()=>store.set("checked",[...checked]);
 // ---------- filters (multi-select dropdowns with search) ----------
 const filt={q:"",st:new Set(),u:new Set(),d:new Set(["__NP63"]),v:new Set()};   // opens on the 63 national parks; "Clear filters" shows everything
 const msInstances=[];
-function multiSelect(root,label,options,set){
+function multiSelect(root,label,options,set,onPick){
   root.classList.add("ms");
   root.innerHTML=`<button type="button" class="ms-btn"><span class="ms-label"></span><span class="ms-badge" hidden></span><svg width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
   <div class="ms-panel" hidden><input type="search" class="ms-search" placeholder="Search ${label.toLowerCase()}…" aria-label="Search ${label}">
@@ -53,18 +53,18 @@ function multiSelect(root,label,options,set){
   }
   btn.onclick=e=>{e.stopPropagation();const open=panel.hidden;msInstances.forEach(m=>m.close());if(open){panel.hidden=false;root.classList.add("open");search.value="";draw();search.focus()}};
   panel.onclick=e=>e.stopPropagation();
-  list.onchange=e=>{const c=e.target;c.checked?set.add(c.value):set.delete(c.value);draw();refresh()};
+  list.onchange=e=>{const c=e.target;c.checked?set.add(c.value):set.delete(c.value);draw();refresh();onPick&&onPick()};
   search.oninput=draw;
   panel.querySelector(".ms-actions").onclick=e=>{const a=e.target.dataset.a;if(!a)return;
-    if(a==="all")shown().forEach(o=>set.add(o.value));else set.clear();draw();refresh()};
+    if(a==="all")shown().forEach(o=>set.add(o.value));else set.clear();draw();refresh();onPick&&onPick()};
   msInstances.push({close(){panel.hidden=true;root.classList.remove("open")},draw});
   draw();
 }
 document.addEventListener("click",()=>msInstances.forEach(m=>m.close()));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(m=>m.close())});
 const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
-multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st);
-multiSelect($("#fUnit"),"Park / unit",[...parks].sort((x,y)=>x.title.localeCompare(y.title)).map(p=>({value:p.code,text:p.title,n:p.d})),filt.u);
+multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st,()=>zoomToFilter());
+multiSelect($("#fUnit"),"Park / unit",[...parks].sort((x,y)=>x.title.localeCompare(y.title)).map(p=>({value:p.code,text:p.title,n:p.d})),filt.u,()=>zoomToFilter());
 multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the 63",n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
@@ -99,8 +99,8 @@ function showTab(t){
   if(t==="tlist")setDataset("trails");else if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
   if(grp==="trails"&&window.TrailsMap)window.TrailsMap.ensureLoaded();
   if(sec==="grid"){refreshOthers()}
-  if(t==="map"){mainView.init();setTimeout(()=>mainView.map.invalidateSize(),60)}
-  if(t==="trails"){trailsView.init();setTimeout(()=>trailsView.map.invalidateSize(),60);window.TrailsMap&&window.TrailsMap.show()}
+  if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
+  if(t==="trails"){trailsView.init();setTimeout(()=>{trailsView.map.invalidateSize();zoomToFilter(true)},80);window.TrailsMap&&window.TrailsMap.show()}
   if(t==="about")renderEditsPanel();
   store.set("tab",t);
 }
@@ -153,7 +153,7 @@ function renderGrid(list){
       <div class="meta">${esc(fld(p,"d"))}</div>
       <div class="meta">${esc(fld(p,"city"))}${fld(p,"state")?" · "+esc(fld(p,"state")):""}</div>
       ${fld(p,"year")?`<div class="meta yr">Last hiked ${esc(fld(p,"year"))}</div>`:""}
-      <p>${esc(fld(p,"hl"))}</p></div></article>`).join("")+(list.length>shown.length?`<p class="gridmsg">Showing the first ${shown.length.toLocaleString()} of ${list.length.toLocaleString()} trails. Narrow with the taskbar filters.</p>`:"");
+      <p>${esc(fld(p,"hl"))}</p><button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("")+(list.length>shown.length?`<p class="gridmsg">Showing the first ${shown.length.toLocaleString()} of ${list.length.toLocaleString()} trails. Narrow with the taskbar filters.</p>`:"");
     return;
   }
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
@@ -161,9 +161,9 @@ function renderGrid(list){
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
     <div class="body"><h3><a href="${esc(p.url||infoUrl(p))}" target="_blank" rel="noopener">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
     <div class="meta">${esc(fld(p,"d"))} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
-    ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}</div></article>`).join("");
+    ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}<button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("");
 }
-$("#grid").onclick=e=>{const o=e.target.closest("a[data-open]");if(o){e.preventDefault();window.TrailsMap&&window.TrailsMap.openInfo(o.dataset.open);return}const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
+$("#grid").onclick=e=>{const mb=e.target.closest("[data-map]");if(mb){focusOnMap(mb.dataset.map);return}const o=e.target.closest("a[data-open]");if(o){e.preventDefault();window.TrailsMap&&window.TrailsMap.openInfo(o.dataset.open);return}const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
 $("#grid").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){const d=e.target.closest(".dot");if(d){e.preventDefault();toggle(d.closest(".card").dataset.id)}}};
 
 // ---------- visited list ----------
@@ -230,7 +230,7 @@ function createMapView(c){
   const radius=()=>Math.max(coarse?6:3,(2+V.map.getZoom()*0.9)*dotScale);
   function addVectors(map){
     const G=window.GEO||{};
-    map.createPane("water").style.zIndex=250;map.createPane("lines").style.zIndex=260;map.createPane("place").style.zIndex=270;
+    map.createPane("water").style.zIndex=250;map.createPane("lines").style.zIndex=260;map.createPane("place").style.zIndex=410;
     const water=L.canvas({pane:"water",padding:.4}),lines=L.canvas({pane:"lines",padding:.4});
     if(G.lakes)L.geoJSON(G.lakes,{pane:"water",renderer:water,interactive:false,style:{fillColor:"#c4dae6",fillOpacity:1,color:"#9dc0d3",weight:.7}}).addTo(map);
     const rivers=G.rivers&&L.geoJSON(G.rivers,{pane:"water",renderer:water,interactive:false,style:{color:"#9fc6da",weight:1,opacity:.95}}).addTo(map);
@@ -239,8 +239,11 @@ function createMapView(c){
       L.geoJSON(mesh,{pane:"lines",renderer:lines,interactive:false,style:{color:"#3c5d50",weight:1,opacity:.6,dashArray:"5 3"}}).addTo(map);
     }
     if(G.borders)L.geoJSON(G.borders,{pane:"lines",renderer:lines,interactive:false,style:{color:"#27423a",weight:1.5,opacity:.8}}).addTo(map);
-    const stLabels=(G.stateLabels||[]).filter(s=>!/^(Commonwealth|United States Virgin)/.test(s[0])).map(s=>L.marker([s[2],s[1]],{pane:"place",interactive:false,keyboard:false,
-      icon:L.divIcon({className:"stlab",html:s[0],iconSize:[0,0]})}));
+    const stBounds={};
+    if(G.statesTopo&&window.topojson)topojson.feature(G.statesTopo,G.statesTopo.objects.states).features.forEach(f=>{stBounds[f.properties.name]=L.geoJSON(f).getBounds()});
+    const stLabels=(G.stateLabels||[]).filter(s=>!/^(Commonwealth|United States Virgin)/.test(s[0])).map(s=>{
+      const m=L.marker([s[2],s[1]],{pane:"place",interactive:true,keyboard:false,title:"Zoom to "+s[0],icon:L.divIcon({className:"stlab click",html:s[0],iconSize:[0,0]})});
+      m.on("click",e=>{L.DomEvent.stopPropagation(e);const b=stBounds[s[0]];if(b)map.flyToBounds(b,{maxZoom:7.5,padding:[40,40],duration:.8})});return m});
     const cities=(G.cities||[]).map(q=>({pop:q[3],m:L.marker([q[2],q[1]],{pane:"place",interactive:false,keyboard:false,icon:L.divIcon({className:"city",html:`<i></i><span>${esc(q[0])}</span>`,iconSize:[0,0]})})}));
     const stG=L.layerGroup(stLabels),ctG=L.layerGroup();
     function update(){
@@ -252,7 +255,7 @@ function createMapView(c){
     map.on("zoomend",update);V.updatePlaceLabels=update;update();
   }
   // Hover card: sits above the dot, stays open while the pointer is on it, and lingers ~1.2 s after leaving so links are easy to reach.
-  const hoverHtml=p=>tipFull(p)+nearLine(p)+`<div class="pp mini"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited · undo":"Mark visited"}</button></div>`;
+  const hoverHtml=p=>tipFull(p)+nearLine(p)+`<div class="pp mini"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited · undo":"Mark visited"}</button><button type="button" class="alt" data-zoom="${esc(p.id)}">Zoom here</button></div>`;
   function showHover(p,m){
     if(el("labels").checked)return;
     clearTimeout(V.hoverTimer);
@@ -295,7 +298,7 @@ function createMapView(c){
     const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
     new Legend({position:"bottomright"}).addTo(map);
     ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
-    map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
+    map.getContainer().addEventListener("click",e=>{const z=e.target.closest(".pp button[data-zoom]");if(z){const p=byId.get(z.dataset.zoom);if(p)map.flyTo([p.lat,p.lng],Math.max(map.getZoom(),10),{duration:.8});return}const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
     setupZoomInput(map);
     map.on("zoomend",V.restyle);
     map.fitBounds(VIEW_BOUNDS[store.get(K("view"),"lower48")]||VIEW_BOUNDS.lower48);
@@ -304,6 +307,10 @@ function createMapView(c){
     V.render();
     return map;
   };
+  V.fitPoints=(pts,opt={})=>{V.init();if(!pts.length)return;const bb=L.latLngBounds(pts);
+    const max=opt.maxZoom||(pts.length===1?10:8);
+    opt.instant?V.map.fitBounds(bb,{maxZoom:max,padding:[60,60],animate:false}):V.map.flyToBounds(bb,{maxZoom:max,padding:[60,60],duration:.9})};
+  V.focus=p=>{V.init();V.map.flyTo([p.lat,p.lng],10,{duration:.9});const m=V.markers.get(p.id);if(m&&!coarse)setTimeout(()=>showHover(p,m),1000)};
   V.onReady=f=>{V.map?f(V.map):V.readyCbs.push(f)};
   V.restyle=()=>{if(!V.map)return;V.markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())})};
   V.render=()=>{
@@ -337,6 +344,20 @@ function createMapView(c){
 const mainView=createMapView({el:"map",global:"parksMap",key:"",ctl:{labels:"#labels",ca:"#showCA",stn:"#stnames",cities:"#citynames",rose:"#rose",jump:"#jump"}});
 const trailsView=createMapView({el:"tmap",global:"trailsMap",key:"t_",ctl:{labels:"#t_labels",ca:"#t_showCA",stn:"#t_stnames",cities:"#t_citynames",rose:"#t_rose",jump:"#t_jump"}});
 function refreshTips(ids){mapViews.forEach(v=>v.refreshTips(ids))}
+// picking a state or park in the taskbar flies the open map to that place
+function zoomToFilter(instant){
+  const v=currentTab==="map"?mainView:currentTab==="trails"?trailsView:null;if(!v||!v.map)return;
+  if(!filt.u.size&&!filt.st.size){if(!instant)v.fly();return}
+  const pts=visible().map(p=>[p.lat,p.lng]);if(!pts.length)return;
+  v.fitPoints(pts,{instant,maxZoom:filt.u.size&&pts.length<=3?10:8});
+}
+// "show this on the map" from cards and the list
+function focusOnMap(id){
+  const p=byId.get(id);if(!p)return;
+  if(p.kind==="trail"){window.TrailsMap&&window.TrailsMap.showOnMap(p);return}
+  if(p.kind==="ca"&&!showCA){showCA=true;store.set("showCA",true);syncCAChecks();refresh()}
+  showTab("map");setTimeout(()=>mainView.focus(p),120);
+}
 function syncCAChecks(){mapViews.forEach(v=>{v.cfg&&$(v.cfg.ctl.ca)&&($(v.cfg.ctl.ca).checked=showCA)});document.body.classList.toggle("show-ca",showCA)}
 
 // ---------- list format (Google-Sheets-style grid) ----------
@@ -594,6 +615,9 @@ function setDataset(d){
   if(was!==d){colFilt={};hist=[];redoS=[]}
   renderList()}
 $$("#dataset button").forEach(b=>b.onclick=()=>setDataset(b.dataset.ds));
+$("#mapSel").onclick=()=>{const {r0,r1}=rect(),sel=rows.slice(r0,r1+1).filter(p=>p&&p.lat);if(!sel.length)return;
+  if(sel.length===1){focusOnMap(sel[0].id);return}
+  const trails=sel[0].kind==="trail";showTab(trails?"trails":"map");setTimeout(()=>(trails?trailsView:mainView).fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
 $("#undo").onclick=undo;$("#redo").onclick=redo;
 $("#addRow").onclick=()=>{
   const r={id:"X:"+Date.now().toString(36),ds:dataset};customRows.push(r);byId.set(r.id,mkCustom(r));saveCustom();

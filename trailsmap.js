@@ -294,7 +294,8 @@ wireBridge();
 window.TrailsMap={
   ensureLoaded(){wireBridge();if(!B)return Promise.resolve();lastKey=currentUnits().join(",");return ensureLoaded()},
   show(){wireBridge();init();if(ready){setTimeout(()=>{map.invalidateSize()},60);lastKey=currentUnits().join(",");ensureLoaded().then(()=>schedule(100))}},
-  openInfo:id=>{wireBridge();openInfo(id)}
+  openInfo:id=>{wireBridge();openInfo(id)},
+  showOnMap:rec=>{wireBridge();showOnMap(rec)}
 };
 // the page may have opened straight onto a trails tab (before this file existed)
 if(B){const t0=B.tab();if(t0==="trails")window.TrailsMap.show();else if(t0==="tgrid"||t0==="tlist")window.TrailsMap.ensureLoaded()}
