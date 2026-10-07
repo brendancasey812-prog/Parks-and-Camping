@@ -52,10 +52,10 @@
       <button id="addRow" type="button">+ Add row</button><button id="delRows" type="button" title="Deletes selected custom rows you added">Delete row</button>
       <button id="clearColFilters" type="button">Clear column filters</button>
       <label class="dotctl"><input type="checkbox" id="onlyEdited"> Edited only</label><button id="revert" type="button" title="Put selected cells back to the official value">Revert to official</button>
-      <button id="csv" type="button">Export CSV</button><button id="resetEdits" type="button">Reset edits</button>
+      <button id="resetCols" type="button" title="Drag any column header to move it">Reset columns</button><button id="csv" type="button">Export CSV</button><button id="resetEdits" type="button">Reset edits</button>
       <span id="lcount" class="lcount"></span>
     </div>
-    <p class="hint">Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Use the ▾ in a header to sort or filter.</p>
+    <p class="hint">Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Drag a column header to move it. Use the ▾ in a header to sort or filter.</p>
     <div class="tablewrap" id="tablewrap" tabindex="0"><table id="ltable" class="lt"><thead><tr><th class="rn"></th>
       <th data-k="name"><span class="ht">Name</span><button class="fbtn" type="button" aria-label="Filter Name">▾</button></th>
       <th data-k="d"><span class="ht">Designation</span><button class="fbtn" type="button" aria-label="Filter Designation">▾</button></th>

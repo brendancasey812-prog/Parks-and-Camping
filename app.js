@@ -281,7 +281,7 @@ customRows.forEach(r=>byId.set(r.id,mkCustom(r)));
 const cellVal=(p,k)=>k==="visited"?(checked.has(p.id)?"TRUE":"FALSE"):String(fld(p,k)??"");
 const baseSrc=()=>(dataset==="ca"?caParks:parks).concat(customRows.filter(r=>r.ds===dataset).map(r=>byId.get(r.id)));
 let onlyEdited=false, colFilt={}, rows=[], sel={r0:0,c0:0,r1:0,c1:0}, act={r:0,c:0}, editing=null, hist=[], redoS=[], dragging=false;
-const VIS=COLS.findIndex(c=>c.k==="visited");
+const visIdx=()=>COLS.findIndex(c=>c.k==="visited");
 const wrap=$("#tablewrap"), tbody=$("#lbody");
 
 function computeRows(){
@@ -302,7 +302,7 @@ function renderList(keep){
   tbody.innerHTML=rows.map((p,r)=>`<tr data-r="${r}"><td class="rn">${r+1}</td>`+COLS.map((c,ci)=>{
     const v=cellVal(p,c.k);
     const ed=isEdited(p,c.k);
-    return `<td data-c="${ci}" class="${ci===0?"nm ":""}${c.k==="visited"||c.k==="year"?"c":""}${ed?" edited":""}"${ed?` title="Official: ${esc(official(p,c.k)||"(blank)")}"`:""}>`+(c.k==="visited"?`<input type="checkbox" tabindex="-1" ${v==="TRUE"?"checked":""} aria-label="Visited">`:esc(v))+"</td>"}).join("")+"</tr>").join("");
+    return `<td data-c="${ci}" class="k-${c.k} ${ci===0?"nm ":""}${c.k==="visited"||c.k==="year"?"c":""}${ed?" edited":""}"${ed?` title="Official: ${esc(official(p,c.k)||"(blank)")}"`:""}>`+(c.k==="visited"?`<input type="checkbox" tabindex="-1" ${v==="TRUE"?"checked":""} aria-label="Visited">`:esc(v))+"</td>"}).join("")+"</tr>").join("");
   if(!keep){sel={r0:0,c0:0,r1:0,c1:0};act={r:0,c:0}}
   clampSel();applySel();
 }
@@ -374,7 +374,7 @@ document.addEventListener("mouseup",()=>{dragging=false});
 tbody.addEventListener("dblclick",e=>{const td=e.target.closest("td[data-c]");if(td&&!e.target.matches("input"))startEdit(+td.parentElement.dataset.r,+td.dataset.c)});
 tbody.addEventListener("click",e=>{ // checkbox in the Visited column
   if(!e.target.matches("input[type=checkbox]"))return;const td=e.target.closest("td");const r=+td.parentElement.dataset.r;
-  const b=[];setCell(r,VIS,e.target.checked?"TRUE":"FALSE",b);finish(b);});
+  const b=[];setCell(r,visIdx(),e.target.checked?"TRUE":"FALSE",b);finish(b);});
 
 // ----- keyboard
 function move(dr,dc,ext){
@@ -454,12 +454,50 @@ function openMenu(k,btn){
   menu.querySelector(".cm-text").focus();
 }
 $("#ltable thead").addEventListener("click",e=>{
-  const th=e.target.closest("th[data-k]");if(!th)return;e.stopPropagation();const k=th.dataset.k;
+  const th=e.target.closest("th[data-k]");if(!th||justDragged)return;e.stopPropagation();const k=th.dataset.k;
   if(e.target.closest(".fbtn")){menuK===k?closeMenu():openMenu(k,e.target.closest(".fbtn"))}
   else{sortDir=sortKey===k?-sortDir:1;sortKey=k;renderList(true)}});
 document.addEventListener("click",e=>{if(!menu.hidden&&!menu.contains(e.target))closeMenu()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 $("#clearColFilters").onclick=()=>{colFilt={};renderList(true)};
+
+
+// ----- drag headers to reorder columns (mouse, trackpad and touch)
+const DEFAULT_ORDER=COLS.map(c=>c.k);
+function applyColOrder(order){
+  const want=(order||[]).filter(k=>DEFAULT_ORDER.includes(k));DEFAULT_ORDER.forEach(k=>{if(!want.includes(k))want.push(k)});
+  const byKey=Object.fromEntries(COLS.map(c=>[c.k,c]));COLS.splice(0,COLS.length,...want.map(k=>byKey[k]));
+  const tr=$("#ltable thead tr");want.forEach(k=>tr.appendChild(tr.querySelector(`th[data-k="${k}"]`)));
+}
+applyColOrder(store.get("colOrder",null));
+$("#resetCols").onclick=()=>{store.set("colOrder",null);applyColOrder(DEFAULT_ORDER);colFilt={...colFilt};renderList(false)};
+let drag=null,justDragged=false;
+$("#ltable thead").addEventListener("pointerdown",e=>{
+  const th=e.target.closest("th[data-k]");if(!th||e.target.closest(".fbtn")||e.button>0)return;
+  drag={k:th.dataset.k,th,x:e.clientX,y:e.clientY,on:false,id:e.pointerId};
+});
+document.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  if(!drag.on){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<7)return;
+    drag.on=true;drag.th.classList.add("dragging");document.body.classList.add("col-dragging");
+    drag.ghost=document.createElement("div");drag.ghost.className="colghost";drag.ghost.textContent=drag.th.querySelector(".ht").textContent;document.body.appendChild(drag.ghost);
+    drag.mark=document.createElement("div");drag.mark.className="colmark";wrap.appendChild(drag.mark)}
+  drag.ghost.style.left=e.clientX+12+"px";drag.ghost.style.top=e.clientY+12+"px";
+  const over=document.elementsFromPoint(e.clientX,e.clientY).find(n=>n.matches&&n.matches("#ltable th[data-k]"));
+  if(over&&over!==drag.th){const r=over.getBoundingClientRect(),after=e.clientX>r.left+r.width/2;drag.target=over.dataset.k;drag.after=after;
+    const w=wrap.getBoundingClientRect();drag.mark.style.display="block";drag.mark.style.left=(after?r.right:r.left)-w.left+wrap.scrollLeft-1+"px";drag.mark.style.height=wrap.clientHeight+"px";drag.mark.style.top=wrap.scrollTop+"px"}
+  else{drag.target=null;if(drag.mark)drag.mark.style.display="none"}
+  // keep the pointer in reach: auto-scroll when near the edges
+  const w=wrap.getBoundingClientRect();if(e.clientX>w.right-50)wrap.scrollLeft+=14;else if(e.clientX<w.left+50)wrap.scrollLeft-=14;
+});
+document.addEventListener("pointerup",()=>{
+  if(!drag)return;const d=drag;drag=null;
+  if(!d.on)return;
+  d.th.classList.remove("dragging");document.body.classList.remove("col-dragging");d.ghost.remove();d.mark.remove();justDragged=true;setTimeout(()=>justDragged=false,0);
+  if(!d.target||d.target===d.k)return;
+  const order=COLS.map(c=>c.k).filter(k=>k!==d.k);let i=order.indexOf(d.target);if(d.after)i++;order.splice(i,0,d.k);
+  store.set("colOrder",order);applyColOrder(order);renderList(false);
+});
 
 // ----- toolbar
 function setDataset(d){dataset=d;store.set("dataset",d);$$("#dataset button").forEach(b=>b.classList.toggle("on",b.dataset.ds===d));colFilt={};hist=[];redoS=[];renderList()}
