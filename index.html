@@ -92,6 +92,7 @@
       <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
       <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="labels"> Names</label>
       <label class="dotctl" title="Off by default"><input type="checkbox" id="showCA"> California State Parks</label>
+      <label class="dotctl" title="NPS trails, loaded live for the area you are looking at (zoom in)"><input type="checkbox" id="trails"> Trails</label>
       <label class="dotctl"><input type="checkbox" id="stnames" checked> State names</label>
       <label class="dotctl"><input type="checkbox" id="citynames" checked> Cities</label>
       <label class="dotctl"><input type="checkbox" id="rose" checked> Compass</label>
@@ -124,7 +125,7 @@
       <p>Internal reference for NPS units. Checks are saved in this browser only.</p>
       <p>Unit names, designations, states and park codes come from the NPS_Park_Units spreadsheet (475 units; Sequoia and Kings Canyon are shown as two parks). Map coordinates are approximate, and units marked with a dashed dot are placed near their state center. Verify against
       <a href="https://www.nps.gov/findapark/index.htm" target="_blank" rel="noopener">nps.gov/findapark</a>.</p>
-      <p>Basemap: shaded relief rendered from AWS Terrain Tiles (NASA SRTM, USGS 3DEP, GEBCO), with Natural Earth and US Census boundaries. It ships with the site, so the map loads without any outside map service.</p>
+      <p>Trails (optional layer) come live from the NPS Public Trails service. Basemap: shaded relief rendered from AWS Terrain Tiles (NASA SRTM, USGS 3DEP, GEBCO), with Natural Earth and US Census boundaries. It ships with the site, so the map loads without any outside map service.</p>
     </div>
   </section>
 </main>

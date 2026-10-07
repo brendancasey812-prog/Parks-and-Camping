@@ -220,3 +220,6 @@ body:not(.show-ca) .lg-ca{display:none}
 .hamb-menu kbd{margin-left:auto;font:500 .68rem var(--font-body);color:var(--muted)}
 .hamb-menu .danger{color:#b3261e}.hamb-menu .danger b{background:#fbdcd9;color:#b3261e}
 .hm-check input{accent-color:var(--pine);margin:0}.hm-check input{order:3;margin-left:auto}
+
+.trailnote{margin:10px 10px 0 0!important;padding:.35rem .8rem;border-radius:999px;font:600 11.5px var(--font-body);color:var(--glass-ink);background:var(--glass);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 6px 18px -6px rgba(6,32,24,.45),inset 0 0 0 1px var(--glass-line)}
+.trailnote[hidden]{display:none}

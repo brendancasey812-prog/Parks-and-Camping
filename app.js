@@ -195,6 +195,35 @@ function showHover(p,m){
   if(!map.hasLayer(hoverCard))hoverCard.addTo(map);
 }
 function hideHover(delay){clearTimeout(hoverTimer);hoverTimer=setTimeout(()=>{if(hoverCard&&map.hasLayer(hoverCard))map.removeLayer(hoverCard);hoverId=null},delay)}
+
+// ---------- NPS trails (loaded live for the visible area; off by default) ----------
+const TRAILS_URL="https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/MapServer/0/query";
+function setupTrails(){
+  const on=()=>$("#trails").checked;
+  const Note=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","trailnote");d.hidden=true;this.el=d;return d}});
+  const note=new Note({position:"topright"}).addTo(map);
+  const say=t=>{note.el.hidden=!t;note.el.textContent=t||""};
+  const group=L.layerGroup().addTo(map),rend=L.canvas({pane:"lines",padding:.3});let ctrl=null,timer=0;
+  async function load(){
+    ctrl&&ctrl.abort();group.clearLayers();
+    if(!on()){say("");return}
+    const z=map.getZoom();if(z<9.5){say("Zoom in to see NPS trails");return}
+    const b=map.getBounds().pad(.1);ctrl=new AbortController();say("Loading trails…");
+    const url=TRAILS_URL+"?"+new URLSearchParams({where:"1=1",geometry:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(","),geometryType:"esriGeometryEnvelope",inSR:"4326",outSR:"4326",
+      spatialRel:"esriSpatialRelIntersects",outFields:"*",returnGeometry:"true",maxAllowableOffset:String(360/(512*2**z)),resultRecordCount:"2000",f:"geojson"});
+    try{
+      const r=await fetch(url,{signal:ctrl.signal});if(!r.ok)throw new Error("HTTP "+r.status);
+      const g=await r.json(),n=(g.features||[]).length;
+      L.geoJSON(g,{pane:"lines",renderer:rend,style:{color:"#8a4b14",weight:z>12?2.4:1.8,opacity:.92},
+        onEachFeature:(f,l)=>{const p=f.properties||{};const nm=p.TRLNAME||p.TrailName||p.NAME||"Trail";const unit=p.UNITNAME||p.UNITCODE||"";
+          l.bindTooltip(`<b>${esc(nm)}</b>`+(unit?`<div class="tt">${esc(unit)}</div>`:""),{className:"lbl",sticky:true})}}).addTo(group);
+      say(g.exceededTransferLimit||n>=2000?"Showing the first 2,000 trail segments here · zoom in for the rest":`${n} trail segment${n===1?"":"s"} in view`);
+    }catch(e){if(e.name!=="AbortError")say("NPS trails are unavailable right now")}
+  }
+  map.on("moveend",()=>{clearTimeout(timer);timer=setTimeout(load,350)});
+  $("#trails").onchange=e=>{store.set("trails",e.target.checked);load()};
+  load();
+}
 function initMap(){
   if(map)return;
   map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,scrollWheelZoom:false,
@@ -203,6 +232,7 @@ function initMap(){
   new LocalTiles({tileSize:512,minZoom:2,maxZoom:13,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
     attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
   addVectors();
+  setupTrails();
   group=L.layerGroup().addTo(map);
   [...parks,...caParks].forEach(p=>{
     const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
@@ -581,7 +611,7 @@ $("#export").onclick=()=>{
 };
 $("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save();refresh()}};
 
-$("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);$("#stnames").checked=store.get("stnames",true);$("#citynames").checked=store.get("citynames",true);
+$("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);$("#trails").checked=store.get("trails",false);$("#stnames").checked=store.get("stnames",true);$("#citynames").checked=store.get("citynames",true);
 $("#showCA").checked=showCA;document.body.classList.toggle("show-ca",showCA);setDataset(dataset);
 {const zs=$("#zoomSens"),zo=$("#zoomSensOut"),names=["gentle","relaxed","balanced","quick","very fast"];
   const show=()=>{zo.textContent=zs.value+" · "+names[zs.value-1]};zs.value=clamp(+store.get("zoomSens",4),1,5);show();zs.oninput=()=>{store.set("zoomSens",+zs.value);show()}}
