@@ -179,3 +179,5 @@ body:not(.show-ca) .lg-ca{display:none}
 #tab-map .dotctl input[type=checkbox]{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 #tab-map .dotctl:has(input:checked){background:var(--pine);border-color:var(--pine);color:#fff}
 #tab-map .dotctl:has(input:focus-visible){outline:2px solid var(--teal);outline-offset:2px}
+/* state names: bold black with a crisp white outline */
+.stlab{font:800 11px var(--font-body);letter-spacing:.16em;color:#000;opacity:1;paint-order:stroke fill;-webkit-text-stroke:3.5px rgba(255,255,255,.9);text-shadow:none}
