@@ -113,7 +113,7 @@ function renderGrid(list){
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
     <div class="body"><h3><a href="${esc(p.url||infoUrl(p))}" target="_blank" rel="noopener">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
     <div class="meta">${esc(fld(p,"d"))} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
-    ${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}</div></article>`).join("");
+    ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}</div></article>`).join("");
 }
 $("#grid").onclick=e=>{const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
 $("#grid").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){const d=e.target.closest(".dot");if(d){e.preventDefault();toggle(d.closest(".card").dataset.id)}}};
@@ -122,7 +122,7 @@ $("#grid").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){const d=e.target.close
 function renderVisited(){
   const list=[...parks,...caParks].filter(p=>checked.has(p.id));
   $("#vcount").textContent=`${list.length} checked`;
-  $("#vlist").innerHTML=list.map(p=>`<li data-id="${p.id}"><span class="dot on" style="cursor:pointer"></span>${esc(disp(p))}</li>`).join("")||"<li>Nothing checked yet.</li>";
+  $("#vlist").innerHTML=list.map(p=>`<li data-id="${p.id}"><span class="dot on" style="cursor:pointer"></span>${esc(disp(p))}${fld(p,"year")?` <small class="yrs">· ${esc(fld(p,"year"))}</small>`:""}</li>`).join("")||"<li>Nothing checked yet.</li>";
 }
 $("#vlist").onclick=e=>{const li=e.target.closest("li[data-id]");if(li&&e.target.closest(".dot"))toggle(li.dataset.id)};
 
@@ -289,7 +289,8 @@ function computeRows(){
   for(const k in colFilt){const f=colFilt[k];if(!f)continue;const t=f.text.trim().toLowerCase();
     l=l.filter(p=>{const v=cellVal(p,k);return (!f.vals||f.vals.has(v))&&(!t||v.toLowerCase().includes(t))})}
   if(onlyEdited)l=l.filter(p=>COLS.some(c=>isEdited(p,c.k)));
-  const g=p=>sortKey==="year"?(+cellVal(p,"year")||0):cellVal(p,sortKey).toLowerCase();
+  const yr=s=>Math.max(0,...(String(s).match(/\b(?:18|19|20)\d\d\b/g)||[0]).map(Number));
+  const g=p=>sortKey==="year"?yr(cellVal(p,"year")):cellVal(p,sortKey).toLowerCase();
   return l.sort((x,y)=>{const A=g(x),B=g(y);return (A>B?1:A<B?-1:0)*sortDir});
 }
 function renderList(keep){
@@ -330,7 +331,7 @@ function put(p,k,val){
 function setCell(r,c,val,batch){
   const p=rows[r];if(!p)return;const k=COLS[c].k;let v=String(val).replace(/\s+/g," ").trim();
   if(k==="visited")v=/^(true|yes|1|x|✓)$/i.test(v)?"TRUE":"FALSE";
-  if(k==="year"&&v&&!/^\d{4}$/.test(v))return;
+  if(k==="year"&&v.length>40)return;                       // free text is fine: "2019", "2019, 2022", "Summer 2021"
   const old=cellVal(p,k);if(old===v)return;
   put(p,k,v);batch.push({id:p.id,k,old,val:v});
   const td=cell(r,c);if(td){if(k==="visited")td.querySelector("input").checked=v==="TRUE";else{td.textContent=v;const ed=isEdited(p,k);td.classList.toggle("edited",ed);if(ed)td.title="Official: "+(official(p,k)||"(blank)");else td.removeAttribute("title")}}
