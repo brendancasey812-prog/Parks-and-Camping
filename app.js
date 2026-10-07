@@ -26,6 +26,10 @@ const DESIG=[...new Set([...parks,...caParks].map(p=>p.d))].sort();
 let edits=store.get("edits",{});
 const saveEdits=()=>store.set("edits",edits);
 const fld=(p,k)=>(edits[p.id]&&edits[p.id][k]!==undefined)?edits[p.id][k]:(k==="year"?"":k==="name"?p.name:k==="d"?p.d:p[k]);
+const official=(p,k)=>k==="name"?p.name:k==="d"?p.d:k==="year"?"":(p[k]??"");
+const isEdited=(p,k)=>k!=="visited"&&String(fld(p,k)??"")!==String(official(p,k));
+const disp=p=>(edits[p.id]&&edits[p.id].name)?edits[p.id].name:p.title;     // name shown on cards, map and visited list
+const pstates=p=>{const e=edits[p.id]&&edits[p.id].state;return e?[...new Set(p.states.concat(String(e).split(/\s*[\/,]\s*/).filter(Boolean)))]:p.states};
 let showCA=store.get("showCA",false);
 
 let checked=new Set(store.get("checked",[]));
@@ -64,8 +68,8 @@ multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
-  return src.filter(p=>(!q||(fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+p.code+" "+p.states.join(" ")).toLowerCase().includes(q))
-    &&(!filt.st.size||p.states.some(s=>filt.st.has(s)))&&(!filt.d.size||filt.d.has(p.d)||(filt.d.has("__NP63")&&p.np63))
+  return src.filter(p=>(!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
+    &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))&&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))
     &&(!filt.v.size||filt.v.has(checked.has(p.id)?"1":"0")));
 }
 $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
@@ -77,7 +81,9 @@ function showTab(t){
   $$(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".panel").forEach(p=>p.classList.toggle("active",p.id==="tab-"+t));
   $("#filters").style.display=t==="about"?"none":"";
-  if(t==="map"){initMap();setTimeout(()=>map.invalidateSize(),50)}
+  document.body.classList.toggle("map-mode",t==="map");
+  if(t==="map"){initMap();setTimeout(()=>map.invalidateSize(),60)}
+  if(t==="about")renderEditsPanel();
   store.set("tab",t);
 }
 $$(".tab").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -105,8 +111,8 @@ function renderGrid(list){
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
     <div class="banner" style="--h1:hsl(${hue(p)},48%,14%);--h2:hsl(${hue(p)+10},40%,30%)">
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
-    <div class="body"><h3><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></h3>
-    <div class="meta">${p.d} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
+    <div class="body"><h3><a href="${esc(p.url||infoUrl(p))}" target="_blank" rel="noopener">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
+    <div class="meta">${esc(fld(p,"d"))} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
     ${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}</div></article>`).join("");
 }
 $("#grid").onclick=e=>{const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
@@ -116,44 +122,81 @@ $("#grid").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){const d=e.target.close
 function renderVisited(){
   const list=[...parks,...caParks].filter(p=>checked.has(p.id));
   $("#vcount").textContent=`${list.length} checked`;
-  $("#vlist").innerHTML=list.map(p=>`<li data-id="${p.id}"><span class="dot on" style="cursor:pointer"></span>${p.title}</li>`).join("")||"<li>Nothing checked yet.</li>";
+  $("#vlist").innerHTML=list.map(p=>`<li data-id="${p.id}"><span class="dot on" style="cursor:pointer"></span>${esc(disp(p))}</li>`).join("")||"<li>Nothing checked yet.</li>";
 }
 $("#vlist").onclick=e=>{const li=e.target.closest("li[data-id]");if(li&&e.target.closest(".dot"))toggle(li.dataset.id)};
 
-// ---------- map ----------
-const layers={
- "Esri Topographic":()=>L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri, USGS, NOAA, HERE, Garmin, OpenStreetMap contributors"}),
- "USGS Topo":()=>L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",{maxZoom:16,attribution:"Map data: USGS The National Map"}),
- "USGS Shaded Relief":()=>L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}",{maxZoom:16,attribution:"Map data: USGS The National Map"}),
- "Esri Shaded Relief":()=>L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",{maxZoom:13,attribution:"Tiles © Esri"}),
- "OpenTopoMap":()=>L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{maxZoom:17,attribution:"© OpenTopoMap (CC-BY-SA), OpenStreetMap contributors, SRTM"})
-};
-const views={lower48:[[24.5,-125],[49.5,-66.5]],ak:[[51,-170],[71.5,-129]],hi:[[18.8,-160.5],[22.4,-154.7]],terr:[[-15,-171],[19,-64]]};
-let markers=new Map(),group;
+// ---------- map (self-hosted terrain tiles + vector overlays; no external services) ----------
+const views={lower48:[[24.5,-125.5],[49.8,-66]],ak:[[51,-170],[71.8,-129]],hi:[[18.8,-160.6],[22.4,-154.6]],terr:[[-15,-171.5],[19.5,-64]]};
+let markers=new Map(),group,roseCtl;
+const coarse=matchMedia("(pointer:coarse)").matches;
 const radius=()=>Math.max(coarse?6:3,(2+map.getZoom()*0.9)*dotScale);
 const style=p=>({...(checked.has(p.id)?{fillColor:"#d32f2f",color:"#7f1414",fillOpacity:.95,weight:1.5}
                                 :{fillColor:"#9aa0a6",color:"#5f6368",fillOpacity:.85,weight:1.2}),dashArray:p.approx?"3 2":null,...(p.kind==="ca"?{color:checked.has(p.id)?"#7f1414":"#1b6d73",weight:2.5}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
-const coarse=matchMedia("(pointer:coarse)").matches;
-const typeLine=p=>`<div class="tt">${esc(p.d||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`;
-const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(p.title)}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
+const typeLine=p=>`<div class="tt">${esc(fld(p,"d")||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`+(isEdited(p,"name")?`<div class="tt ed2">Official name: ${esc(p.title)}</div>`:"");
+const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(disp(p))}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
 const tipFull=p=>tipName(p)+typeLine(p);
+
+// 512px tiles pre-rendered from NASA/USGS elevation data and shipped with the site. Missing tiles fall back to a scaled parent tile.
+const LocalTiles=L.GridLayer.extend({
+  createTile(coords,done){
+    const size=this.getTileSize(),tile=document.createElement("canvas");tile.width=size.x;tile.height=size.y;
+    const z=coords.z-1;                                   // pyramid level = map zoom - 1 (512px tiles)
+    const attempt=lv=>{
+      const zz=z-lv;if(zz<0){done(null,tile);return}
+      const im=new Image();
+      im.onload=()=>{const ctx=tile.getContext("2d");
+        if(lv===0)ctx.drawImage(im,0,0,size.x,size.y);
+        else{const n=2**lv,s=im.width/n;ctx.drawImage(im,(coords.x%n)*s,(coords.y%n)*s,s,s,0,0,size.x,size.y)}
+        done(null,tile)};
+      im.onerror=()=>attempt(lv+1);
+      im.src=`tiles/${zz}/${coords.x>>lv}/${coords.y>>lv}.webp`;
+    };
+    attempt(0);return tile;
+  }
+});
+function addVectors(){
+  const G=window.GEO||{};
+  map.createPane("water").style.zIndex=250;map.createPane("lines").style.zIndex=260;map.createPane("place").style.zIndex=270;
+  const water=L.canvas({pane:"water",padding:.4}),lines=L.canvas({pane:"lines",padding:.4});
+  if(G.lakes)L.geoJSON(G.lakes,{pane:"water",renderer:water,interactive:false,style:{fillColor:"#c4dae6",fillOpacity:1,color:"#9dc0d3",weight:.7}}).addTo(map);
+  const rivers=G.rivers&&L.geoJSON(G.rivers,{pane:"water",renderer:water,interactive:false,style:{color:"#9fc6da",weight:1,opacity:.95}}).addTo(map);
+  if(G.statesTopo&&window.topojson){
+    const mesh=topojson.mesh(G.statesTopo,G.statesTopo.objects.states,(x,y)=>x!==y);
+    L.geoJSON(mesh,{pane:"lines",renderer:lines,interactive:false,style:{color:"#3c5d50",weight:1,opacity:.6,dashArray:"5 3"}}).addTo(map);
+  }
+  if(G.borders)L.geoJSON(G.borders,{pane:"lines",renderer:lines,interactive:false,style:{color:"#27423a",weight:1.5,opacity:.8}}).addTo(map);
+  // labels
+  const stLabels=(G.stateLabels||[]).filter(s=>!/^(Commonwealth|United States Virgin)/.test(s[0])).map(s=>L.marker([s[2],s[1]],{pane:"place",interactive:false,keyboard:false,
+    icon:L.divIcon({className:"stlab",html:s[0],iconSize:[0,0]})}));
+  const cities=(G.cities||[]).map(c=>({pop:c[3],m:L.marker([c[2],c[1]],{pane:"place",interactive:false,keyboard:false,icon:L.divIcon({className:"city",html:`<i></i><span>${esc(c[0])}</span>`,iconSize:[0,0]})})}));
+  const stG=L.layerGroup(stLabels),ctG=L.layerGroup();
+  function update(){
+    const z=map.getZoom(),sn=$("#stnames").checked,cn=$("#citynames").checked;
+    (sn&&z>=3.4&&z<7.6)?stG.addTo(map):stG.remove();
+    ctG.clearLayers();if(cn&&z>=4.6){const min=z<5.6?2e6:z<6.6?8e5:z<7.6?4e5:0;cities.filter(c=>c.pop>=min).forEach(c=>ctG.addLayer(c.m));ctG.addTo(map)}else ctG.remove();
+    const w=Math.max(.7,Math.min(2.2,(z-3)*.35));rivers&&rivers.setStyle({weight:w});
+  }
+  map.on("zoomend",update);$("#stnames").onchange=e=>{store.set("stnames",e.target.checked);update()};$("#citynames").onchange=e=>{store.set("citynames",e.target.checked);update()};
+  update();
+}
 function initMap(){
   if(map)return;
-  map=L.map("map",{minZoom:2,worldCopyJump:true,zoomSnap:0,zoomDelta:.75,wheelPxPerZoomLevel:110,wheelDebounceTime:20,
-    touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true});
-  const base=Object.fromEntries(Object.entries(layers).map(([k,f])=>[k,f()]));
-  base[store.get("base","Esri Topographic")]?.addTo(map)||base["Esri Topographic"].addTo(map);
-  L.control.layers(base,null,{position:"topright"}).addTo(map);
-  map.on("baselayerchange",e=>store.set("base",e.name));
+  map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,wheelPxPerZoomLevel:110,wheelDebounceTime:20,
+    touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true,zoomControl:true,attributionControl:true});
+  map.attributionControl.setPrefix(false);window.parksMap=map;
+  new LocalTiles({tileSize:512,minZoom:2,maxZoom:13,maxNativeZoom:9,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
+    attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
+  addVectors();
   group=L.layerGroup().addTo(map);
   [...parks,...caParks].forEach(p=>{
-    const m=L.circleMarker([p.lat,p.lng],{radius:6,...style(p)});
-    m.bindTooltip(tipFull(p),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});
+    const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
+    m.bindTooltip(()=>tipFull(p),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});
     m.on("click",()=>{                 // desktop: click toggles; touch: tap opens a card
       if(!coarse){toggle(p.id);return}
       L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
-        `<strong>${esc(p.title)}</strong>${typeLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
+        `<strong>${esc(disp(p))}</strong>${typeLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
          <a href="${esc(infoUrl(p))}" target="_blank" rel="noopener">Info page ↗</a></div>`).openOn(map);});
     markers.set(p.id,m);
   });
@@ -163,12 +206,12 @@ function initMap(){
   ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
   map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup()}});
   map.on("zoomend",restyle);
-  map.fitBounds(views.lower48);
+  map.fitBounds(views[store.get("view","lower48")]||views.lower48);
   applyLabels();$("#rose").onchange({target:$("#rose")});
   refresh();
 }
 function restyle(){markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())})}
-$$("#jump button").forEach(b=>b.onclick=()=>{initMap();map.fitBounds(views[b.dataset.v])});
+$$("#jump button").forEach(b=>b.onclick=()=>{initMap();store.set("view",b.dataset.v);map.flyToBounds(views[b.dataset.v],{duration:.8,padding:[10,10]})});
 const mapList=()=>visible().concat(showCA?visible(caParks):[]);
 function renderMap(list){
   if(!map)return;
@@ -178,17 +221,14 @@ function renderMap(list){
   const keep=list.filter(p=>checked.has(p.id));   // draw checked on top
   keep.forEach(p=>markers.get(p.id).bringToFront());
 }
-
-// map size / labels / compass
-function setMH(v){document.documentElement.style.setProperty("--mh",v);store.set("mh",v);
-  $$("#msize button").forEach(b=>b.classList.toggle("on",b.dataset.h==v));if(map)map.invalidateSize()}
-$$("#msize button").forEach(b=>b.onclick=()=>setMH(b.dataset.h));
+// labels / compass / state parks toggles
 $("#labels").onchange=e=>{store.set("labels",e.target.checked);applyLabels()};
 function applyLabels(){if(!map)return;const on=$("#labels").checked;
   markers.forEach((m,id)=>{const q=byId.get(id);m.unbindTooltip();m.off("mouseover mouseout");
-    if(on){m.bindTooltip(tipName(q),{className:"lbl",interactive:true,permanent:true,direction:"right",offset:[6,0]});
+    if(on){m.bindTooltip(()=>tipName(q),{className:"lbl",interactive:true,permanent:true,direction:"right",offset:[6,0]});
       m.on("mouseover",()=>m.setTooltipContent(tipFull(q)));m.on("mouseout",()=>m.setTooltipContent(tipName(q)))}
-    else m.bindTooltip(tipFull(q),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});});renderMap(mapList());}
+    else m.bindTooltip(()=>tipFull(q),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});});renderMap(mapList());}
+function refreshTips(ids){if(!map)return;const on=$("#labels").checked;ids.forEach(id=>{const m=markers.get(id),q=byId.get(id);if(m&&on)m.setTooltipContent(tipName(q))})}
 $("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);refresh()};
 $("#rose").onchange=e=>{store.set("rose",e.target.checked);$("#roseEl")&&($("#roseEl").style.display=e.target.checked?"":"none")};
 
@@ -201,7 +241,7 @@ const mkCustom=r=>({id:r.id,name:"",title:"",d:"",states:[],code:"",kind:"custom
 customRows.forEach(r=>byId.set(r.id,mkCustom(r)));
 const cellVal=(p,k)=>k==="visited"?(checked.has(p.id)?"TRUE":"FALSE"):String(fld(p,k)??"");
 const baseSrc=()=>(dataset==="ca"?caParks:parks).concat(customRows.filter(r=>r.ds===dataset).map(r=>byId.get(r.id)));
-let colFilt={}, rows=[], sel={r0:0,c0:0,r1:0,c1:0}, act={r:0,c:0}, editing=null, hist=[], redoS=[], dragging=false;
+let onlyEdited=false, colFilt={}, rows=[], sel={r0:0,c0:0,r1:0,c1:0}, act={r:0,c:0}, editing=null, hist=[], redoS=[], dragging=false;
 const VIS=COLS.findIndex(c=>c.k==="visited");
 const wrap=$("#tablewrap"), tbody=$("#lbody");
 
@@ -209,6 +249,7 @@ function computeRows(){
   let l=visible(baseSrc());
   for(const k in colFilt){const f=colFilt[k];if(!f)continue;const t=f.text.trim().toLowerCase();
     l=l.filter(p=>{const v=cellVal(p,k);return (!f.vals||f.vals.has(v))&&(!t||v.toLowerCase().includes(t))})}
+  if(onlyEdited)l=l.filter(p=>COLS.some(c=>isEdited(p,c.k)));
   const g=p=>sortKey==="year"?(+cellVal(p,"year")||0):cellVal(p,sortKey).toLowerCase();
   return l.sort((x,y)=>{const A=g(x),B=g(y);return (A>B?1:A<B?-1:0)*sortDir});
 }
@@ -221,7 +262,8 @@ function renderList(keep){
     th.dataset.dir=k===sortKey?(sortDir>0?"▲":"▼"):""});
   tbody.innerHTML=rows.map((p,r)=>`<tr data-r="${r}"><td class="rn">${r+1}</td>`+COLS.map((c,ci)=>{
     const v=cellVal(p,c.k);
-    return `<td data-c="${ci}" class="${ci===0?"nm ":""}${c.k==="visited"||c.k==="year"?"c":""}">`+(c.k==="visited"?`<input type="checkbox" tabindex="-1" ${v==="TRUE"?"checked":""} aria-label="Visited">`:esc(v))+"</td>"}).join("")+"</tr>").join("");
+    const ed=isEdited(p,c.k);
+    return `<td data-c="${ci}" class="${ci===0?"nm ":""}${c.k==="visited"||c.k==="year"?"c":""}${ed?" edited":""}"${ed?` title="Official: ${esc(official(p,c.k)||"(blank)")}"`:""}>`+(c.k==="visited"?`<input type="checkbox" tabindex="-1" ${v==="TRUE"?"checked":""} aria-label="Visited">`:esc(v))+"</td>"}).join("")+"</tr>").join("");
   if(!keep){sel={r0:0,c0:0,r1:0,c1:0};act={r:0,c:0}}
   clampSel();applySel();
 }
@@ -252,11 +294,11 @@ function setCell(r,c,val,batch){
   if(k==="year"&&v&&!/^\d{4}$/.test(v))return;
   const old=cellVal(p,k);if(old===v)return;
   put(p,k,v);batch.push({id:p.id,k,old,val:v});
-  const td=cell(r,c);if(td){if(k==="visited")td.querySelector("input").checked=v==="TRUE";else td.textContent=v}
+  const td=cell(r,c);if(td){if(k==="visited")td.querySelector("input").checked=v==="TRUE";else{td.textContent=v;const ed=isEdited(p,k);td.classList.toggle("edited",ed);if(ed)td.title="Official: "+(official(p,k)||"(blank)");else td.removeAttribute("title")}}
 }
-function finish(batch){if(!batch.length)return;hist.push(batch);redoS.length=0;saveEdits();refreshOthers();applySel()}
+function finish(batch){if(!batch.length)return;hist.push(batch);redoS.length=0;saveEdits();refreshOthers();refreshTips(batch.map(x=>x.id));renderEditsPanel();applySel()}
 function applyBatch(batch,dir){ // dir: 'old' for undo, 'val' for redo
-  (dir==="old"?batch.slice().reverse():batch).forEach(x=>put(byId.get(x.id),x.k,x[dir]));saveEdits();renderList(true);refreshOthers()}
+  (dir==="old"?batch.slice().reverse():batch).forEach(x=>put(byId.get(x.id),x.k,x[dir]));saveEdits();renderList(true);refreshOthers();refreshTips(batch.map(x=>x.id));renderEditsPanel()}
 function undo(){const b=hist.pop();if(!b)return;redoS.push(b);applyBatch(b,"old")}
 function redo(){const b=redoS.pop();if(!b)return;hist.push(b);applyBatch(b,"val")}
 
@@ -399,6 +441,41 @@ $("#csv").onclick=()=>{
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=(dataset==="ca"?"california-state-parks":"nps-units")+".csv";a.click();
 };
 
+
+// ----- compare with official: revert selection, edited-only view, review panel
+$("#onlyEdited").onchange=e=>{onlyEdited=e.target.checked;renderList(false)};
+$("#revert").onclick=()=>{const {r0,r1,c0,c1}=rect(),b=[];
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){const p=rows[r],k=COLS[c].k;if(p&&k!=="visited"&&isEdited(p,k))setCell(r,c,official(p,k),b)}
+  finish(b)};
+const FIELD={name:"Name",d:"Designation",city:"Nearest city",state:"State",hl:"Highlights",year:"Year visited"};
+function editedList(){const out=[];for(const id in edits){const p=byId.get(id);if(!p)continue;
+  for(const k in FIELD)if(edits[id][k]!==undefined&&isEdited(p,k))out.push({p,id,k,off:official(p,k),mine:edits[id][k]})}
+  return out.sort((x,y)=>disp(x.p).localeCompare(disp(y.p)))}
+function renderEditsPanel(){
+  const body=$("#editsBody");if(!body)return;const l=editedList();
+  $("#editsCount").textContent=l.length?`${l.length} change${l.length>1?"s":""} from the official values`:"No changes: everything matches the official values.";
+  body.innerHTML=l.map(x=>`<tr><td><b>${esc(x.p.title)}</b><br><small>${esc(x.p.d)}</small></td><td>${FIELD[x.k]}</td><td class="off">${esc(x.off||"(blank)")}</td><td class="mine">${esc(x.mine||"(blank)")}</td>
+    <td><button type="button" data-id="${esc(x.id)}" data-k="${x.k}">Revert</button></td></tr>`).join("");
+}
+function revertField(id,k){const p=byId.get(id);if(!p||!edits[id])return;delete edits[id][k];if(!Object.keys(edits[id]).length)delete edits[id]}
+$("#editsBody")?.addEventListener("click",e=>{const b=e.target.closest("button[data-id]");if(!b)return;revertField(b.dataset.id,b.dataset.k);saveEdits();renderList(true);refreshOthers();refreshTips([b.dataset.id]);renderEditsPanel()});
+$("#revertAll")?.addEventListener("click",()=>{if(!editedList().length||!confirm("Revert every edited field to its official value?"))return;const ids=Object.keys(edits);edits={};saveEdits();renderList(true);refreshOthers();refreshTips(ids);renderEditsPanel()});
+$("#editsCsv")?.addEventListener("click",()=>{
+  const rows=[["Unit (official)","Designation (official)","Field","Official value","Your value"]].concat(editedList().map(x=>[x.p.title,x.p.d,FIELD[x.k],x.off,x.mine]));
+  const csv=rows.map(r=>r.map(c=>'"'+String(c??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="edits-vs-official.csv";a.click()});
+// backup / move to another device (a JSON file you can AirDrop, email or keep in iCloud / Drive)
+$("#backupOut")?.addEventListener("click",()=>{
+  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system")}};
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="parks-backup-"+new Date().toISOString().slice(0,10)+".json";a.click()});
+$("#backupIn")?.addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());if(d.app!=="parks-and-camping")throw 0;
+    if(!confirm(`Replace this browser's data with the backup from ${d.savedAt?.slice(0,10)||"unknown date"}?\n${(d.checked||[]).length} visited, ${Object.keys(d.edits||{}).length} edited units.`))return;
+    store.set("checked",d.checked||[]);store.set("edits",d.edits||{});store.set("customRows",d.customRows||[]);
+    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);
+    location.reload()}catch(err){alert("That file is not a Parks & Camping backup.")}});
+
 // ---------- refresh ----------
 function refresh(){refreshOthers();renderList(true)}
 function refreshOthers(){
@@ -407,12 +484,13 @@ function refreshOthers(){
   renderGrid(list);renderMap(mapList());renderVisited();
 }
 $("#export").onclick=()=>{
-  const txt=parks.filter(p=>checked.has(p.id)).map(p=>p.title+" ("+p.states.join("/")+")").join("\n");
+  const txt=parks.filter(p=>checked.has(p.id)).map(p=>disp(p)+" ("+p.states.join("/")+")").join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));a.download="checked-parks.txt";a.click();
 };
 $("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save();refresh()}};
 
-$("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);setMH(store.get("mh","100"));
+$("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);$("#stnames").checked=store.get("stnames",true);$("#citynames").checked=store.get("citynames",true);
 $("#showCA").checked=showCA;setDataset(dataset);
-setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","grid"));
+setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","grid"));renderEditsPanel();
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();

@@ -1,3 +1,5 @@
+@font-face{font-family:"Inter";src:url(fonts/inter-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Fraunces";src:url(fonts/fraunces-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 :root{
   --font-head:"Fraunces",Georgia,"Times New Roman",serif;
   --font-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -39,7 +41,11 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-o
 .ms-list label:hover{background:var(--mist)}.ms-list em{margin-left:auto;font-style:normal;font-size:.74rem;color:var(--muted)}
 .ms-list input{accent-color:var(--pine)}.ms-empty{padding:.5rem;color:var(--muted)}
 .panel{display:none;padding:1.25rem}.panel.active{display:block}
-#tab-map{padding:0}#tab-map .toolbar{padding:.6rem 1.25rem;margin:0}
+html,body{height:100%}body{display:flex;flex-direction:column;min-height:100dvh}
+main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}main>.panel.active{flex:1 1 auto}
+#tab-map.active{display:flex;flex-direction:column;min-height:0}
+body.map-mode{height:100dvh;overflow:hidden}body.map-mode .filters{position:static}
+#tab-map{padding:0}#tab-map .toolbar{padding:.5rem 1.25rem;margin:0;gap:.5rem .9rem}
 .toolbar{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin-bottom:.9rem;font-size:.86rem;color:var(--muted)}
 .seg{display:inline-flex}.seg button{border-radius:0;margin-left:-1px}
 .seg button:first-child{border-radius:10px 0 0 10px;margin:0}.seg button:last-child{border-radius:0 10px 10px 0}
@@ -63,7 +69,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-o
 .vlist{list-style:none;padding:0;margin:0;columns:3 260px}.vlist li{padding:.3rem 0;display:flex;gap:.5rem;align-items:center}
 .about{max-width:700px}.about h2{margin-top:1.4rem}
 .about a{color:var(--teal)}
-#map{height:calc(var(--mh,100)*1vh - 200px);height:calc(var(--mh,100)*1dvh - 200px);min-height:320px;touch-action:none;background:#dfe9e5}
+#map{flex:1 1 auto;min-height:0;touch-action:none;background:#c4dae6}
 .leaflet-container{font-family:var(--font-body)}
 .rose{width:calc(84px*var(--dot));max-width:160px;background:#ffffffd9;border-radius:50%;box-shadow:var(--shadow);pointer-events:none}
 .rose svg{display:block;width:100%}
@@ -122,3 +128,20 @@ body{touch-action:manipulation;padding-left:env(safe-area-inset-left);padding-ri
   input[type=range]{height:32px}
 }
 @media(max-width:820px){.filters{padding:.5rem .8rem}.panel{padding:.9rem}#q{min-width:0;flex:1 1 160px}.count{width:100%;margin-left:0}}
+
+/* map labels and extras */
+.stlab{font:600 10.5px/1 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:rgba(28,55,45,.62);white-space:nowrap;transform:translate(-50%,-50%);pointer-events:none;text-shadow:0 0 3px #ffffffa8,0 0 6px #ffffff80}
+.city{white-space:nowrap;pointer-events:none}.city i{display:inline-block;width:5px;height:5px;border-radius:50%;background:#2b3f38;border:1px solid #fff;vertical-align:middle;margin:0 3px 0 -3px}
+.city span{font:500 10.5px var(--font-body);color:#26382f;text-shadow:0 0 3px #fff,0 0 5px #fff}
+:root[data-theme="dark"] .leaflet-water-pane,:root[data-theme="dark"] .leaflet-lines-pane{filter:brightness(.78) contrast(1.05)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-water-pane,:root:not([data-theme="light"]) .leaflet-lines-pane{filter:brightness(.78) contrast(1.05)}}
+:root[data-theme="dark"] #map{background:#18313b}
+.leaflet-control-zoom a{color:#0f3b30}
+.lbl .ed2{color:#9a5b00}
+/* edit tracking */
+.lt td.edited{box-shadow:inset 3px 0 0 #e0a13b;background:color-mix(in srgb,#f5d58a 22%,var(--surface))}
+.ed{font:600 .62rem var(--font-body);color:#7a4a00;background:#fbe3b0;border-radius:999px;padding:.05rem .45rem;vertical-align:middle;letter-spacing:.04em;text-transform:uppercase}
+.smallwrap{max-height:340px;margin:.5rem 0 1rem}.etab td.off{color:var(--muted)}.etab td.mine{font-weight:600}.etab td{cursor:default}
+.etab button{padding:.2rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer}
+.filebtn{display:inline-block;padding:.45rem .8rem;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-size:.88rem}
+.about{max-width:860px}

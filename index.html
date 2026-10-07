@@ -10,8 +10,6 @@
 <title>Parks &amp; Camping – NPS Internal</title>
 <link rel="stylesheet" href="vendor/leaflet.css">
 <script>try{var t=JSON.parse(localStorage.getItem("theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -53,6 +51,7 @@
       <button id="undo" type="button" title="Undo (Ctrl+Z)">↶ Undo</button><button id="redo" type="button" title="Redo (Ctrl+Y)">↷ Redo</button>
       <button id="addRow" type="button">+ Add row</button><button id="delRows" type="button" title="Deletes selected custom rows you added">Delete row</button>
       <button id="clearColFilters" type="button">Clear column filters</button>
+      <label class="dotctl"><input type="checkbox" id="onlyEdited"> Edited only</label><button id="revert" type="button" title="Put selected cells back to the official value">Revert to official</button>
       <button id="csv" type="button">Export CSV</button><button id="resetEdits" type="button">Reset edits</button>
       <span id="lcount" class="lcount"></span>
     </div>
@@ -75,11 +74,12 @@
         <button data-v="lower48">Lower 48</button><button data-v="ak">Alaska</button>
         <button data-v="hi">Hawaiʻi</button><button data-v="terr">Territories</button>
       </div>
-      <span>Map size:</span>
-      <div class="seg" id="msize"><button data-h="50">S</button><button data-h="75">M</button><button data-h="100">L</button></div>
+      
       <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
-      <label class="dotctl"><input type="checkbox" id="labels"> Names (click a name to open its info page)</label>
+      <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="labels"> Names</label>
       <label class="dotctl" title="Off by default"><input type="checkbox" id="showCA"> California State Parks</label>
+      <label class="dotctl"><input type="checkbox" id="stnames" checked> State names</label>
+      <label class="dotctl"><input type="checkbox" id="citynames" checked> Cities</label>
       <label class="dotctl"><input type="checkbox" id="rose" checked> Compass</label>
       <span class="legend"><span title="Units without exact coordinates sit near their state center">◌ approx. spots</span> <i class="dot off"></i> unchecked <i class="dot on"></i> checked</span>
     </div>
@@ -98,18 +98,27 @@
       <p>Appearance<br><span class="seg themeseg" id="theme"><button data-t="system">System</button><button data-t="light">Light</button><button data-t="dark">Dark</button></span></p>
       <p><label>Dot size (whole site) <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label></p>
       <p><button id="export">Export checked list</button> <button id="reset">Reset all checks</button></p>
+      <h2>Edits vs official</h2>
+      <p class="hint">Anything you change in the List Format tab (name, designation, city, state, highlights, year) is listed here next to the official value. Edited cells are also marked in the list; hover one to see the official text.</p>
+      <p><span id="editsCount"></span> <button id="revertAll" type="button">Revert all</button> <button id="editsCsv" type="button">Export report (CSV)</button></p>
+      <div class="tablewrap smallwrap"><table class="lt etab"><thead><tr><th>Unit</th><th>Field</th><th>Official</th><th>Yours</th><th></th></tr></thead><tbody id="editsBody"></tbody></table></div>
+      <h2>Backup &amp; moving devices</h2>
+      <p class="hint">Visited checks and edits live in this browser. Save a backup file and open it on your iPad or another computer to carry everything across.</p>
+      <p><button id="backupOut" type="button">Save backup (.json)</button> <label class="filebtn">Restore backup… <input id="backupIn" type="file" accept="application/json,.json" hidden></label></p>
       <h2>About</h2>
       <p>Internal reference for NPS units. Checks are saved in this browser only.</p>
       <p>Unit names, designations, states and park codes come from the NPS_Park_Units spreadsheet (474 units). Map coordinates are approximate, and units marked with a dashed dot are placed near their state center. Verify against
       <a href="https://www.nps.gov/findapark/index.htm" target="_blank" rel="noopener">nps.gov/findapark</a>.</p>
-      <p>Basemaps: USGS National Map, Esri World Topographic / Shaded Relief, OpenTopoMap (OpenStreetMap contributors, SRTM).</p>
+      <p>Basemap: shaded relief rendered from AWS Terrain Tiles (NASA SRTM, USGS 3DEP, GEBCO), with Natural Earth and US Census boundaries. It ships with the site, so the map loads without any outside map service.</p>
     </div>
   </section>
 </main>
 
 <script src="vendor/leaflet.js"></script>
+<script src="vendor/topojson-client.min.js"></script>
 <script src="data/parks.js"></script>
 <script src="data/details.js"></script>
+<script src="data/geo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
