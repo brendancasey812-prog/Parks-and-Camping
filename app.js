@@ -197,7 +197,7 @@ function showHover(p,m){
 function hideHover(delay){clearTimeout(hoverTimer);hoverTimer=setTimeout(()=>{if(hoverCard&&map.hasLayer(hoverCard))map.removeLayer(hoverCard);hoverId=null},delay)}
 function initMap(){
   if(map)return;
-  map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,wheelPxPerZoomLevel:110,wheelDebounceTime:20,
+  map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,scrollWheelZoom:false,
     touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true,zoomControl:true,attributionControl:true});
   map.attributionControl.setPrefix(false);window.parksMap=map;
   new LocalTiles({tileSize:512,minZoom:2,maxZoom:13,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
@@ -225,10 +225,28 @@ function initMap(){
   new Legend({position:"bottomright"}).addTo(map);
   ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
   map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
+  setupZoomInput();
   map.on("zoomend",restyle);
   map.fitBounds(views[store.get("view","lower48")]||views.lower48);
   applyLabels();$("#rose").onchange({target:$("#rose")});
   refresh();
+}
+// Zoom input: wheel, trackpad scroll, trackpad pinch (Chrome/Edge/Firefox) and Safari pinch gestures, scaled by the 1-5 sensitivity setting.
+const ZOOM_K=[0.003,0.005,0.008,0.012,0.018];                       // zoom levels per scrolled pixel
+const zoomK=()=>ZOOM_K[clamp(+store.get("zoomSens",4),1,5)-1];
+function setupZoomInput(){
+  const el=map.getContainer();let acc=0,raf=0,at=null;
+  el.addEventListener("wheel",e=>{
+    e.preventDefault();
+    let dy=e.deltaY;if(e.deltaMode===1)dy*=33;else if(e.deltaMode===2)dy*=300;
+    acc+=-dy*zoomK()*(e.ctrlKey?4:1);at=map.mouseEventToLatLng(e);
+    if(!raf)raf=requestAnimationFrame(()=>{raf=0;const d=clamp(acc,-2.5,2.5);acc=0;
+      const z=clamp(map.getZoom()+d,map.getMinZoom(),map.getMaxZoom());if(z!==map.getZoom())map.setZoomAround(at,z,{animate:false})});
+  },{passive:false});
+  let z0=0;                                                          // Safari trackpad pinch
+  el.addEventListener("gesturestart",e=>{e.preventDefault();z0=map.getZoom()});
+  el.addEventListener("gesturechange",e=>{e.preventDefault();const boost=0.5+zoomK()*60;map.setZoomAround(map.mouseEventToLatLng(e)||map.getCenter(),clamp(z0+Math.log2(e.scale)*boost,map.getMinZoom(),map.getMaxZoom()),{animate:false})});
+  el.addEventListener("gestureend",e=>e.preventDefault());
 }
 function restyle(){markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())})}
 $$("#jump button").forEach(b=>b.onclick=()=>{initMap();store.set("view",b.dataset.v);map.flyToBounds(views[b.dataset.v],{duration:.8,padding:[10,10]})});
@@ -512,6 +530,8 @@ $("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save
 
 $("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);$("#stnames").checked=store.get("stnames",true);$("#citynames").checked=store.get("citynames",true);
 $("#showCA").checked=showCA;document.body.classList.toggle("show-ca",showCA);setDataset(dataset);
+{const zs=$("#zoomSens"),zo=$("#zoomSensOut"),names=["gentle","relaxed","balanced","quick","very fast"];
+  const show=()=>{zo.textContent=zs.value+" · "+names[zs.value-1]};zs.value=clamp(+store.get("zoomSens",4),1,5);show();zs.oninput=()=>{store.set("zoomSens",+zs.value);show()}}
 setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","grid"));renderEditsPanel();
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
