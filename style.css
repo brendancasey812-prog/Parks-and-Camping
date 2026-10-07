@@ -181,3 +181,11 @@ body:not(.show-ca) .lg-ca{display:none}
 #tab-map .dotctl:has(input:focus-visible){outline:2px solid var(--teal);outline-offset:2px}
 /* state names: bold black with a crisp white outline */
 .stlab{font:800 11px var(--font-body);letter-spacing:.16em;color:#000;opacity:1;paint-order:stroke fill;-webkit-text-stroke:3.5px rgba(255,255,255,.9);text-shadow:none}
+
+/* hover card (desktop) */
+.leaflet-popup.hovercard .leaflet-popup-content-wrapper{border-radius:14px;padding:0}
+.leaflet-popup.hovercard .leaflet-popup-content{margin:.55rem .75rem;font:500 12px/1.35 var(--font-body);min-width:130px}
+.leaflet-popup.hovercard .leaflet-popup-tip-container{display:none}
+.leaflet-popup.hovercard::after{content:"";position:absolute;left:-10px;right:-10px;bottom:-26px;height:26px}   /* invisible bridge so the pointer can travel from the dot to the card */
+.hovercard .lnk{color:inherit;font-weight:650;text-decoration:none;border-bottom:1px solid currentColor}
+.hovercard .pp.mini{margin-top:.45rem}.hovercard .pp.mini button{padding:.28rem .65rem;font-size:11.5px;border-radius:8px;cursor:pointer}

@@ -181,6 +181,20 @@ function addVectors(){
   map.on("zoomend",update);$("#stnames").onchange=e=>{store.set("stnames",e.target.checked);update()};$("#citynames").onchange=e=>{store.set("citynames",e.target.checked);update()};
   update();
 }
+// Hover card: sits above the dot, stays open while the pointer is on it, and lingers ~1.2 s after leaving so links are easy to reach.
+let hoverCard=null,hoverTimer=null,hoverId=null;
+function hoverHtml(p){return tipFull(p)+`<div class="pp mini"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited · undo":"Mark visited"}</button></div>`}
+function showHover(p,m){
+  if($("#labels").checked)return;                    // with Names on, the labels themselves are the links
+  clearTimeout(hoverTimer);hoverId=p.id;
+  if(!hoverCard){
+    hoverCard=L.popup({className:"hovercard",closeButton:false,autoPan:false,closeOnClick:false,autoClose:false,offset:[0,-16],maxWidth:260,minWidth:140});
+    hoverCard.on("add",()=>{const el=hoverCard.getElement();if(el&&!el._wired){el._wired=1;el.addEventListener("mouseenter",()=>clearTimeout(hoverTimer));el.addEventListener("mouseleave",()=>hideHover(500))}});
+  }
+  hoverCard.setLatLng(m.getLatLng()).setContent(hoverHtml(p));
+  if(!map.hasLayer(hoverCard))hoverCard.addTo(map);
+}
+function hideHover(delay){clearTimeout(hoverTimer);hoverTimer=setTimeout(()=>{if(hoverCard&&map.hasLayer(hoverCard))map.removeLayer(hoverCard);hoverId=null},delay)}
 function initMap(){
   if(map)return;
   map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,wheelPxPerZoomLevel:110,wheelDebounceTime:20,
@@ -192,7 +206,7 @@ function initMap(){
   group=L.layerGroup().addTo(map);
   [...parks,...caParks].forEach(p=>{
     const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
-    m.bindTooltip(()=>tipFull(p),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});
+    if(!coarse){m.on("mouseover",()=>showHover(p,m));m.on("mouseout",()=>hideHover(1200))}
     m.on("click",()=>{                 // desktop: click toggles; touch: tap opens a card
       if(!coarse){toggle(p.id);return}
       L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
@@ -210,7 +224,7 @@ function initMap(){
   const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
   new Legend({position:"bottomright"}).addTo(map);
   ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
-  map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup()}});
+  map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
   map.on("zoomend",restyle);
   map.fitBounds(views[store.get("view","lower48")]||views.lower48);
   applyLabels();$("#rose").onchange({target:$("#rose")});
@@ -230,10 +244,11 @@ function renderMap(list){
 // labels / compass / state parks toggles
 $("#labels").onchange=e=>{store.set("labels",e.target.checked);applyLabels()};
 function applyLabels(){if(!map)return;const on=$("#labels").checked;
-  markers.forEach((m,id)=>{const q=byId.get(id);m.unbindTooltip();m.off("mouseover mouseout");
+  markers.forEach((m,id)=>{const q=byId.get(id);m.unbindTooltip();
+    if(m._po){m.off("mouseover",m._po);m.off("mouseout",m._pu);m._po=m._pu=null}
     if(on){m.bindTooltip(()=>tipName(q),{className:"lbl",interactive:true,permanent:true,direction:"right",offset:[6,0]});
-      m.on("mouseover",()=>m.setTooltipContent(tipFull(q)));m.on("mouseout",()=>m.setTooltipContent(tipName(q)))}
-    else m.bindTooltip(()=>tipFull(q),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});});renderMap(mapList());}
+      m._po=()=>m.setTooltipContent(tipFull(q));m._pu=()=>m.setTooltipContent(tipName(q));m.on("mouseover",m._po);m.on("mouseout",m._pu)}
+  });if(on&&hoverCard)hideHover(0);renderMap(mapList());}
 function refreshTips(ids){if(!map)return;const on=$("#labels").checked;ids.forEach(id=>{const m=markers.get(id),q=byId.get(id);if(m&&on)m.setTooltipContent(tipName(q))})}
 $("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);document.body.classList.toggle("show-ca",showCA);refresh()};
 $("#rose").onchange=e=>{store.set("rose",e.target.checked);$("#roseEl")&&($("#roseEl").style.display=e.target.checked?"":"none")};
