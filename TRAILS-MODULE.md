@@ -1,4 +1,11 @@
-# Trails Map module
+# Trails module (Trail Info, Trail List, Trail Map)
+
+Navigation: **National Parks** (Park Info, Park List, Park Map) and **Trails** (Trail Info, Trail List, Trail Map) are two dropdown groups that mirror each other.
+The grid and list screens are shared: in the Trails group they show *trail records* (one per named trail per park, built from the NPS segments)
+instead of parks. Trail records carry the same fields (name, class/use, park, state, hiked, year, notes), so sorting, filtering, editing,
+undo, column drag, CSV export and the "edits vs official" tracking all work the same.
+
+(The text below describes the map part.)
 
 The **Trails Map** tab is the Map tab's map (same code, same toolbar, same hover cards, zoom, compass, visited toggles)
 plus an NPS trails layer. Its filtering is the shared taskbar at the top of the site (search, States / territories, Park / unit,

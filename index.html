@@ -17,10 +17,22 @@
 <header class="top">
   <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>Parks &amp; Camping <small>Unit directory</small></h1>
   <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="grid" role="tab">Park Grid</button>
-    <button class="tab" data-tab="list" role="tab">List Format</button>
-    <button class="tab" data-tab="map" role="tab">Map</button>
-    <button class="tab" data-tab="trails" role="tab">Trails Map</button>
+    <div class="tabgroup" data-group="parks">
+      <button class="tab grp" type="button" data-group="parks" aria-haspopup="true" aria-expanded="false">National Parks <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <div class="tabmenu" role="menu" hidden>
+        <button class="tabitem" data-tab="grid" role="menuitem"><b>▦</b>Park Info</button>
+        <button class="tabitem" data-tab="list" role="menuitem"><b>☰</b>Park List</button>
+        <button class="tabitem" data-tab="map" role="menuitem"><b>◉</b>Park Map</button>
+      </div>
+    </div>
+    <div class="tabgroup" data-group="trails">
+      <button class="tab grp" type="button" data-group="trails" aria-haspopup="true" aria-expanded="false">Trails <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <div class="tabmenu" role="menu" hidden>
+        <button class="tabitem" data-tab="tgrid" role="menuitem"><b>▦</b>Trail Info</button>
+        <button class="tabitem" data-tab="tlist" role="menuitem"><b>☰</b>Trail List</button>
+        <button class="tabitem" data-tab="trails" role="menuitem"><b>◉</b>Trail Map</button>
+      </div>
+    </div>
     <button class="tab" data-tab="visited" role="tab">Visited</button>
     <button class="tab" data-tab="about" role="tab">Settings &amp; About</button>
   </nav>
@@ -69,10 +81,11 @@
           <button id="resetEdits" type="button" class="danger"><b>!</b>Reset all edits</button>
         </div>
       </div>
+      <span id="dsTrails" class="dstrails" hidden>Trails · live from the NPS Public Trails service</span>
       <div class="seg" id="dataset"><button data-ds="nps">National (NPS)</button><button data-ds="ca">California State Parks</button></div>
       <span id="lcount" class="lcount"></span>
     </div>
-    <p class="hint">Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Drag a column header to move it. Use the ▾ in a header to sort or filter.</p>
+    <p class="hint" id="listHint">Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Drag a column header to move it. Use the ▾ in a header to sort or filter.</p>
     <div class="tablewrap" id="tablewrap" tabindex="0"><table id="ltable" class="lt"><thead><tr><th class="rn"></th>
       <th data-k="name"><span class="ht">Name</span><button class="fbtn" type="button" aria-label="Filter Name">▾</button></th>
       <th data-k="d"><span class="ht">Designation</span><button class="fbtn" type="button" aria-label="Filter Designation">▾</button></th>
@@ -117,6 +130,7 @@
           <div class="hm-group">Terrain</div>
           <label class="tm-row">Relief strength <input type="range" id="tmRelief" min="0" max="100" step="5"><output id="tmReliefOut"></output></label>
           <label class="hm-check"><input type="checkbox" id="tmDim"><b>◐</b>Mute terrain colors</label>
+          <div class="hm-note" id="tmFieldInfo">Trail data fields: not loaded yet</div>
           <label class="hm-check off"><input type="checkbox" disabled><b>≋</b>Contour lines <em>coming with GIS data</em></label>
           <label class="hm-check off"><input type="checkbox" disabled><b>♣</b>Land cover <em>coming with GIS data</em></label>
         </div>
@@ -129,6 +143,7 @@
       <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="t_labels"> Names</label>
       <label class="dotctl" title="Off by default"><input type="checkbox" id="t_showCA"> California State Parks</label>
       <label class="dotctl"><input type="checkbox" id="tmTrails" checked> Trails</label>
+      <label class="dotctl" title="Show each trail's name beside it (zoom in)"><input type="checkbox" id="tmNames" checked> Trail names</label>
       <label class="dotctl"><input type="checkbox" id="t_stnames" checked> State names</label>
       <label class="dotctl"><input type="checkbox" id="t_citynames" checked> Cities</label>
       <label class="dotctl"><input type="checkbox" id="t_rose" checked> Compass</label>
@@ -166,6 +181,7 @@
   </section>
 </main>
 
+<dialog id="trailDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div id="trailDlgBody"></div></dialog>
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/topojson-client.min.js"></script>
 <script src="data/parks.js"></script>

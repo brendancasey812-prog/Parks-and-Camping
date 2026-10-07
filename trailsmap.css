@@ -24,3 +24,4 @@
 .tm-legend .sec+.sec{margin-top:.6rem;padding-top:.55rem;border-top:1px solid var(--glass-line)}
 .tm-legend .ramp{height:9px;border-radius:5px;margin:.2rem 0 .15rem;box-shadow:inset 0 0 0 1px var(--glass-line)}
 .tm-legend .rl{display:flex;justify-content:space-between;font-size:10px;opacity:.7}
+.hm-note{margin:.2rem .6rem .5rem;padding:.45rem .6rem;border-radius:9px;background:var(--mist);font-size:.74rem;color:var(--muted);line-height:1.35}
