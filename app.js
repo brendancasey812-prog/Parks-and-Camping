@@ -500,6 +500,20 @@ document.addEventListener("pointerup",()=>{
   store.set("colOrder",order);applyColOrder(order);renderList(false);
 });
 
+
+// ----- list settings menu (hamburger): opens on hover, click pins it open, tap works on touch
+{
+  const hamb=$("#hamb"),hb=hamb.querySelector(".hamb-btn"),hm=hamb.querySelector(".hamb-menu");let timer=0,pinned=false;
+  const open=()=>{clearTimeout(timer);hm.hidden=false;hb.setAttribute("aria-expanded","true")};
+  const close=(d=0)=>{clearTimeout(timer);timer=setTimeout(()=>{hm.hidden=true;pinned=false;hb.setAttribute("aria-expanded","false")},d)};
+  hamb.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")open()});
+  hamb.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse"&&!pinned)close(450)});
+  hb.addEventListener("click",()=>{if(hm.hidden){open();pinned=true}else if(!pinned){pinned=true}else close(0)});
+  document.addEventListener("click",e=>{if(!hamb.contains(e.target)&&!hm.hidden)close(0)});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!hm.hidden){close(0);hb.focus()}});
+  hm.addEventListener("click",e=>{const b=e.target.closest("button,label");if(!b||b.hasAttribute("data-keep")||b.disabled)return;close(120)});
+}
+
 // ----- toolbar
 function setDataset(d){dataset=d;store.set("dataset",d);$$("#dataset button").forEach(b=>b.classList.toggle("on",b.dataset.ds===d));colFilt={};hist=[];redoS=[];renderList()}
 $$("#dataset button").forEach(b=>b.onclick=()=>setDataset(b.dataset.ds));

@@ -47,12 +47,26 @@
 
   <section id="tab-list" class="panel">
     <div class="toolbar">
+      <div class="hamb" id="hamb">
+        <button class="hamb-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="List settings" title="List settings"><i></i><i></i><i></i></button>
+        <div class="hamb-menu" role="menu" hidden>
+          <div class="hm-title">List settings</div>
+          <div class="hm-group">Edit</div>
+          <button id="undo" type="button" data-keep title="Undo (Ctrl+Z)"><b>↶</b>Undo<kbd>Ctrl Z</kbd></button>
+          <button id="redo" type="button" data-keep title="Redo (Ctrl+Y)"><b>↷</b>Redo<kbd>Ctrl Y</kbd></button>
+          <button id="addRow" type="button"><b>+</b>Add row</button>
+          <button id="delRows" type="button" title="Deletes selected custom rows you added"><b>−</b>Delete row</button>
+          <button id="revert" type="button" title="Put selected cells back to the official value"><b>⟲</b>Revert to official</button>
+          <div class="hm-group">View</div>
+          <label class="hm-check" data-keep><input type="checkbox" id="onlyEdited"><b>✎</b>Edited rows only</label>
+          <button id="clearColFilters" type="button"><b>⊘</b>Clear column filters</button>
+          <button id="resetCols" type="button" title="Drag any column header to move it"><b>⇄</b>Reset column order</button>
+          <div class="hm-group">Data</div>
+          <button id="csv" type="button"><b>↓</b>Export CSV</button>
+          <button id="resetEdits" type="button" class="danger"><b>!</b>Reset all edits</button>
+        </div>
+      </div>
       <div class="seg" id="dataset"><button data-ds="nps">National (NPS)</button><button data-ds="ca">California State Parks</button></div>
-      <button id="undo" type="button" title="Undo (Ctrl+Z)">↶ Undo</button><button id="redo" type="button" title="Redo (Ctrl+Y)">↷ Redo</button>
-      <button id="addRow" type="button">+ Add row</button><button id="delRows" type="button" title="Deletes selected custom rows you added">Delete row</button>
-      <button id="clearColFilters" type="button">Clear column filters</button>
-      <label class="dotctl"><input type="checkbox" id="onlyEdited"> Edited only</label><button id="revert" type="button" title="Put selected cells back to the official value">Revert to official</button>
-      <button id="resetCols" type="button" title="Drag any column header to move it">Reset columns</button><button id="csv" type="button">Export CSV</button><button id="resetEdits" type="button">Reset edits</button>
       <span id="lcount" class="lcount"></span>
     </div>
     <p class="hint">Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Drag a column header to move it. Use the ▾ in a header to sort or filter.</p>
