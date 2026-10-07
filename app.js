@@ -131,8 +131,8 @@ const views={lower48:[[24.5,-125.5],[49.8,-66]],ak:[[51,-170],[71.8,-129]],hi:[[
 let markers=new Map(),group,roseCtl;
 const coarse=matchMedia("(pointer:coarse)").matches;
 const radius=()=>Math.max(coarse?6:3,(2+map.getZoom()*0.9)*dotScale);
-const style=p=>({...(checked.has(p.id)?{fillColor:"#d32f2f",color:"#7f1414",fillOpacity:.95,weight:1.5}
-                                :{fillColor:"#9aa0a6",color:"#5f6368",fillOpacity:.85,weight:1.2}),dashArray:p.approx?"3 2":null,...(p.kind==="ca"?{color:checked.has(p.id)?"#7f1414":"#1b6d73",weight:2.5}:{})});
+const style=p=>({...(checked.has(p.id)?{fillColor:"#e5383b",color:"#ffffff",fillOpacity:1,weight:2}
+                                :{fillColor:"#8a949b",color:"#ffffff",fillOpacity:.92,weight:1.6}),dashArray:p.approx?"2 2":null,...(p.kind==="ca"?{color:"#1b6d73",weight:2.4}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
 const typeLine=p=>`<div class="tt">${esc(fld(p,"d")||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`+(isEdited(p,"name")?`<div class="tt ed2">Official name: ${esc(p.title)}</div>`:"");
 const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(disp(p))}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
@@ -186,7 +186,7 @@ function initMap(){
   map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,wheelPxPerZoomLevel:110,wheelDebounceTime:20,
     touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true,zoomControl:true,attributionControl:true});
   map.attributionControl.setPrefix(false);window.parksMap=map;
-  new LocalTiles({tileSize:512,minZoom:2,maxZoom:13,maxNativeZoom:9,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
+  new LocalTiles({tileSize:512,minZoom:2,maxZoom:13,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
     attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
   addVectors();
   group=L.layerGroup().addTo(map);
@@ -200,9 +200,15 @@ function initMap(){
          <a href="${esc(infoUrl(p))}" target="_blank" rel="noopener">Info page ↗</a></div>`).openOn(map);});
     markers.set(p.id,m);
   });
-  const RoseCtl=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","rose");d.id="roseEl";
-    d.innerHTML='<svg viewBox="-50 -50 100 100"><circle r="47" fill="none" stroke="#22302a" stroke-width="1"/><path d="M0-42L7 0 0 42-7 0Z" fill="#fff" stroke="#22302a"/><path d="M-42 0L0-7 42 0 0 7Z" fill="#fff" stroke="#22302a"/><path d="M0-42L7 0-7 0Z" fill="#d32f2f"/><path d="M0 42L7 0-7 0Z" fill="#22302a"/><path d="M-30-30L0-4 30-30 4 0 30 30 0 4-30 30-4 0Z" fill="#9aa0a6" opacity=".55"/><text y="-44" text-anchor="middle" font-size="14" font-weight="700" fill="#22302a" transform="translate(0,-2)">N</text><text y="52" text-anchor="middle" font-size="10" fill="#22302a">S</text><text x="-50" y="4" font-size="10" fill="#22302a">W</text><text x="42" y="4" font-size="10" fill="#22302a">E</text></svg>';return d}});
+  const RoseCtl=L.Control.extend({onAdd(){const d=L.DomUtil.create("button","rose");d.id="roseEl";d.type="button";d.title="North is up · click to reset the view";d.setAttribute("aria-label","Compass: reset view");
+    d.innerHTML=`<svg viewBox="-50 -50 100 100" aria-hidden="true"><circle r="46" class="rg"/>
+      <g class="tk">${[...Array(24)].map((_,i)=>`<line x1="0" y1="-46" x2="0" y2="${i%6===0?-39:-42.5}" transform="rotate(${i*15})"/>`).join("")}</g>
+      <path class="nn" d="M0-25 7 0 0-4 -7 0Z"/><path class="ns" d="M0 25 7 0 0 4 -7 0Z"/><circle r="2.4" class="hub"/>
+      <text y="-30" class="nl" text-anchor="middle">N</text></svg>`;
+    L.DomEvent.disableClickPropagation(d);d.onclick=()=>map.flyToBounds(views[store.get("view","lower48")]||views.lower48,{duration:.8,padding:[10,10]});return d}});
   new RoseCtl({position:"bottomleft"}).addTo(map);
+  const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
+  new Legend({position:"bottomright"}).addTo(map);
   ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
   map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup()}});
   map.on("zoomend",restyle);
@@ -229,7 +235,7 @@ function applyLabels(){if(!map)return;const on=$("#labels").checked;
       m.on("mouseover",()=>m.setTooltipContent(tipFull(q)));m.on("mouseout",()=>m.setTooltipContent(tipName(q)))}
     else m.bindTooltip(()=>tipFull(q),{className:"lbl",interactive:true,direction:"top",offset:[0,-4]});});renderMap(mapList());}
 function refreshTips(ids){if(!map)return;const on=$("#labels").checked;ids.forEach(id=>{const m=markers.get(id),q=byId.get(id);if(m&&on)m.setTooltipContent(tipName(q))})}
-$("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);refresh()};
+$("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);document.body.classList.toggle("show-ca",showCA);refresh()};
 $("#rose").onchange=e=>{store.set("rose",e.target.checked);$("#roseEl")&&($("#roseEl").style.display=e.target.checked?"":"none")};
 
 // ---------- list format (Google-Sheets-style grid) ----------
@@ -490,7 +496,7 @@ $("#export").onclick=()=>{
 $("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save();refresh()}};
 
 $("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);$("#stnames").checked=store.get("stnames",true);$("#citynames").checked=store.get("citynames",true);
-$("#showCA").checked=showCA;setDataset(dataset);
+$("#showCA").checked=showCA;document.body.classList.toggle("show-ca",showCA);setDataset(dataset);
 setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","grid"));renderEditsPanel();
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
