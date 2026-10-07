@@ -64,7 +64,7 @@ document.addEventListener("click",()=>msInstances.forEach(m=>m.close()));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(m=>m.close())});
 const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
 multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st);
-multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the 63 (Sequoia & Kings Canyon count as 2)",n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
+multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the 63",n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
