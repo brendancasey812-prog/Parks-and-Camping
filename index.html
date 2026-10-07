@@ -29,6 +29,7 @@
 <section class="filters" id="filters">
   <input id="q" type="search" placeholder="Search…" aria-label="Search">
   <div id="fState"></div>
+  <div id="fUnit"></div>
   <div id="fDesig"></div>
   <div id="fVisited"></div>
   <button id="clear" type="button" class="ghost">Clear filters</button>
@@ -94,7 +95,6 @@
       <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
       <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="labels"> Names</label>
       <label class="dotctl" title="Off by default"><input type="checkbox" id="showCA"> California State Parks</label>
-      <label class="dotctl" title="NPS trails, loaded live for the area you are looking at (zoom in)"><input type="checkbox" id="trails"> Trails</label>
       <label class="dotctl"><input type="checkbox" id="stnames" checked> State names</label>
       <label class="dotctl"><input type="checkbox" id="citynames" checked> Cities</label>
       <label class="dotctl"><input type="checkbox" id="rose" checked> Compass</label>
@@ -103,48 +103,37 @@
   </section>
 
   <section id="tab-trails" class="panel">
-    <div class="tm-wrap" id="tmWrap">
-      <aside class="tm-side" id="tmSide" aria-label="Trails map controls">
-        <div class="tm-head"><h2>Trails Map</h2><button id="tmCollapse" type="button" title="Hide panel" aria-label="Hide panel">«</button></div>
-        <p class="tm-sub">NPS public trails over a terrain map. Pick parks or a state, or zoom in anywhere to browse.</p>
-
-        <section class="tm-block">
-          <h3>Filter</h3>
-          <label class="tm-l">Park / unit</label><div id="tmPark"></div>
-          <label class="tm-l">State / locale</label><div id="tmState"></div>
-          <div class="tm-actions"><button id="tmFit" type="button">Zoom to selection</button><button id="tmClear" type="button" class="ghost">Clear</button></div>
-        </section>
-
-        <details class="tm-block" open>
-          <summary>Trail style</summary>
-          <label class="tm-l">Color trails by <select id="tmColorBy"><option value="">One color (stand-out)</option></select></label>
+    <div class="toolbar">
+      <div class="hamb" id="tmHamb">
+        <button class="hamb-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trail settings" title="Trail settings"><i></i><i></i><i></i></button>
+        <div class="hamb-menu tm-menu" role="menu" hidden>
+          <div class="hm-title">Trail settings</div>
+          <div class="hm-group">Trails</div>
+          <label class="tm-row">Color trails by <select id="tmColorBy"><option value="">One color (stand-out)</option><option value="__park">Park</option></select></label>
           <label class="tm-row">Line width <input type="range" id="tmWidth" min="1" max="6" step=".5"><output id="tmWidthOut"></output></label>
           <label class="tm-row">Opacity <input type="range" id="tmOpacity" min=".3" max="1" step=".05"><output id="tmOpacityOut"></output></label>
-          <label class="tm-check"><input type="checkbox" id="tmCasing"> White outline around trails</label>
-          <label class="tm-check"><input type="checkbox" id="tmDim"> Mute the terrain colors</label>
-        </details>
-
-        <details class="tm-block" open>
-          <summary>Map</summary>
+          <label class="hm-check"><input type="checkbox" id="tmCasing"><b>▭</b>White outline around trails</label>
+          <label class="hm-check"><input type="checkbox" id="tmLegend"><b>☰</b>Trail legend</label>
+          <div class="hm-group">Terrain</div>
           <label class="tm-row">Relief strength <input type="range" id="tmRelief" min="0" max="100" step="5"><output id="tmReliefOut"></output></label>
-          <label class="tm-check"><input type="checkbox" id="tmDots"> Park dots</label>
-          <label class="tm-check"><input type="checkbox" id="tmNames"> Park names</label>
-          <label class="tm-check"><input type="checkbox" id="tmStates"> State names</label>
-          <label class="tm-check"><input type="checkbox" id="tmCities"> Cities</label>
-          <label class="tm-check"><input type="checkbox" id="tmRose"> Compass</label>
-          <label class="tm-check"><input type="checkbox" id="tmLegend"> Legend</label>
-          <label class="tm-check off"><input type="checkbox" disabled> Contour lines <em>coming with GIS data</em></label>
-          <label class="tm-check off"><input type="checkbox" disabled> Land cover / forest <em>coming with GIS data</em></label>
-        </details>
-
-        <section class="tm-block">
-          <h3>Selected parks <span id="tmCount" class="tm-n"></span></h3>
-          <div id="tmParks" class="tm-parks"><p class="tm-empty">No parks selected. Pick one above, or click a park dot on the map.</p></div>
-        </section>
-        <div class="tm-status" id="tmStatus" role="status"></div>
-      </aside>
-      <div class="tm-main"><button id="tmOpen" type="button" class="tm-open" aria-label="Show panel">»</button><div id="tmap"></div></div>
+          <label class="hm-check"><input type="checkbox" id="tmDim"><b>◐</b>Mute terrain colors</label>
+          <label class="hm-check off"><input type="checkbox" disabled><b>≋</b>Contour lines <em>coming with GIS data</em></label>
+          <label class="hm-check off"><input type="checkbox" disabled><b>♣</b>Land cover <em>coming with GIS data</em></label>
+        </div>
+      </div>
+      <div class="seg" id="t_jump">
+        <button data-v="lower48">Lower 48</button><button data-v="ak">Alaska</button>
+        <button data-v="hi">Hawaiʻi</button><button data-v="terr">Territories</button>
+      </div>
+      <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label>
+      <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="t_labels"> Names</label>
+      <label class="dotctl" title="Off by default"><input type="checkbox" id="t_showCA"> California State Parks</label>
+      <label class="dotctl"><input type="checkbox" id="tmTrails" checked> Trails</label>
+      <label class="dotctl"><input type="checkbox" id="t_stnames" checked> State names</label>
+      <label class="dotctl"><input type="checkbox" id="t_citynames" checked> Cities</label>
+      <label class="dotctl"><input type="checkbox" id="t_rose" checked> Compass</label>
     </div>
+    <div id="tmap"></div>
   </section>
 
   <section id="tab-visited" class="panel">

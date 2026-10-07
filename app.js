@@ -36,7 +36,7 @@ let checked=new Set(store.get("checked",[]));
 const save=()=>store.set("checked",[...checked]);
 
 // ---------- filters (multi-select dropdowns with search) ----------
-const filt={q:"",st:new Set(),d:new Set(["__NP63"]),v:new Set()};   // opens on the 63 national parks; "Clear filters" shows everything
+const filt={q:"",st:new Set(),u:new Set(),d:new Set(["__NP63"]),v:new Set()};   // opens on the 63 national parks; "Clear filters" shows everything
 const msInstances=[];
 function multiSelect(root,label,options,set){
   root.classList.add("ms");
@@ -64,26 +64,27 @@ document.addEventListener("click",()=>msInstances.forEach(m=>m.close()));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(m=>m.close())});
 const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
 multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st);
+multiSelect($("#fUnit"),"Park / unit",[...parks].sort((x,y)=>x.title.localeCompare(y.title)).map(p=>({value:p.code,text:p.title,n:p.d})),filt.u);
 multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the 63",n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
   return src.filter(p=>(!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
-    &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))&&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))
+    &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))&&(!filt.u.size||filt.u.has(p.code))&&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))
     &&(!filt.v.size||filt.v.has(checked.has(p.id)?"1":"0")));
 }
 $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
-$("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
+$("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-let map;
 function showTab(t){
   $$(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".panel").forEach(p=>p.classList.toggle("active",p.id==="tab-"+t));
-  $("#filters").style.display=(t==="about"||t==="trails")?"none":"";
+  $("#filters").style.display=t==="about"?"none":"";
   document.body.classList.toggle("map-mode",t==="map"||t==="trails");
-  if(t==="map"){initMap();setTimeout(()=>map.invalidateSize(),60)}
-  if(t==="trails"&&window.TrailsMap)window.TrailsMap.show();
+  if(t==="map"){mainView.init();setTimeout(()=>mainView.map.invalidateSize(),60)}
+  if(t==="trails"){trailsView.init();setTimeout(()=>trailsView.map.invalidateSize(),60);window.TrailsMap&&window.TrailsMap.show()}
+
   if(t==="about")renderEditsPanel();
   store.set("tab",t);
 }
@@ -98,7 +99,7 @@ setTheme(store.get("theme","system"));
 // ---------- dot size (site wide) ----------
 let dotScale=store.get("dot",1);
 function setDot(v){dotScale=+v;document.documentElement.style.setProperty("--dot",v);store.set("dot",v);
-  $$(".dotsize").forEach(i=>i.value=v);if(map)restyle();}
+  $$(".dotsize").forEach(i=>i.value=v);mapViews&&mapViews.forEach(v=>v.restyle());}
 $$(".dotsize").forEach(i=>i.oninput=()=>setDot(i.value));
 
 // ---------- grid ----------
@@ -127,15 +128,14 @@ function renderVisited(){
 }
 $("#vlist").onclick=e=>{const li=e.target.closest("li[data-id]");if(li&&e.target.closest(".dot"))toggle(li.dataset.id)};
 
-// ---------- map (self-hosted terrain tiles + vector overlays; no external services) ----------
-const views={lower48:[[24.5,-125.5],[49.8,-66]],ak:[[51,-170],[71.8,-129]],hi:[[18.8,-160.6],[22.4,-154.6]],terr:[[-15,-171.5],[19.5,-64]]};
-let markers=new Map(),group,roseCtl;
+// ---------- map views: the Map tab and the Trails Map tab are two instances of the SAME map code ----------
+const VIEW_BOUNDS={lower48:[[24.5,-125.5],[49.8,-66]],ak:[[51,-170],[71.8,-129]],hi:[[18.8,-160.6],[22.4,-154.6]],terr:[[-15,-171.5],[19.5,-64]]};
 const coarse=matchMedia("(pointer:coarse)").matches;
-const radius=()=>Math.max(coarse?6:3,(2+map.getZoom()*0.9)*dotScale);
 const style=p=>({...(checked.has(p.id)?{fillColor:"#e5383b",color:"#ffffff",fillOpacity:1,weight:2}
                                 :{fillColor:"#8a949b",color:"#ffffff",fillOpacity:.92,weight:1.6}),dashArray:p.approx?"2 2":null,...(p.kind==="ca"?{color:"#1b6d73",weight:2.4}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
 const typeLine=p=>`<div class="tt">${esc(fld(p,"d")||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`+(isEdited(p,"name")?`<div class="tt ed2">Official name: ${esc(p.title)}</div>`:"");
+const nearLine=p=>fld(p,"city")?`<div class="tt">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}${fld(p,"year")?" · visited "+esc(fld(p,"year")):""}</div>`:"";
 const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(disp(p))}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
 const tipFull=p=>tipName(p)+typeLine(p);
 
@@ -157,115 +157,10 @@ const LocalTiles=L.GridLayer.extend({
     attempt(0);return tile;
   }
 });
-function addVectors(){
-  const G=window.GEO||{};
-  map.createPane("water").style.zIndex=250;map.createPane("lines").style.zIndex=260;map.createPane("place").style.zIndex=270;
-  const water=L.canvas({pane:"water",padding:.4}),lines=L.canvas({pane:"lines",padding:.4});
-  if(G.lakes)L.geoJSON(G.lakes,{pane:"water",renderer:water,interactive:false,style:{fillColor:"#c4dae6",fillOpacity:1,color:"#9dc0d3",weight:.7}}).addTo(map);
-  const rivers=G.rivers&&L.geoJSON(G.rivers,{pane:"water",renderer:water,interactive:false,style:{color:"#9fc6da",weight:1,opacity:.95}}).addTo(map);
-  if(G.statesTopo&&window.topojson){
-    const mesh=topojson.mesh(G.statesTopo,G.statesTopo.objects.states,(x,y)=>x!==y);
-    L.geoJSON(mesh,{pane:"lines",renderer:lines,interactive:false,style:{color:"#3c5d50",weight:1,opacity:.6,dashArray:"5 3"}}).addTo(map);
-  }
-  if(G.borders)L.geoJSON(G.borders,{pane:"lines",renderer:lines,interactive:false,style:{color:"#27423a",weight:1.5,opacity:.8}}).addTo(map);
-  // labels
-  const stLabels=(G.stateLabels||[]).filter(s=>!/^(Commonwealth|United States Virgin)/.test(s[0])).map(s=>L.marker([s[2],s[1]],{pane:"place",interactive:false,keyboard:false,
-    icon:L.divIcon({className:"stlab",html:s[0],iconSize:[0,0]})}));
-  const cities=(G.cities||[]).map(c=>({pop:c[3],m:L.marker([c[2],c[1]],{pane:"place",interactive:false,keyboard:false,icon:L.divIcon({className:"city",html:`<i></i><span>${esc(c[0])}</span>`,iconSize:[0,0]})})}));
-  const stG=L.layerGroup(stLabels),ctG=L.layerGroup();
-  function update(){
-    const z=map.getZoom(),sn=$("#stnames").checked,cn=$("#citynames").checked;
-    (sn&&z>=3.4&&z<7.6)?stG.addTo(map):stG.remove();
-    ctG.clearLayers();if(cn&&z>=4.6){const min=z<5.6?2e6:z<6.6?8e5:z<7.6?4e5:0;cities.filter(c=>c.pop>=min).forEach(c=>ctG.addLayer(c.m));ctG.addTo(map)}else ctG.remove();
-    const w=Math.max(.7,Math.min(2.2,(z-3)*.35));rivers&&rivers.setStyle({weight:w});
-  }
-  map.on("zoomend",update);$("#stnames").onchange=e=>{store.set("stnames",e.target.checked);update()};$("#citynames").onchange=e=>{store.set("citynames",e.target.checked);update()};
-  update();
-}
-// Hover card: sits above the dot, stays open while the pointer is on it, and lingers ~1.2 s after leaving so links are easy to reach.
-let hoverCard=null,hoverTimer=null,hoverId=null;
-function hoverHtml(p){return tipFull(p)+`<div class="pp mini"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited · undo":"Mark visited"}</button></div>`}
-function showHover(p,m){
-  if($("#labels").checked)return;                    // with Names on, the labels themselves are the links
-  clearTimeout(hoverTimer);hoverId=p.id;
-  if(!hoverCard){
-    hoverCard=L.popup({className:"hovercard",closeButton:false,autoPan:false,closeOnClick:false,autoClose:false,offset:[0,-16],maxWidth:260,minWidth:140});
-    hoverCard.on("add",()=>{const el=hoverCard.getElement();if(el&&!el._wired){el._wired=1;el.addEventListener("mouseenter",()=>clearTimeout(hoverTimer));el.addEventListener("mouseleave",()=>hideHover(500))}});
-  }
-  hoverCard.setLatLng(m.getLatLng()).setContent(hoverHtml(p));
-  if(!map.hasLayer(hoverCard))hoverCard.addTo(map);
-}
-function hideHover(delay){clearTimeout(hoverTimer);hoverTimer=setTimeout(()=>{if(hoverCard&&map.hasLayer(hoverCard))map.removeLayer(hoverCard);hoverId=null},delay)}
-
-// ---------- NPS trails (loaded live for the visible area; off by default) ----------
-const TRAILS_URL="https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/MapServer/0/query";
-function setupTrails(){
-  const on=()=>$("#trails").checked;
-  const Note=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","trailnote");d.hidden=true;this.el=d;return d}});
-  const note=new Note({position:"topright"}).addTo(map);
-  const say=t=>{note.el.hidden=!t;note.el.textContent=t||""};
-  const group=L.layerGroup().addTo(map),rend=L.canvas({pane:"lines",padding:.3});let ctrl=null,timer=0;
-  async function load(){
-    ctrl&&ctrl.abort();group.clearLayers();
-    if(!on()){say("");return}
-    const z=map.getZoom();if(z<9.5){say("Zoom in to see NPS trails");return}
-    const b=map.getBounds().pad(.1);ctrl=new AbortController();say("Loading trails…");
-    const url=TRAILS_URL+"?"+new URLSearchParams({where:"1=1",geometry:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(","),geometryType:"esriGeometryEnvelope",inSR:"4326",outSR:"4326",
-      spatialRel:"esriSpatialRelIntersects",outFields:"*",returnGeometry:"true",maxAllowableOffset:String(360/(512*2**z)),resultRecordCount:"2000",f:"geojson"});
-    try{
-      const r=await fetch(url,{signal:ctrl.signal});if(!r.ok)throw new Error("HTTP "+r.status);
-      const g=await r.json(),n=(g.features||[]).length;
-      L.geoJSON(g,{pane:"lines",renderer:rend,style:{color:"#8a4b14",weight:z>12?2.4:1.8,opacity:.92},
-        onEachFeature:(f,l)=>{const p=f.properties||{};const nm=p.TRLNAME||p.TrailName||p.NAME||"Trail";const unit=p.UNITNAME||p.UNITCODE||"";
-          l.bindTooltip(`<b>${esc(nm)}</b>`+(unit?`<div class="tt">${esc(unit)}</div>`:""),{className:"lbl",sticky:true})}}).addTo(group);
-      say(g.exceededTransferLimit||n>=2000?"Showing the first 2,000 trail segments here · zoom in for the rest":`${n} trail segment${n===1?"":"s"} in view`);
-    }catch(e){if(e.name!=="AbortError")say("NPS trails are unavailable right now")}
-  }
-  map.on("moveend",()=>{clearTimeout(timer);timer=setTimeout(load,350)});
-  $("#trails").onchange=e=>{store.set("trails",e.target.checked);load()};
-  load();
-}
-function initMap(){
-  if(map)return;
-  map=L.map("map",{minZoom:2,maxZoom:13,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,scrollWheelZoom:false,
-    touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true,zoomControl:true,attributionControl:true});
-  map.attributionControl.setPrefix(false);window.parksMap=map;
-  new LocalTiles({tileSize:512,minZoom:2,maxZoom:13,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
-    attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
-  addVectors();
-  setupTrails();
-  group=L.layerGroup().addTo(map);
-  [...parks,...caParks].forEach(p=>{
-    const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
-    if(!coarse){m.on("mouseover",()=>showHover(p,m));m.on("mouseout",()=>hideHover(1200))}
-    m.on("click",()=>{                 // desktop: click toggles; touch: tap opens a card
-      if(!coarse){toggle(p.id);return}
-      L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
-        `<strong>${esc(disp(p))}</strong>${typeLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
-         <a href="${esc(infoUrl(p))}" target="_blank" rel="noopener">Info page ↗</a></div>`).openOn(map);});
-    markers.set(p.id,m);
-  });
-  const RoseCtl=L.Control.extend({onAdd(){const d=L.DomUtil.create("button","rose");d.id="roseEl";d.type="button";d.title="North is up · click to reset the view";d.setAttribute("aria-label","Compass: reset view");
-    d.innerHTML=`<svg viewBox="-50 -50 100 100" aria-hidden="true"><circle r="46" class="rg"/>
-      <g class="tk">${[...Array(24)].map((_,i)=>`<line x1="0" y1="-46" x2="0" y2="${i%6===0?-39:-42.5}" transform="rotate(${i*15})"/>`).join("")}</g>
-      <path class="nn" d="M0-25 7 0 0-4 -7 0Z"/><path class="ns" d="M0 25 7 0 0 4 -7 0Z"/><circle r="2.4" class="hub"/>
-      <text y="-30" class="nl" text-anchor="middle">N</text></svg>`;
-    L.DomEvent.disableClickPropagation(d);d.onclick=()=>map.flyToBounds(views[store.get("view","lower48")]||views.lower48,{duration:.8,padding:[10,10]});return d}});
-  new RoseCtl({position:"bottomleft"}).addTo(map);
-  const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
-  new Legend({position:"bottomright"}).addTo(map);
-  ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
-  map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
-  setupZoomInput();
-  map.on("zoomend",restyle);
-  map.fitBounds(views[store.get("view","lower48")]||views.lower48);
-  applyLabels();$("#rose").onchange({target:$("#rose")});
-  refresh();
-}
 // Zoom input: wheel, trackpad scroll, trackpad pinch (Chrome/Edge/Firefox) and Safari pinch gestures, scaled by the 1-5 sensitivity setting.
 const ZOOM_K=[0.003,0.005,0.008,0.012,0.018];                       // zoom levels per scrolled pixel
 const zoomK=()=>ZOOM_K[clamp(+store.get("zoomSens",4),1,5)-1];
-function setupZoomInput(){
+function setupZoomInput(map){
   const el=map.getContainer();let acc=0,raf=0,at=null;
   el.addEventListener("wheel",e=>{
     e.preventDefault();
@@ -279,28 +174,123 @@ function setupZoomInput(){
   el.addEventListener("gesturechange",e=>{e.preventDefault();const boost=0.5+zoomK()*60;map.setZoomAround(map.mouseEventToLatLng(e)||map.getCenter(),clamp(z0+Math.log2(e.scale)*boost,map.getMinZoom(),map.getMaxZoom()),{animate:false})});
   el.addEventListener("gestureend",e=>e.preventDefault());
 }
-function restyle(){markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())})}
-$$("#jump button").forEach(b=>b.onclick=()=>{initMap();store.set("view",b.dataset.v);map.flyToBounds(views[b.dataset.v],{duration:.8,padding:[10,10]})});
 const mapList=()=>visible().concat(showCA?visible(caParks):[]);
-function renderMap(list){
-  if(!map)return;
-  group.clearLayers();
-  list.forEach(p=>group.addLayer(markers.get(p.id)));
-  restyle();
-  const keep=list.filter(p=>checked.has(p.id));   // draw checked on top
-  keep.forEach(p=>markers.get(p.id).bringToFront());
+const mapViews=[];
+function createMapView(c){
+  const V={map:null,markers:new Map(),group:null,hoverCard:null,hoverTimer:null,cfg:c,readyCbs:[]};
+  const el=k=>$(c.ctl[k]);
+  const K=k=>c.key+k;
+  const radius=()=>Math.max(coarse?6:3,(2+V.map.getZoom()*0.9)*dotScale);
+  function addVectors(map){
+    const G=window.GEO||{};
+    map.createPane("water").style.zIndex=250;map.createPane("lines").style.zIndex=260;map.createPane("place").style.zIndex=270;
+    const water=L.canvas({pane:"water",padding:.4}),lines=L.canvas({pane:"lines",padding:.4});
+    if(G.lakes)L.geoJSON(G.lakes,{pane:"water",renderer:water,interactive:false,style:{fillColor:"#c4dae6",fillOpacity:1,color:"#9dc0d3",weight:.7}}).addTo(map);
+    const rivers=G.rivers&&L.geoJSON(G.rivers,{pane:"water",renderer:water,interactive:false,style:{color:"#9fc6da",weight:1,opacity:.95}}).addTo(map);
+    if(G.statesTopo&&window.topojson){
+      const mesh=topojson.mesh(G.statesTopo,G.statesTopo.objects.states,(x,y)=>x!==y);
+      L.geoJSON(mesh,{pane:"lines",renderer:lines,interactive:false,style:{color:"#3c5d50",weight:1,opacity:.6,dashArray:"5 3"}}).addTo(map);
+    }
+    if(G.borders)L.geoJSON(G.borders,{pane:"lines",renderer:lines,interactive:false,style:{color:"#27423a",weight:1.5,opacity:.8}}).addTo(map);
+    const stLabels=(G.stateLabels||[]).filter(s=>!/^(Commonwealth|United States Virgin)/.test(s[0])).map(s=>L.marker([s[2],s[1]],{pane:"place",interactive:false,keyboard:false,
+      icon:L.divIcon({className:"stlab",html:s[0],iconSize:[0,0]})}));
+    const cities=(G.cities||[]).map(q=>({pop:q[3],m:L.marker([q[2],q[1]],{pane:"place",interactive:false,keyboard:false,icon:L.divIcon({className:"city",html:`<i></i><span>${esc(q[0])}</span>`,iconSize:[0,0]})})}));
+    const stG=L.layerGroup(stLabels),ctG=L.layerGroup();
+    function update(){
+      const z=map.getZoom(),sn=el("stn").checked,cn=el("cities").checked;
+      (sn&&z>=3.4&&z<7.6)?stG.addTo(map):stG.remove();
+      ctG.clearLayers();if(cn&&z>=4.6){const min=z<5.6?2e6:z<6.6?8e5:z<7.6?4e5:0;cities.filter(q=>q.pop>=min).forEach(q=>ctG.addLayer(q.m));ctG.addTo(map)}else ctG.remove();
+      const w=Math.max(.7,Math.min(2.2,(z-3)*.35));rivers&&rivers.setStyle({weight:w});
+    }
+    map.on("zoomend",update);V.updatePlaceLabels=update;update();
+  }
+  // Hover card: sits above the dot, stays open while the pointer is on it, and lingers ~1.2 s after leaving so links are easy to reach.
+  const hoverHtml=p=>tipFull(p)+nearLine(p)+`<div class="pp mini"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited · undo":"Mark visited"}</button></div>`;
+  function showHover(p,m){
+    if(el("labels").checked)return;
+    clearTimeout(V.hoverTimer);
+    if(!V.hoverCard){
+      V.hoverCard=L.popup({className:"hovercard",closeButton:false,autoPan:false,closeOnClick:false,autoClose:false,offset:[0,-16],maxWidth:260,minWidth:140});
+      V.hoverCard.on("add",()=>{const e=V.hoverCard.getElement();if(e&&!e._wired){e._wired=1;e.addEventListener("mouseenter",()=>clearTimeout(V.hoverTimer));e.addEventListener("mouseleave",()=>hideHover(500))}});
+    }
+    V.hoverCard.setLatLng(m.getLatLng()).setContent(hoverHtml(p));
+    if(!V.map.hasLayer(V.hoverCard))V.hoverCard.addTo(V.map);
+  }
+  function hideHover(delay){clearTimeout(V.hoverTimer);V.hoverTimer=setTimeout(()=>{if(V.hoverCard&&V.map.hasLayer(V.hoverCard))V.map.removeLayer(V.hoverCard)},delay)}
+  V.hideHover=hideHover;
+  V.fly=()=>V.map.flyToBounds(VIEW_BOUNDS[store.get(K("view"),"lower48")]||VIEW_BOUNDS.lower48,{duration:.8,padding:[10,10]});
+  V.init=function(){
+    if(V.map)return V.map;
+    const map=V.map=L.map(c.el,{minZoom:2,maxZoom:14,worldCopyJump:true,preferCanvas:true,zoomSnap:0,zoomDelta:.75,scrollWheelZoom:false,
+      touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true,zoomControl:true,attributionControl:true});
+    map.attributionControl.setPrefix(false);window[c.global]=map;
+    new LocalTiles({tileSize:512,minZoom:2,maxZoom:14,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
+      attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
+    addVectors(map);
+    V.group=L.layerGroup().addTo(map);
+    [...parks,...caParks].forEach(p=>{
+      const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
+      if(!coarse){m.on("mouseover",()=>showHover(p,m));m.on("mouseout",()=>hideHover(1200))}
+      m.on("click",()=>{                 // desktop: click toggles; touch: tap opens a card
+        if(!coarse){toggle(p.id);return}
+        L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
+          `<strong>${esc(disp(p))}</strong>${typeLine(p)}${nearLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
+           <a href="${esc(infoUrl(p))}" target="_blank" rel="noopener">Info page ↗</a></div>`).openOn(map);});
+      V.markers.set(p.id,m);
+    });
+    const Rose=L.Control.extend({onAdd(){const d=L.DomUtil.create("button","rose");d.type="button";d.title="North is up · click to reset the view";d.setAttribute("aria-label","Compass: reset view");
+      d.innerHTML=`<svg viewBox="-50 -50 100 100" aria-hidden="true"><circle r="46" class="rg"/>
+        <g class="tk">${[...Array(24)].map((_,i)=>`<line x1="0" y1="-46" x2="0" y2="${i%6===0?-39:-42.5}" transform="rotate(${i*15})"/>`).join("")}</g>
+        <path class="nn" d="M0-25 7 0 0-4 -7 0Z"/><path class="ns" d="M0 25 7 0 0 4 -7 0Z"/><circle r="2.4" class="hub"/>
+        <text y="-30" class="nl" text-anchor="middle">N</text></svg>`;
+      L.DomEvent.disableClickPropagation(d);d.onclick=()=>V.fly();return d}});
+    new Rose({position:"bottomleft"}).addTo(map);
+    const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
+    new Legend({position:"bottomright"}).addTo(map);
+    ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
+    map.getContainer().addEventListener("click",e=>{const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
+    setupZoomInput(map);
+    map.on("zoomend",V.restyle);
+    map.fitBounds(VIEW_BOUNDS[store.get(K("view"),"lower48")]||VIEW_BOUNDS.lower48);
+    V.applyLabels();el("rose").onchange();
+    V.readyCbs.forEach(f=>f(map));
+    V.render();
+    return map;
+  };
+  V.onReady=f=>{V.map?f(V.map):V.readyCbs.push(f)};
+  V.restyle=()=>{if(!V.map)return;V.markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())})};
+  V.render=()=>{
+    if(!V.map)return;
+    const list=mapList();
+    V.group.clearLayers();
+    list.forEach(p=>V.group.addLayer(V.markers.get(p.id)));
+    V.restyle();
+    list.filter(p=>checked.has(p.id)).forEach(p=>V.markers.get(p.id).bringToFront());   // draw checked on top
+  };
+  V.applyLabels=()=>{
+    if(!V.map)return;const on=el("labels").checked;
+    V.markers.forEach((m,id)=>{const q=byId.get(id);m.unbindTooltip();
+      if(m._po){m.off("mouseover",m._po);m.off("mouseout",m._pu);m._po=m._pu=null}
+      if(on){m.bindTooltip(()=>tipName(q),{className:"lbl",interactive:true,permanent:true,direction:"right",offset:[6,0]});
+        m._po=()=>m.setTooltipContent(tipFull(q));m._pu=()=>m.setTooltipContent(tipName(q));m.on("mouseover",m._po);m.on("mouseout",m._pu)}
+    });if(on)hideHover(0);V.render();
+  };
+  V.refreshTips=ids=>{if(!V.map)return;const on=el("labels").checked;ids.forEach(id=>{const m=V.markers.get(id),q=byId.get(id);if(m&&on)m.setTooltipContent(tipName(q))})};
+  // toolbar wiring (works before the map is created)
+  el("labels").checked=store.get(K("labels"),false);el("rose").checked=store.get(K("rose"),true);
+  el("stn").checked=store.get(K("stnames"),true);el("cities").checked=store.get(K("citynames"),true);
+  el("labels").onchange=e=>{store.set(K("labels"),e.target.checked);V.applyLabels()};
+  el("stn").onchange=e=>{store.set(K("stnames"),e.target.checked);V.updatePlaceLabels&&V.updatePlaceLabels()};
+  el("cities").onchange=e=>{store.set(K("citynames"),e.target.checked);V.updatePlaceLabels&&V.updatePlaceLabels()};
+  el("rose").onchange=e=>{store.set(K("rose"),el("rose").checked);const r=V.map&&V.map.getContainer().querySelector(".rose");if(r)r.style.display=el("rose").checked?"":"none"};
+  el("ca").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);document.body.classList.toggle("show-ca",showCA);refresh()};
+  $$(c.ctl.jump+" button").forEach(b=>b.onclick=()=>{V.init();store.set(K("view"),b.dataset.v);V.map.flyToBounds(VIEW_BOUNDS[b.dataset.v],{duration:.8,padding:[10,10]})});
+  mapViews.push(V);return V;
 }
-// labels / compass / state parks toggles
-$("#labels").onchange=e=>{store.set("labels",e.target.checked);applyLabels()};
-function applyLabels(){if(!map)return;const on=$("#labels").checked;
-  markers.forEach((m,id)=>{const q=byId.get(id);m.unbindTooltip();
-    if(m._po){m.off("mouseover",m._po);m.off("mouseout",m._pu);m._po=m._pu=null}
-    if(on){m.bindTooltip(()=>tipName(q),{className:"lbl",interactive:true,permanent:true,direction:"right",offset:[6,0]});
-      m._po=()=>m.setTooltipContent(tipFull(q));m._pu=()=>m.setTooltipContent(tipName(q));m.on("mouseover",m._po);m.on("mouseout",m._pu)}
-  });if(on&&hoverCard)hideHover(0);renderMap(mapList());}
-function refreshTips(ids){if(!map)return;const on=$("#labels").checked;ids.forEach(id=>{const m=markers.get(id),q=byId.get(id);if(m&&on)m.setTooltipContent(tipName(q))})}
-$("#showCA").onchange=e=>{showCA=e.target.checked;store.set("showCA",showCA);document.body.classList.toggle("show-ca",showCA);refresh()};
-$("#rose").onchange=e=>{store.set("rose",e.target.checked);$("#roseEl")&&($("#roseEl").style.display=e.target.checked?"":"none")};
+const mainView=createMapView({el:"map",global:"parksMap",key:"",ctl:{labels:"#labels",ca:"#showCA",stn:"#stnames",cities:"#citynames",rose:"#rose",jump:"#jump"}});
+const trailsView=createMapView({el:"tmap",global:"trailsMap",key:"t_",ctl:{labels:"#t_labels",ca:"#t_showCA",stn:"#t_stnames",cities:"#t_citynames",rose:"#t_rose",jump:"#t_jump"}});
+function refreshTips(ids){mapViews.forEach(v=>v.refreshTips(ids))}
+function syncCAChecks(){mapViews.forEach(v=>{v.cfg&&$(v.cfg.ctl.ca)&&($(v.cfg.ctl.ca).checked=showCA)});document.body.classList.toggle("show-ca",showCA)}
 
 // ---------- list format (Google-Sheets-style grid) ----------
 const COLS=[{k:"name",t:"Name"},{k:"d",t:"Designation"},{k:"city",t:"Nearest City / Community"},{k:"state",t:"State"},{k:"visited",t:"Visited"},{k:"year",t:"Year Last Visited"},{k:"hl",t:"Highlights"}];
@@ -604,20 +594,22 @@ function refresh(){refreshOthers();renderList(true)}
 function refreshOthers(){
   const list=visible();
   $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].length} checked`;
-  renderGrid(list);renderMap(mapList());renderVisited();
+  renderGrid(list);mapViews.forEach(v=>v.render());syncCAChecks();renderVisited();
   bridgeSubs.forEach(f=>{try{f()}catch(e){}});
 }
 
 // Small bridge so self-contained modules (the Trails Map tab) can share parks, visited checks and edits.
 const bridgeSubs=[];
 window.ParksBridge={
-  parks,caParks,
+  parks,caParks,view:trailsView,
   fld,disp,official,
   isChecked:id=>checked.has(id),
   toggle,
   setField(id,k,v){const p=byId.get(id);if(!p)return;put(p,k,String(v));saveEdits();renderList(true);refreshOthers();renderEditsPanel()},
   subscribe:f=>bridgeSubs.push(f),
-  infoUrl:p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name)),
+  infoUrl,
+  visibleParks:()=>visible(),                              // parks passing every taskbar filter
+  setUnitFilter(codes){filt.u.clear();codes.forEach(c=>filt.u.add(c));msInstances.forEach(m=>m.draw());refresh()},
   zoomSens:()=>zoomK()
 };
 $("#export").onclick=()=>{
@@ -626,8 +618,7 @@ $("#export").onclick=()=>{
 };
 $("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save();refresh()}};
 
-$("#labels").checked=store.get("labels",false);$("#rose").checked=store.get("rose",true);$("#trails").checked=store.get("trails",false);$("#stnames").checked=store.get("stnames",true);$("#citynames").checked=store.get("citynames",true);
-$("#showCA").checked=showCA;document.body.classList.toggle("show-ca",showCA);setDataset(dataset);
+syncCAChecks();setDataset(dataset);
 {const zs=$("#zoomSens"),zo=$("#zoomSensOut"),names=["gentle","relaxed","balanced","quick","very fast"];
   const show=()=>{zo.textContent=zs.value+" · "+names[zs.value-1]};zs.value=clamp(+store.get("zoomSens",4),1,5);show();zs.oninput=()=>{store.set("zoomSens",+zs.value);show()}}
 setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","grid"));renderEditsPanel();

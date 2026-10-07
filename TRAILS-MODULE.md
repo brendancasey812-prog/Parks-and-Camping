@@ -1,39 +1,39 @@
 # Trails Map module
 
-The **Trails Map** tab is built as a self-contained module so it can be lifted into its own site.
+The **Trails Map** tab is the Map tab's map (same code, same toolbar, same hover cards, zoom, compass, visited toggles)
+plus an NPS trails layer. Its filtering is the shared taskbar at the top of the site (search, States / territories, Park / unit,
+Designation, Status), so trails are always limited to the parks the taskbar is showing.
 
-## Files to copy
+## Moving it to another site
 | File / folder | Purpose |
 |---|---|
-| `trailsmap.js` | All of the tab's logic (map, trails loading, filters, legend, settings, park cards). |
-| `trailsmap.css` | Styles for the tab. Reuses the CSS variables and `.ms-*` dropdown / `.rose` / `.stlab` / `.city` / `.lbl` styles from `style.css`. |
-| `tiles/` | Pre-rendered terrain tiles (pyramid 0-8). |
-| `data/geo.js` | State borders, lakes, rivers, country borders, cities, state label points (`window.GEO`). |
-| `vendor/leaflet.js`, `vendor/leaflet.css`, `vendor/topojson-client.min.js` | Map libraries (bundled, no CDN). |
-| `fonts/` | Inter + Fraunces (self-hosted). |
-| `data/parks.js` | `window.PARKS_RAW` (unit list). Only needed for the standalone fallback. |
+| `trailsmap.js` | The trails layer: service queries, paging, drawing, legend, trail settings menu. |
+| `trailsmap.css` | Styles for the tab's extras. Uses shared variables and the `.hamb*`, `.rose`, `.maplegend`, `.hovercard`, `.ms-*` styles from `style.css`. |
+| `app.js` | Contains `createMapView()` (the shared map) and `window.ParksBridge`. Take both, or reimplement the bridge. |
+| `tiles/`, `data/geo.js`, `vendor/`, `fonts/` | Terrain pyramid, state / river / lake / city data, Leaflet + topojson, fonts. |
+| `data/parks.js`, `data/details.js` | Park list and nearest city / highlights. |
+The markup is the `<section id="tab-trails">` block in `index.html` plus the `#fUnit` dropdown in the taskbar.
 
-The markup for the tab is the `<section id="tab-trails">` block in `index.html`.
+`trailsmap.js` needs `window.ParksBridge`:
+`view` (the trails map view: `.map` is the Leaflet map), `parks`, `fld`, `disp`, `infoUrl`, `visibleParks()`,
+`setUnitFilter(codes)`, `subscribe(fn)` and `zoomSens()`.
 
-## What it needs from the rest of the site
-`window.ParksBridge` (defined at the end of `app.js`) gives the module the park list, visited checks and edits:
-`parks, caParks, fld, disp, official, isChecked, toggle, setField, subscribe, infoUrl, zoomSens`.
-If `ParksBridge` is missing, `trailsmap.js` falls back to a minimal built-in version that reads `window.PARKS_RAW`
-and keeps visited checks in `localStorage["checked"]`, so it runs on its own.
+## How trails are mapped to parks and locales
+- Every trail segment from the NPS service carries a unit code (`UNITCODE`, the exact field name is read from the layer metadata).
+  Park codes in this site are the same NPS codes (Sequoia and Kings Canyon both map to `SEKI`).
+- The taskbar decides which parks are in play (`ParksBridge.visibleParks()`); the layer queries `UNITCODE IN (...)` for those parks
+  (or `1=1` when every park is showing). Choosing a state in the taskbar therefore shows the trails of that state's parks.
+- Hovering a trail shows its name and park; clicking it opens a card with "Show only this park" (sets the taskbar Park / unit filter).
+- "Color trails by" can use Park or any category field the service exposes (class, use, surface, ...).
 
-The module calls `window.TrailsMap.show()` when its tab is opened (see `showTab` in `app.js`).
-
-## Settings it stores
-`localStorage` keys starting `tm_` (colour-by, line width, opacity, relief, toggles, selected parks/states, panel collapsed).
-Map zoom sensitivity is shared with the main site (`zoomSens`).
-
-## NPS trails service
-`https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/MapServer/0` (layer "Trails", GeoJSON, 2,000 per page).
-- Selected parks are fetched with `where UNITCODE='XXXX'` (the exact field name is read from the layer's metadata), in pages, and cached.
-- With nothing selected, trails load for the visible area once you zoom in (about zoom 9.5).
-- Sequoia and Kings Canyon share the NPS unit code `SEKI`.
+## Loading rules
+- Up to 40,000 matching segments: all of them are loaded (in pages of 2,000, 4 at a time) and lightly generalised for the zoom.
+- At zoom 8 and closer, only the area in view is loaded, at full detail (up to 16,000 segments).
+- If more than 40,000 segments match and you are zoomed out, the chip says so and asks you to zoom in or narrow the taskbar filters.
 - If the service is down or blocks the browser, a message appears and the rest of the map keeps working.
 
+## Settings stored
+`localStorage` keys beginning `tm_` (trail style, relief, legend) and `t_` (this map's toolbar toggles, view). Zoom sensitivity is shared.
+
 ## Planned next: GIS detail
-The panel already has disabled placeholders for contour lines and land cover. Add new vector layers in `addVectors()` /
-`updatePlaceLabels()` and a checkbox in the "Map" section of the panel.
+The settings menu already has disabled placeholders for contour lines and land cover.
