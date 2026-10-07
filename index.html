@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="vendor/leaflet.css">
 <script>try{var t=JSON.parse(localStorage.getItem("theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="trailsmap.css">
 </head>
 <body>
 <header class="top">
@@ -19,6 +20,7 @@
     <button class="tab active" data-tab="grid" role="tab">Park Grid</button>
     <button class="tab" data-tab="list" role="tab">List Format</button>
     <button class="tab" data-tab="map" role="tab">Map</button>
+    <button class="tab" data-tab="trails" role="tab">Trails Map</button>
     <button class="tab" data-tab="visited" role="tab">Visited</button>
     <button class="tab" data-tab="about" role="tab">Settings &amp; About</button>
   </nav>
@@ -100,6 +102,51 @@
     <div id="map"></div>
   </section>
 
+  <section id="tab-trails" class="panel">
+    <div class="tm-wrap" id="tmWrap">
+      <aside class="tm-side" id="tmSide" aria-label="Trails map controls">
+        <div class="tm-head"><h2>Trails Map</h2><button id="tmCollapse" type="button" title="Hide panel" aria-label="Hide panel">«</button></div>
+        <p class="tm-sub">NPS public trails over a terrain map. Pick parks or a state, or zoom in anywhere to browse.</p>
+
+        <section class="tm-block">
+          <h3>Filter</h3>
+          <label class="tm-l">Park / unit</label><div id="tmPark"></div>
+          <label class="tm-l">State / locale</label><div id="tmState"></div>
+          <div class="tm-actions"><button id="tmFit" type="button">Zoom to selection</button><button id="tmClear" type="button" class="ghost">Clear</button></div>
+        </section>
+
+        <details class="tm-block" open>
+          <summary>Trail style</summary>
+          <label class="tm-l">Color trails by <select id="tmColorBy"><option value="">One color (stand-out)</option></select></label>
+          <label class="tm-row">Line width <input type="range" id="tmWidth" min="1" max="6" step=".5"><output id="tmWidthOut"></output></label>
+          <label class="tm-row">Opacity <input type="range" id="tmOpacity" min=".3" max="1" step=".05"><output id="tmOpacityOut"></output></label>
+          <label class="tm-check"><input type="checkbox" id="tmCasing"> White outline around trails</label>
+          <label class="tm-check"><input type="checkbox" id="tmDim"> Mute the terrain colors</label>
+        </details>
+
+        <details class="tm-block" open>
+          <summary>Map</summary>
+          <label class="tm-row">Relief strength <input type="range" id="tmRelief" min="0" max="100" step="5"><output id="tmReliefOut"></output></label>
+          <label class="tm-check"><input type="checkbox" id="tmDots"> Park dots</label>
+          <label class="tm-check"><input type="checkbox" id="tmNames"> Park names</label>
+          <label class="tm-check"><input type="checkbox" id="tmStates"> State names</label>
+          <label class="tm-check"><input type="checkbox" id="tmCities"> Cities</label>
+          <label class="tm-check"><input type="checkbox" id="tmRose"> Compass</label>
+          <label class="tm-check"><input type="checkbox" id="tmLegend"> Legend</label>
+          <label class="tm-check off"><input type="checkbox" disabled> Contour lines <em>coming with GIS data</em></label>
+          <label class="tm-check off"><input type="checkbox" disabled> Land cover / forest <em>coming with GIS data</em></label>
+        </details>
+
+        <section class="tm-block">
+          <h3>Selected parks <span id="tmCount" class="tm-n"></span></h3>
+          <div id="tmParks" class="tm-parks"><p class="tm-empty">No parks selected. Pick one above, or click a park dot on the map.</p></div>
+        </section>
+        <div class="tm-status" id="tmStatus" role="status"></div>
+      </aside>
+      <div class="tm-main"><button id="tmOpen" type="button" class="tm-open" aria-label="Show panel">»</button><div id="tmap"></div></div>
+    </div>
+  </section>
+
   <section id="tab-visited" class="panel">
     <div class="toolbar"><strong id="vcount"></strong>
       <label class="dotctl">Dot size <input type="range" class="dotsize" min="0.5" max="3" step="0.1"></label></div>
@@ -136,5 +183,6 @@
 <script src="data/details.js"></script>
 <script src="data/geo.js"></script>
 <script src="app.js"></script>
+<script src="trailsmap.js"></script>
 </body>
 </html>

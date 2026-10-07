@@ -80,9 +80,10 @@ let map;
 function showTab(t){
   $$(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".panel").forEach(p=>p.classList.toggle("active",p.id==="tab-"+t));
-  $("#filters").style.display=t==="about"?"none":"";
-  document.body.classList.toggle("map-mode",t==="map");
+  $("#filters").style.display=(t==="about"||t==="trails")?"none":"";
+  document.body.classList.toggle("map-mode",t==="map"||t==="trails");
   if(t==="map"){initMap();setTimeout(()=>map.invalidateSize(),60)}
+  if(t==="trails"&&window.TrailsMap)window.TrailsMap.show();
   if(t==="about")renderEditsPanel();
   store.set("tab",t);
 }
@@ -604,7 +605,21 @@ function refreshOthers(){
   const list=visible();
   $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].length} checked`;
   renderGrid(list);renderMap(mapList());renderVisited();
+  bridgeSubs.forEach(f=>{try{f()}catch(e){}});
 }
+
+// Small bridge so self-contained modules (the Trails Map tab) can share parks, visited checks and edits.
+const bridgeSubs=[];
+window.ParksBridge={
+  parks,caParks,
+  fld,disp,official,
+  isChecked:id=>checked.has(id),
+  toggle,
+  setField(id,k,v){const p=byId.get(id);if(!p)return;put(p,k,String(v));saveEdits();renderList(true);refreshOthers();renderEditsPanel()},
+  subscribe:f=>bridgeSubs.push(f),
+  infoUrl:p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name)),
+  zoomSens:()=>zoomK()
+};
 $("#export").onclick=()=>{
   const txt=parks.filter(p=>checked.has(p.id)).map(p=>disp(p)+" ("+p.states.join("/")+")").join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));a.download="checked-parks.txt";a.click();

@@ -1,6 +1,6 @@
 // Offline-first cache so the map and app load instantly on repeat visits (and with no connection).
-const V="parks-v6";
-const CORE=["./","index.html","style.css","app.js","data/parks.js","data/details.js","data/geo.js","vendor/leaflet.js","vendor/leaflet.css","vendor/topojson-client.min.js",
+const V="parks-v7";
+const CORE=["./","index.html","style.css","app.js","trailsmap.js","trailsmap.css","data/parks.js","data/details.js","data/geo.js","vendor/leaflet.js","vendor/leaflet.css","vendor/topojson-client.min.js",
   "fonts/inter-latin-wght-normal.woff2","fonts/fraunces-latin-wght-normal.woff2","manifest.webmanifest","icon.svg","icon-180.png"];
 self.addEventListener("install",e=>{
   e.waitUntil((async()=>{
