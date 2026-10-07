@@ -36,7 +36,7 @@ let checked=new Set(store.get("checked",[]));
 const save=()=>store.set("checked",[...checked]);
 
 // ---------- filters (multi-select dropdowns with search) ----------
-const filt={q:"",st:new Set(),d:new Set(),v:new Set()};
+const filt={q:"",st:new Set(),d:new Set(["__NP63"]),v:new Set()};   // opens on the 63 national parks; "Clear filters" shows everything
 const msInstances=[];
 function multiSelect(root,label,options,set){
   root.classList.add("ms");
