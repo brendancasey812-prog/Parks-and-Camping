@@ -29,7 +29,9 @@ const recByKey=new Map();
 
 /* ---------------------------------------------------------------- helpers */
 function parkName(code){const ps=B.parks.filter(p=>unitOf(p)===code);if(!ps.length)return code;return code==="SEKI"?"Sequoia & Kings Canyon":B.disp(ps[0])}
-function say(t,err){if(noteCtl){noteCtl.el.hidden=!t;noteCtl.el.textContent=t||"";noteCtl.el.classList.toggle("err",!!err)}}
+function say(t,err){if(!noteCtl)return;const el=noteCtl.el;el.hidden=!t;el.classList.toggle("err",!!err);el.classList.toggle("busy",!!t&&!err&&/^(Counting|Loading)/.test(t));
+  el.setAttribute("role",err?"alert":"status");el.textContent=t||"";
+  if(err){const b=document.createElement("button");b.type="button";b.textContent="Retry";b.onclick=()=>{bulk.key=null;bulk.loading=null;say("Retrying…");reload()};el.append(" ",b)}}
 function currentUnits(){return [...new Set(B.visibleParks().map(unitOf))].sort()}
 function whereFor(units){
   const all=new Set(B.parks.map(unitOf));
@@ -256,7 +258,7 @@ function init(){
   map.createPane("tm-hi").style.zIndex="262";
   map.createPane("tm-labels").style.zIndex="430";map.getPane("tm-labels").style.pointerEvents="auto";
   trailGroup=L.layerGroup().addTo(map);casingGroup=L.layerGroup().addTo(map);labelGroup=L.layerGroup().addTo(map);hiGroup=L.layerGroup().addTo(map);
-  const Note=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","trailnote");d.hidden=true;this.el=d;return d}});
+  const Note=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","trailnote");d.hidden=true;L.DomEvent.disableClickPropagation(d);this.el=d;return d}});
   noteCtl=new Note({position:"topright"}).addTo(map);
   const Leg=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","tm-legend");L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);this.el=d;return d}});
   legendCtl=new Leg({position:"bottomright"}).addTo(map);

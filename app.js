@@ -125,6 +125,9 @@ $$("#paneSeg button").forEach(b=>b.onclick=()=>setPane(b.dataset.pane));
 window.addEventListener("resize",()=>{if(currentTab==="explore"&&mainView.map)mainView.map.invalidateSize()});
 // "Filters" button reveals the State / Park / Designation dropdowns on narrow screens
 $("#moreBtn").onclick=()=>{const o=document.body.classList.toggle("more-open");$("#moreBtn").setAttribute("aria-expanded",o)};
+// Layers menus close on outside click / Esc
+document.addEventListener("click",e=>$$("details.layers[open]").forEach(d=>{if(!d.contains(e.target))d.open=false}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$$("details.layers[open]").forEach(d=>{d.open=false;d.querySelector("summary").focus()})});
 // "/" jumps to search
 document.addEventListener("keydown",e=>{if(e.key==="/"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)&&!e.target.isContentEditable){e.preventDefault();$("#q").focus()}});
 $$(".tab[data-tab]").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -300,11 +303,11 @@ function createMapView(c){
     new LocalTiles({tileSize:512,minZoom:2,maxZoom:14,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
       attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
     addVectors(map);
-    V.group=L.layerGroup().addTo(map);
+    V.group=L.layerGroup().addTo(map);V.clusters=L.layerGroup().addTo(map);V.inner=L.layerGroup().addTo(map);
     [...parks,...caParks].forEach(p=>{
       const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
-      if(!coarse){m.on("mouseover",()=>showHover(p,m));m.on("mouseout",()=>hideHover(1200))}
-      m.on("click",()=>{                 // desktop: click toggles; touch: tap opens a card
+      if(!coarse){m.on("mouseover",()=>{showHover(p,m);rowHover(p.id,true)});m.on("mouseout",()=>{hideHover(1200);rowHover(p.id,false)})}
+      m.on("click",()=>{selectRowById(p.id);                 // desktop: click toggles; touch: tap opens a card
         if(!coarse){toggle(p.id);return}
         L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
           `<strong>${esc(disp(p))}</strong>${typeLine(p)}${nearLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
@@ -318,12 +321,12 @@ function createMapView(c){
         <text y="-30" class="nl" text-anchor="middle">N</text></svg>`;
       L.DomEvent.disableClickPropagation(d);d.onclick=()=>V.fly();return d}});
     new Rose({position:"bottomleft"}).addTo(map);
-    const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
+    const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited ✓</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
     new Legend({position:"bottomright"}).addTo(map);
     ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
     map.getContainer().addEventListener("click",e=>{const z=e.target.closest(".pp button[data-zoom]");if(z){const p=byId.get(z.dataset.zoom);if(p)map.flyTo([p.lat,p.lng],Math.max(map.getZoom(),10),{duration:.8});return}const b=e.target.closest(".pp button[data-id]");if(b){toggle(b.dataset.id);map.closePopup();hideHover(0)}});
     setupZoomInput(map);
-    map.on("zoomend",V.restyle);
+    map.on("zoomend",()=>{if(V.clusterOn||map.getZoom()<4.4)V.render();else V.restyle()});
     map.fitBounds(VIEW_BOUNDS[store.get(K("view"),"lower48")]||VIEW_BOUNDS.lower48);
     V.applyLabels();el("rose").onchange();
     V.readyCbs.forEach(f=>f(map));
@@ -335,14 +338,41 @@ function createMapView(c){
     opt.instant?V.map.fitBounds(bb,{maxZoom:max,padding:[60,60],animate:false}):V.map.flyToBounds(bb,{maxZoom:max,padding:[60,60],duration:.9})};
   V.focus=p=>{V.init();V.map.flyTo([p.lat,p.lng],10,{duration:.9});const m=V.markers.get(p.id);if(m&&!coarse)setTimeout(()=>showHover(p,m),1000)};
   V.onReady=f=>{V.map?f(V.map):V.readyCbs.push(f)};
-  V.restyle=()=>{if(!V.map)return;V.markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())})};
+  V.restyle=()=>{if(!V.map)return;V.markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())});
+    V.inner&&V.inner.eachLayer(l=>l.setRadius(Math.max(1.6,radius()*.42)));V.ring&&V.ring.setRadius(radius()+6)};
+  // ring around the dot of the row selected in the table
+  V.highlight=p=>{
+    if(!V.map)return;V.ringId=p?p.id:null;
+    const m=p&&V.markers.get(p.id);
+    if(!m||!V.group.hasLayer(m)){V.ring&&V.map.hasLayer(V.ring)&&V.ring.remove();return}
+    const ll=m.getLatLng();if(!V.ring)V.ring=L.circleMarker(ll,{interactive:false,fill:false,color:"#0b5cd5",weight:3,opacity:1});
+    V.ring.setLatLng(ll).setRadius(radius()+6);if(!V.map.hasLayer(V.ring))V.ring.addTo(V.map);V.ring.bringToFront();
+    if(!V.map.getBounds().pad(-.08).contains(ll))V.map.panTo(ll);
+  };
+  // at low zoom, nearby dots merge into numbered clusters (no extra library)
   V.render=()=>{
     if(!V.map)return;
-    const list=mapList();
-    V.group.clearLayers();
-    list.forEach(p=>V.group.addLayer(V.markers.get(p.id)));
+    const list=mapList(),z=V.map.getZoom();
+    V.group.clearLayers();V.clusters.clearLayers();V.inner.clearLayers();
+    V.clusterOn=z<4.4&&list.length>60&&!el("labels").checked;
+    let singles=list;
+    if(V.clusterOn){
+      const cells=new Map();singles=[];
+      list.forEach(p=>{const pt=V.map.project([p.lat,p.lng],z),k=Math.floor(pt.x/44)+","+Math.floor(pt.y/44);let g=cells.get(k);if(!g)cells.set(k,g=[]);g.push(p)});
+      cells.forEach(g=>{
+        if(g.length===1){singles.push(g[0]);return}
+        const vn=g.filter(p=>checked.has(p.id)).length,lat=g.reduce((t,p)=>t+p.lat,0)/g.length,lng=g.reduce((t,p)=>t+p.lng,0)/g.length;
+        const m=L.marker([lat,lng],{icon:L.divIcon({className:"clu"+(vn?" hasv":""),html:`<span>${g.length}${vn?"<i>✓</i>":""}</span>`,iconSize:[34,34]}),
+          title:`${g.length} units${vn?` · ${vn} visited`:""} – click to zoom in`,alt:`${g.length} units`,riseOnHover:true});
+        m.on("click",()=>V.map.flyToBounds(L.latLngBounds(g.map(p=>[p.lat,p.lng])),{padding:[70,70],maxZoom:Math.max(z+2.5,5),duration:.8}));
+        V.clusters.addLayer(m)});
+    }
+    singles.forEach(p=>V.group.addLayer(V.markers.get(p.id)));
     V.restyle();
-    list.filter(p=>checked.has(p.id)).forEach(p=>V.markers.get(p.id).bringToFront());   // draw checked on top
+    singles.filter(p=>checked.has(p.id)).forEach(p=>{V.markers.get(p.id).bringToFront();    // checked on top, with a white centre so it is not colour-only
+      V.inner.addLayer(L.circleMarker([p.lat,p.lng],{interactive:false,stroke:false,fillColor:"#fff",fillOpacity:1,radius:Math.max(1.6,radius()*.42)}))});
+    V.inner.eachLayer(l=>l.bringToFront());
+    V.ringId&&V.highlight(byId.get(V.ringId));
   };
   V.applyLabels=()=>{
     if(!V.map)return;const on=el("labels").checked;
@@ -431,7 +461,14 @@ function applySel(){
   $$("#lbody .rn").forEach((t,r)=>t.classList.toggle("on",r>=r0&&r<=r1));
   $("#delRows").disabled=!(rows.slice(r0,r1+1).some(p=>p.kind==="custom"));
   $("#undo").disabled=!hist.length;$("#redo").disabled=!redoS.length;
+  if(currentTab==="explore"&&mainView.map&&(linkFlag||wrap.contains(document.activeElement)))mainView.highlight(rows[act.r]);
 }
+let linkFlag=false;
+function rowHover(id,on){if(currentTab!=="explore")return;const r=rows.findIndex(p=>p.id===id);if(r<0)return;
+  (tbody.rows[r]||{classList:{toggle(){}}}).classList.toggle("maphl",on);const c=$('#cardlist .rc[data-r="'+r+'"]');c&&c.classList.toggle("maphl",on)}
+function selectRowById(id){if(currentTab!=="explore")return;const r=rows.findIndex(p=>p.id===id);if(r<0)return;
+  act={r,c:0};sel={r0:r,c0:0,r1:r,c1:COLS.length-1};linkFlag=true;applySel();linkFlag=false;
+  if(cardMQ.matches)$('#cardlist .rc[data-r="'+r+'"]')?.scrollIntoView({block:"center"});else cell(r,0)?.scrollIntoView({block:"center"})}
 const rect=()=>({r0:Math.min(sel.r0,sel.r1),r1:Math.max(sel.r0,sel.r1),c0:Math.min(sel.c0,sel.c1),c1:Math.max(sel.c0,sel.c1)});
 function scrollTo(){cell(act.r,act.c)?.scrollIntoView({block:"nearest",inline:"nearest"})}
 

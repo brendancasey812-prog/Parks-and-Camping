@@ -326,3 +326,17 @@ body.drawer-open #tab-about{display:block;position:fixed;top:0;right:0;bottom:0;
   .rc-a{display:flex;gap:.5rem;margin-top:.6rem}.rc-a button{min-height:44px;padding:.4rem 1rem;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}.rc-a .pri{background:var(--pine);border-color:var(--pine);color:#fff}
   .sheet{margin:auto 0 0;max-width:none;width:100%;border-radius:20px 20px 0 0;max-height:90dvh;overflow:auto}
 }
+
+/* ===== Phase 3: map UX ===== */
+.dot.on{background:radial-gradient(circle,#fff 0 22%,var(--red) 26%)}
+.maplegend .dot.on{background:radial-gradient(circle,#fff 0 22%,#e5383b 26%)}
+.maplegend .dot.off{background:#8a949b}
+.clu{background:none;border:0}
+.clu span{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#17594a;color:#fff;font:700 12px var(--font-body);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;gap:0}
+.clu.hasv span{box-shadow:0 0 0 3px #e5383b,0 2px 8px rgba(0,0,0,.4)}.clu i{font-style:normal;font-size:9px;margin-top:-6px}
+.clu:focus-visible span,.clu:hover span{background:#0f3b30;outline:3px solid #0b5cd5}
+.lt tr.maphl td,.rc.maphl{background:color-mix(in srgb,#0b5cd5 14%,var(--surface))!important}
+.trailnote{display:flex;align-items:center;gap:.6rem}.trailnote.busy::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+.trailnote.err{background:#fde8e6;color:#8c1d18}.trailnote button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:.15rem .7rem;font:600 11.5px var(--font-body);cursor:pointer;min-height:26px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){.layerbox{max-height:60dvh;overflow:auto}}

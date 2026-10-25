@@ -140,14 +140,13 @@
           <label class="tm-row">Relief strength <input type="range" id="tmRelief" min="0" max="100" step="5"><output id="tmReliefOut"></output></label>
           <label class="hm-check"><input type="checkbox" id="tmDim"><b>◐</b>Mute terrain colors</label>
           <div class="hm-note" id="tmFieldInfo">Trail data fields: not loaded yet</div>
-          <label class="hm-check off"><input type="checkbox" disabled><b>≋</b>Contour lines <em>coming with GIS data</em></label>
-          <label class="hm-check off"><input type="checkbox" disabled><b>♣</b>Land cover <em>coming with GIS data</em></label>
         </div>
       </div>
       <div class="seg" id="t_jump">
         <button data-v="lower48">Lower 48</button><button data-v="ak">Alaska</button>
         <button data-v="hi">Hawaiʻi</button><button data-v="terr">Territories</button>
       </div>
+      <details class="layers"><summary>Layers</summary><div class="layerbox">
       <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="t_labels"> Names</label>
       <label class="dotctl" title="Off by default"><input type="checkbox" id="t_showCA"> California State Parks</label>
       <label class="dotctl"><input type="checkbox" id="tmTrails" checked> Trails</label>
@@ -155,6 +154,7 @@
       <label class="dotctl"><input type="checkbox" id="t_stnames" checked> State names</label>
       <label class="dotctl"><input type="checkbox" id="t_citynames" checked> Cities</label>
       <label class="dotctl"><input type="checkbox" id="t_rose" checked> Compass</label>
+      </div></details>
     </div>
     <div id="tmap"></div>
   </section>
