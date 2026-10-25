@@ -72,7 +72,7 @@ function visible(src=parks){
   const UA=new Set([...filt.u].map(c=>c==="SEQU"||c==="KICA"?"SEKI":c));            // trail data uses one code for Sequoia + Kings Canyon
   return src.filter(p=>{
     const trail=p.kind==="trail";
-    return (!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
+    return (!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+fld(p,"hl")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
     &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))
     &&(!filt.u.size||(trail?UA.has(p.code):filt.u.has(p.code)))
     &&(!filt.d.size||(trail?(filt.d.has(p.parkD)||(filt.d.has("__NP63")&&p.np63)):(filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))))
@@ -83,27 +83,50 @@ $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
 $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-const TAB_SECTION={grid:"grid",tgrid:"grid",list:"list",tlist:"list",map:"map",trails:"trails",visited:"visited",about:"about"};
-const TAB_GROUP={grid:"parks",list:"parks",map:"parks",tgrid:"trails",tlist:"trails",trails:"trails"};
+const TAB_SECTION={explore:"explore",grid:"grid",tgrid:"grid",list:"list",tlist:"list",map:"map",trails:"trails",visited:"visited",about:"about"};
+const TAB_GROUP={explore:"parks",grid:"parks",list:"parks",map:"parks",tgrid:"trails",tlist:"trails",trails:"trails"};
 let currentTab="grid",gridMode="parks";
 function showTab(t){
-  if(!TAB_SECTION[t])t="grid";currentTab=t;const sec=TAB_SECTION[t],grp=TAB_GROUP[t];
+  if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
+  if(!TAB_SECTION[t])t="explore";currentTab=t;const sec=TAB_SECTION[t],grp=TAB_GROUP[t];
+  toggleDrawer(false);
   $$(".tabitem").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
-  $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
-  $$(".panel").forEach(p=>p.classList.toggle("active",p.id==="tab-"+sec));
-  $("#filters").style.display=t==="about"?"none":"";
-  document.body.classList.toggle("map-mode",t==="map"||t==="trails");
+  $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp&&t!=="explore"));
+  $$(".panel").forEach(p=>p.classList.toggle("active",sec==="explore"?(p.id==="tab-list"||p.id==="tab-map"):p.id==="tab-"+sec));
+  document.body.classList.toggle("explore",t==="explore");
+  document.body.classList.toggle("map-mode",t==="map"||t==="trails"||t==="explore");
   document.body.dataset.group=grp||"";
   gridMode=t==="tgrid"?"trails":"parks";
   if(t==="tlist")setDataset("trails");else if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
   if(grp==="trails"&&window.TrailsMap)window.TrailsMap.ensureLoaded();
   if(sec==="grid"){refreshOthers()}
+  if(t==="explore"){setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");mainView.init();setPane(store.get("pane","table"),true);setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   if(t==="trails"){trailsView.init();setTimeout(()=>{trailsView.map.invalidateSize();zoomToFilter(true)},80);window.TrailsMap&&window.TrailsMap.show()}
-  if(t==="about")renderEditsPanel();
   store.set("tab",t);
 }
+// Settings / backup / edits / about live in a side drawer so the table + map stay on screen
+function toggleDrawer(open){
+  const b=document.body,was=b.classList.contains("drawer-open");b.classList.toggle("drawer-open",open);
+  const btn=$('.tab[data-tab="about"]');btn&&btn.setAttribute("aria-expanded",open);
+  if(open&&!was){renderEditsPanel();setTimeout(()=>$("#drawerClose").focus(),30)}
+  if(!open&&was&&btn)btn.focus();
+}
+$("#drawerClose").onclick=()=>toggleDrawer(false);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("drawer-open"))toggleDrawer(false)});
+// narrow screens: Table / Map toggle for the Explore view
+function setPane(p,quiet){
+  document.body.dataset.pane=p;store.set("pane",p);
+  $$("#paneSeg button").forEach(b=>{const on=b.dataset.pane===p;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
+  if(!quiet&&p==="map"&&mainView.map)setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},60);
+}
+$$("#paneSeg button").forEach(b=>b.onclick=()=>setPane(b.dataset.pane));
+window.addEventListener("resize",()=>{if(currentTab==="explore"&&mainView.map)mainView.map.invalidateSize()});
+// "Filters" button reveals the State / Park / Designation dropdowns on narrow screens
+$("#moreBtn").onclick=()=>{const o=document.body.classList.toggle("more-open");$("#moreBtn").setAttribute("aria-expanded",o)};
+// "/" jumps to search
+document.addEventListener("keydown",e=>{if(e.key==="/"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)&&!e.target.isContentEditable){e.preventDefault();$("#q").focus()}});
 $$(".tab[data-tab]").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 // dropdown groups: open on hover (mouse), tap/click to pin (touch)
 $$(".tabgroup").forEach(g=>{
@@ -346,7 +369,7 @@ const trailsView=createMapView({el:"tmap",global:"trailsMap",key:"t_",ctl:{label
 function refreshTips(ids){mapViews.forEach(v=>v.refreshTips(ids))}
 // picking a state or park in the taskbar flies the open map to that place
 function zoomToFilter(instant){
-  const v=currentTab==="map"?mainView:currentTab==="trails"?trailsView:null;if(!v||!v.map)return;
+  const v=currentTab==="map"||currentTab==="explore"?mainView:currentTab==="trails"?trailsView:null;if(!v||!v.map)return;
   if(!filt.u.size&&!filt.st.size){if(!instant)v.fly();return}
   const pts=visible().map(p=>[p.lat,p.lng]);if(!pts.length)return;
   v.fitPoints(pts,{instant,maxZoom:filt.u.size&&pts.length<=3?10:8});
@@ -356,7 +379,7 @@ function focusOnMap(id){
   const p=byId.get(id);if(!p)return;
   if(p.kind==="trail"){window.TrailsMap&&window.TrailsMap.showOnMap(p);return}
   if(p.kind==="ca"&&!showCA){showCA=true;store.set("showCA",true);syncCAChecks();refresh()}
-  showTab("map");setTimeout(()=>mainView.focus(p),120);
+  if(currentTab==="explore")setPane("map");else showTab("map");setTimeout(()=>mainView.focus(p),120);
 }
 function syncCAChecks(){mapViews.forEach(v=>{v.cfg&&$(v.cfg.ctl.ca)&&($(v.cfg.ctl.ca).checked=showCA)});document.body.classList.toggle("show-ca",showCA)}
 
@@ -617,7 +640,7 @@ function setDataset(d){
 $$("#dataset button").forEach(b=>b.onclick=()=>setDataset(b.dataset.ds));
 $("#mapSel").onclick=()=>{const {r0,r1}=rect(),sel=rows.slice(r0,r1+1).filter(p=>p&&p.lat);if(!sel.length)return;
   if(sel.length===1){focusOnMap(sel[0].id);return}
-  const trails=sel[0].kind==="trail";showTab(trails?"trails":"map");setTimeout(()=>(trails?trailsView:mainView).fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
+  const trails=sel[0].kind==="trail";if(!trails&&currentTab==="explore")setPane("map");else showTab(trails?"trails":"map");setTimeout(()=>(trails?trailsView:mainView).fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
 $("#undo").onclick=undo;$("#redo").onclick=redo;
 $("#addRow").onclick=()=>{
   const r={id:"X:"+Date.now().toString(36),ds:dataset};customRows.push(r);byId.set(r.id,mkCustom(r));saveCustom();
@@ -671,12 +694,31 @@ $("#backupIn")?.addEventListener("change",async e=>{
 
 // ---------- refresh ----------
 function refresh(){refreshOthers();renderList(true)}
+// active-filter chips + progress summary
+function renderChips(){
+  const out=[],desc={"__NP63":"National Parks (63)"};
+  if(filt.q.trim())out.push(["q","",`Search: “${filt.q.trim()}”`]);
+  filt.st.forEach(v=>out.push(["st",v,v]));
+  filt.u.forEach(v=>{const p=parks.find(x=>x.code===v);out.push(["u",v,p?p.title:v])});
+  filt.d.forEach(v=>out.push(["d",v,desc[v]||v]));
+  filt.v.forEach(v=>out.push(["v",v,v==="1"?"Checked":"Unchecked"]));
+  $("#chips").innerHTML=out.map(([k,v,t])=>`<button type="button" class="chip" data-k="${k}" data-v="${esc(v)}" aria-label="Remove filter: ${esc(t)}">${esc(t)} <span aria-hidden="true">✕</span></button>`).join("");
+  $("#chips").hidden=!out.length;
+  const m=filt.st.size+filt.u.size+filt.d.size;$("#moreBadge").hidden=!m;$("#moreBadge").textContent=m;
+  const np=parks.filter(p=>p.np63),vn=np.filter(p=>checked.has(p.id)).length;
+  $("#progress").textContent=`${vn} of ${np.length} national parks visited`;
+}
+$("#chips").onclick=e=>{const c=e.target.closest(".chip");if(!c)return;const k=c.dataset.k,v=c.dataset.v;
+  if(k==="q"){$("#q").value="";filt.q=""}else filt[k].delete(v);
+  msInstances.forEach(m=>m.draw());refresh();if(k==="st"||k==="u")zoomToFilter()};
+$("#progress").onclick=()=>{filt.d.clear();filt.d.add("__NP63");filt.v.clear();filt.v.add("0");msInstances.forEach(m=>m.draw());refresh()};
 function refreshOthers(){
   const list=visible();
   const inTrails=document.body.dataset.group==="trails";
   if(inTrails){const tl=visible(trailRecords);$("#count").textContent=`${tl.length.toLocaleString()} of ${trailRecords.length.toLocaleString()} trails · ${list.length} parks selected`+(trailMsg?` · ${trailMsg}`:"")}
   else $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].length} checked`;
   renderGrid(gridMode==="trails"?visible(trailRecords):list);mapViews.forEach(v=>v.render());syncCAChecks();renderVisited();
+  renderChips();
   bridgeSubs.forEach(f=>{try{f()}catch(e){}});
 }
 
@@ -707,6 +749,6 @@ $("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save
 syncCAChecks();setDataset(dataset);
 {const zs=$("#zoomSens"),zo=$("#zoomSensOut"),names=["gentle","relaxed","balanced","quick","very fast"];
   const show=()=>{zo.textContent=zs.value+" · "+names[zs.value-1]};zs.value=clamp(+store.get("zoomSens",4),1,5);show();zs.oninput=()=>{store.set("zoomSens",+zs.value);show()}}
-setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","grid"));renderEditsPanel();
+setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","explore")==="about"?"explore":store.get("tab","explore"));renderEditsPanel();
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
