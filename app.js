@@ -1,7 +1,8 @@
 (function(){
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
-             set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+             set(k,v){const w=SAVE_KEYS.has(k);try{localStorage.setItem(k,JSON.stringify(v));if(w){saveOK=true;savedAt=Date.now();saveHook&&saveHook()}}catch(e){if(w){saveOK=false;saveHook&&saveHook()}}}};
+const SAVE_KEYS=new Set(["checked","edits","customRows"]);let saveOK=true,savedAt=0,saveHook=null;
 
 const STATE_NAMES={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",AS:"American Samoa",PR:"Puerto Rico",VI:"U.S. Virgin Islands",GU:"Guam",MP:"Northern Mariana Islands"};
 const parks=window.PARKS_RAW.map(r=>({id:r[5],name:r[0],title:r[0],d:r[1],states:r[2].map(s=>STATE_NAMES[s]||s),code:r[5],lat:r[3],lng:r[4],url:r[6],approx:!!r[7],
@@ -729,9 +730,10 @@ $("#addRow").onclick=()=>{
   sortKey="name";sortDir=1;colFilt={};renderList();act={r:0,c:0};
   const idx=rows.findIndex(p=>p.id===r.id);if(idx>=0){act={r:idx,c:0};sel={r0:idx,c0:0,r1:idx,c1:0};applySel();scrollTo();startEdit(idx,0,"")}};
 $("#delRows").onclick=()=>{const {r0,r1}=rect();const ids=rows.slice(r0,r1+1).filter(p=>p.kind==="custom").map(p=>p.id);
-  if(!ids.length||!confirm(`Delete ${ids.length} custom row(s)?`))return;
-  customRows=customRows.filter(r=>!ids.includes(r.id));ids.forEach(id=>{byId.delete(id);delete edits[id];checked.delete(id)});saveCustom();saveEdits();save();renderList(true);refreshOthers()};
-$("#resetEdits").onclick=()=>{if(confirm("Discard ALL list edits and custom rows? (Visited checks are kept.)")){
+  if(!ids.length||!confirm(`Delete ${ids.length} custom row${ids.length>1?"s":""} you added? You can undo this right after.`))return;
+  const sn=snap();customRows=customRows.filter(r=>!ids.includes(r.id));ids.forEach(id=>{byId.delete(id);delete edits[id];checked.delete(id)});saveCustom();saveEdits();save();renderList(true);refreshOthers();toast(`Deleted ${ids.length} row${ids.length>1?"s":""}`,"Undo",()=>restoreSnap(sn))};
+$("#resetEdits").onclick=()=>{if(confirm(`Discard ALL list edits (${Object.keys(edits).length} units) and ${customRows.length} custom rows?\nVisited checks are kept. You can undo this right after.`)){
+  const sn=snap();toast("All list edits discarded","Undo",()=>restoreSnap(sn));
   edits={};saveEdits();customRows.forEach(r=>byId.delete(r.id));customRows=[];saveCustom();hist=[];redoS=[];renderList();refreshOthers()}};
 $("#csv").onclick=()=>{
   const data=[COLS.map(c=>c.t)].concat(computeRows().map(p=>COLS.map(c=>cellVal(p,c.k))));
@@ -757,7 +759,7 @@ function renderEditsPanel(){
 }
 function revertField(id,k){const p=byId.get(id);if(!p||!edits[id])return;delete edits[id][k];if(!Object.keys(edits[id]).length)delete edits[id]}
 $("#editsBody")?.addEventListener("click",e=>{const b=e.target.closest("button[data-id]");if(!b)return;revertField(b.dataset.id,b.dataset.k);saveEdits();renderList(true);refreshOthers();refreshTips([b.dataset.id]);renderEditsPanel()});
-$("#revertAll")?.addEventListener("click",()=>{if(!editedList().length||!confirm("Revert every edited field to its official value?"))return;const ids=Object.keys(edits);edits={};saveEdits();renderList(true);refreshOthers();refreshTips(ids);renderEditsPanel()});
+$("#revertAll")?.addEventListener("click",()=>{if(!editedList().length||!confirm(`Revert ${editedList().length} edited field(s) to the official values? You can undo this right after.`))return;const ids=Object.keys(edits);const sn=snap();toast("Reverted to official values","Undo",()=>restoreSnap(sn));edits={};saveEdits();renderList(true);refreshOthers();refreshTips(ids);renderEditsPanel()});
 $("#editsCsv")?.addEventListener("click",()=>{
   const rows=[["Unit (official)","Designation (official)","Field","Official value","Your value"]].concat(editedList().map(x=>[x.p.title,x.p.d,FIELD[x.k],x.off,x.mine]));
   const csv=rows.map(r=>r.map(c=>'"'+String(c??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
@@ -765,14 +767,38 @@ $("#editsCsv")?.addEventListener("click",()=>{
 // backup / move to another device (a JSON file you can AirDrop, email or keep in iCloud / Drive)
 $("#backupOut")?.addEventListener("click",()=>{
   const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system")}};
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="parks-backup-"+new Date().toISOString().slice(0,10)+".json";a.click()});
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="parks-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();store.set("lastBackup",{at:new Date().toISOString(),n:changeCount()});store.set("backupSnooze",0);renderSaveState();toast("Backup file saved")});
 $("#backupIn")?.addEventListener("change",async e=>{
   const f=e.target.files[0];if(!f)return;
   try{const d=JSON.parse(await f.text());if(d.app!=="parks-and-camping")throw 0;
-    if(!confirm(`Replace this browser's data with the backup from ${d.savedAt?.slice(0,10)||"unknown date"}?\n${(d.checked||[]).length} visited, ${Object.keys(d.edits||{}).length} edited units.`))return;
+    if(!confirm(`Replace this browser's data with the backup from ${d.savedAt?.slice(0,10)||"unknown date"}?\nBackup: ${(d.checked||[]).length} visited, ${Object.keys(d.edits||{}).length} edited units.\nHere now: ${checked.size} visited, ${Object.keys(edits).length} edited units (kept so you can undo).`))return;
+    store.set("undoRestore",{...snap(),dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system")});
     store.set("checked",d.checked||[]);store.set("edits",d.edits||{});store.set("customRows",d.customRows||[]);
     const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);
-    location.reload()}catch(err){alert("That file is not a Parks & Camping backup.")}});
+    location.reload()}catch(err){alert("That file is not a Parks & Camping backup (.json saved from this site). Nothing was changed.")}finally{e.target.value=""}});
+
+// ---------- data safety: autosave indicator, backup reminder, undo for bulk actions ----------
+const fmtTime=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+const changeCount=()=>Object.keys(edits).length+checked.size+customRows.length;
+function renderSaveState(){
+  const el=$("#saveState");if(!el)return;
+  el.classList.toggle("bad",!saveOK);el.setAttribute("aria-live",saveOK?"off":"assertive");
+  el.textContent=saveOK?(savedAt?`✓ Saved in this browser · ${fmtTime(savedAt)}`:"✓ Saved in this browser"):"⚠ Could not save – browser storage is blocked. Save a backup file.";
+  const lb=store.get("lastBackup",null);
+  $("#lastBackup").textContent=lb?`Last backup: ${new Date(lb.at).toLocaleDateString()}`:"No backup saved yet.";
+}
+saveHook=renderSaveState;
+function backupDue(){const n=changeCount();if(!n)return false;const lb=store.get("lastBackup",null),snooze=store.get("backupSnooze",0);
+  if(Date.now()<snooze)return false;
+  return !lb||Date.now()-new Date(lb.at)>14*864e5||Math.abs(n-(lb.n||0))>=10}
+function maybeNag(){const bar=$("#backupNag");if(!backupDue())return;
+  $("#nagText").textContent=`You have ${changeCount()} checks and edits stored only in this browser. Clearing site data would erase them.`;bar.hidden=false}
+$("#nagSave").onclick=()=>{$("#backupOut").click();$("#backupNag").hidden=true};
+$("#nagLater").onclick=()=>{store.set("backupSnooze",Date.now()+7*864e5);$("#backupNag").hidden=true};
+// snapshot helper so bulk actions can be undone from a toast
+const snap=()=>({checked:[...checked],edits:JSON.parse(JSON.stringify(edits)),customRows:JSON.parse(JSON.stringify(customRows))});
+function restoreSnap(sn){checked=new Set(sn.checked);edits=sn.edits;customRows.forEach(r=>byId.delete(r.id));customRows=sn.customRows;customRows.forEach(r=>byId.set(r.id,mkCustom(r)));
+  save();saveEdits();saveCustom();hist=[];redoS=[];renderList(true);refresh();renderEditsPanel()}
 
 // ---------- refresh ----------
 function refresh(){refreshOthers();renderList(true)}
@@ -826,9 +852,12 @@ $("#export").onclick=()=>{
   const txt=parks.filter(p=>checked.has(p.id)).map(p=>disp(p)+" ("+p.states.join("/")+")").join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));a.download="checked-parks.txt";a.click();
 };
-$("#reset").onclick=()=>{if(confirm("Uncheck everything?")){checked.clear();save();refresh()}};
+$("#reset").onclick=()=>{if(!checked.size)return;if(confirm(`Uncheck all ${checked.size} visited places? You can undo this right after.`)){const sn=snap();checked.clear();save();refresh();toast("All checks cleared","Undo",()=>restoreSnap(sn))}};
 
 syncCAChecks();setDataset(dataset);
+{const u=store.get("undoRestore",null);if(u){localStorage.removeItem("undoRestore");
+  setTimeout(()=>toast("Backup restored","Undo restore",()=>{store.set("checked",u.checked);store.set("edits",u.edits);store.set("customRows",u.customRows);store.set("dot",u.dot);store.set("cols",u.cols);store.set("showCA",u.showCA);store.set("dataset",u.dataset);store.set("theme",u.theme);location.reload()}),600)}}
+renderSaveState();setTimeout(maybeNag,2500);
 {const zs=$("#zoomSens"),zo=$("#zoomSensOut"),names=["gentle","relaxed","balanced","quick","very fast"];
   const show=()=>{zo.textContent=zs.value+" · "+names[zs.value-1]};zs.value=clamp(+store.get("zoomSens",4),1,5);show();zs.oninput=()=>{store.set("zoomSens",+zs.value);show()}}
 setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","explore")==="about"?"explore":store.get("tab","explore"));renderEditsPanel();

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Parks">
 <link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest">
-<title>Parks &amp; Camping – NPS Internal</title>
+<title>Parks &amp; Camping – Personal Tracker</title>
 <link rel="stylesheet" href="vendor/leaflet.css">
 <script>try{var t=JSON.parse(localStorage.getItem("theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
@@ -15,8 +15,9 @@
 </head>
 <body>
 <header class="top">
-  <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>Parks &amp; Camping <small>Unit directory</small></h1>
+  <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>Parks &amp; Camping <small>Personal tracker</small></h1>
   <button id="progress" class="progress" type="button" title="Show only unvisited national parks" aria-live="polite"></button>
+  <span id="saveState" class="savestate" role="status"></span>
   <nav class="tabs" aria-label="Main">
     <button class="tab" data-tab="explore" type="button">Explore</button>
     <div class="tabgroup" data-group="parks">
@@ -39,6 +40,8 @@
     <button class="tab" data-tab="about" type="button" aria-controls="tab-about" aria-expanded="false">Settings</button>
   </nav>
 </header>
+
+<div id="backupNag" class="nag" role="region" aria-label="Backup reminder" hidden><span id="nagText"></span><button type="button" id="nagSave">Save backup</button><button type="button" id="nagLater">Remind me in a week</button></div>
 
 <section class="filters" id="filters" aria-label="Search and filters">
   <input id="q" type="search" placeholder="Search parks, cities, highlights…  ( / )" aria-label="Search">
@@ -179,9 +182,10 @@
       <div class="tablewrap smallwrap"><table class="lt etab"><thead><tr><th>Unit</th><th>Field</th><th>Official</th><th>Yours</th><th></th></tr></thead><tbody id="editsBody"></tbody></table></div>
       <h2>Backup &amp; moving devices</h2>
       <p class="hint">Visited checks and edits live in this browser. Save a backup file and open it on your iPad or another computer to carry everything across.</p>
+      <p id="lastBackup" class="hint"></p>
       <p><button id="backupOut" type="button">Save backup (.json)</button> <label class="filebtn">Restore backup… <input id="backupIn" type="file" accept="application/json,.json" hidden></label></p>
       <h2>About</h2>
-      <p>Internal reference for NPS units. Checks are saved in this browser only.</p>
+      <p><strong>Unofficial personal tracker.</strong> This is not an official site of, and is not affiliated with or endorsed by, the National Park Service or California State Parks. Your checks and edits are saved in this browser only (see Backup above).</p>
       <p>Unit names, designations, states and park codes come from the NPS_Park_Units spreadsheet (475 units; Sequoia and Kings Canyon are shown as two parks). Map coordinates are approximate, and units marked with a dashed dot are placed near their state center. Verify against
       <a href="https://www.nps.gov/findapark/index.htm" target="_blank" rel="noopener">nps.gov/findapark</a>.</p>
       <p>Trails (optional layer) come live from the NPS Public Trails service. Basemap: shaded relief rendered from AWS Terrain Tiles (NASA SRTM, USGS 3DEP, GEBCO), with Natural Earth and US Census boundaries. It ships with the site, so the map loads without any outside map service.</p>

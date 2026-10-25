@@ -340,3 +340,10 @@ body.drawer-open #tab-about{display:block;position:fixed;top:0;right:0;bottom:0;
 .trailnote.err{background:#fde8e6;color:#8c1d18}.trailnote button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:.15rem .7rem;font:600 11.5px var(--font-body);cursor:pointer;min-height:26px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:700px){.layerbox{max-height:60dvh;overflow:auto}}
+
+/* ===== Phase 4: data safety ===== */
+.savestate{font-size:.74rem;color:#b8d9d0;white-space:nowrap}.savestate.bad{color:#ffd0cc;font-weight:700}
+.nag{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;padding:.55rem 1.25rem;background:#fbe3b0;color:#4a2f00;font-size:.88rem}
+.nag[hidden]{display:none}.nag span{flex:1 1 260px}.nag button{padding:.35rem .8rem;border:1px solid #4a2f00;border-radius:8px;background:transparent;color:inherit;font:600 .84rem var(--font-body);cursor:pointer;min-height:34px}
+.nag #nagSave{background:#4a2f00;color:#fff}
+@media(max-width:600px){.savestate{order:4;flex-basis:100%;font-size:.7rem}}
