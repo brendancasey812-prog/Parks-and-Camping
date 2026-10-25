@@ -352,13 +352,13 @@ function createMapView(c){
   V.restyle=()=>{if(!V.map)return;V.markers.forEach((m,id)=>{const p=byId.get(id);m.setStyle(style(p));m.setRadius(radius())});
     V.inner&&V.inner.eachLayer(l=>l.setRadius(Math.max(1.6,radius()*.42)));V.ring&&V.ring.setRadius(radius()+6)};
   // ring around the dot of the row selected in the table
-  V.highlight=p=>{
+  V.highlight=(p,pan)=>{
     if(!V.map)return;V.ringId=p?p.id:null;
     const m=p&&V.markers.get(p.id);
     if(!m||!V.group.hasLayer(m)){V.ring&&V.map.hasLayer(V.ring)&&V.ring.remove();return}
     const ll=m.getLatLng();if(!V.ring)V.ring=L.circleMarker(ll,{interactive:false,fill:false,color:"#0b5cd5",weight:3,opacity:1});
     V.ring.setLatLng(ll).setRadius(radius()+6);if(!V.map.hasLayer(V.ring))V.ring.addTo(V.map);V.ring.bringToFront();
-    if(!V.map.getBounds().pad(-.08).contains(ll))V.map.panTo(ll);
+    if(pan&&!V.map.getBounds().pad(-.08).contains(ll))V.map.panTo(ll);
   };
   // at low zoom, nearby dots merge into numbered clusters (no extra library)
   V.render=()=>{
@@ -475,7 +475,7 @@ function applySel(){
   $("#undo").disabled=!hist.length;$("#redo").disabled=!redoS.length;
   if(!editing&&wrap.contains(document.activeElement)&&rows[act.r]){const p=rows[act.r],c=COLS[act.c];
     $("#cellLive").textContent=`Row ${act.r+1} of ${rows.length}, ${c.t}: ${cellVal(p,c.k)||"blank"}${isEdited(p,c.k)?", edited, official value "+(official(p,c.k)||"blank"):""}`}
-  if(currentTab==="explore"&&mainView.map&&(linkFlag||wrap.contains(document.activeElement)))mainView.highlight(rows[act.r]);
+  if(currentTab==="explore"&&mainView.map&&(linkFlag||wrap.contains(document.activeElement)))mainView.highlight(rows[act.r],true);
 }
 let linkFlag=false;
 function rowHover(id,on){if(currentTab!=="explore")return;const r=rows.findIndex(p=>p.id===id);if(r<0)return;
@@ -742,7 +742,9 @@ $("#undo").onclick=undo;$("#redo").onclick=redo;
 $("#addRow").onclick=()=>{
   const r={id:"X:"+Date.now().toString(36),ds:dataset};customRows.push(r);byId.set(r.id,mkCustom(r));saveCustom();
   sortKey="name";sortDir=1;colFilt={};renderList();act={r:0,c:0};
-  const idx=rows.findIndex(p=>p.id===r.id);if(idx>=0){act={r:idx,c:0};sel={r0:idx,c0:0,r1:idx,c1:0};applySel();scrollTo();startEdit(idx,0,"")}};
+  let idx=rows.findIndex(p=>p.id===r.id);
+  if(idx<0){filt.q="";$("#q").value="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh();idx=rows.findIndex(p=>p.id===r.id);toast("Filters cleared so your new row is visible")}   // a blank row never matches the taskbar filters
+  if(idx>=0){act={r:idx,c:0};sel={r0:idx,c0:0,r1:idx,c1:0};applySel();scrollTo();startEdit(idx,0,"")}};
 $("#delRows").onclick=()=>{const {r0,r1}=rect();const ids=rows.slice(r0,r1+1).filter(p=>p.kind==="custom").map(p=>p.id);
   if(!ids.length||!confirm(`Delete ${ids.length} custom row${ids.length>1?"s":""} you added? You can undo this right after.`))return;
   const sn=snap();customRows=customRows.filter(r=>!ids.includes(r.id));ids.forEach(id=>{byId.delete(id);delete edits[id];checked.delete(id)});saveCustom();saveEdits();save();renderList(true);refreshOthers();toast(`Deleted ${ids.length} row${ids.length>1?"s":""}`,"Undo",()=>restoreSnap(sn))};
