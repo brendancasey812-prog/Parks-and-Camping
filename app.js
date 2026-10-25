@@ -415,9 +415,10 @@ function renderList(keep){
   tbody.innerHTML=rows.map((p,r)=>`<tr data-r="${r}"><td class="rn">${r+1}</td>`+COLS.map((c,ci)=>{
     const v=cellVal(p,c.k);
     const ed=isEdited(p,c.k);
-    return `<td data-c="${ci}" class="k-${c.k} ${ci===0?"nm ":""}${c.k==="visited"||c.k==="year"?"c":""}${ed?" edited":""}"${ed?` title="Official: ${esc(official(p,c.k)||"(blank)")}"`:""}>`+(c.k==="visited"?`<input type="checkbox" tabindex="-1" ${v==="TRUE"?"checked":""} aria-label="Visited">`:esc(v))+"</td>"}).join("")+"</tr>").join("");
+    return `<td data-c="${ci}" class="k-${c.k} ${ci===0?"nm ":""}${c.k==="visited"||c.k==="year"?"c":""}${ed?" edited":""}"${ed?` title="Edited. Official: ${esc(official(p,c.k)||"(blank)")}"`:""}>`+(c.k==="visited"?`<input type="checkbox" tabindex="-1" ${v==="TRUE"?"checked":""} aria-label="Visited">`:esc(v))+"</td>"}).join("")+"</tr>").join("");
   if(!keep){sel={r0:0,c0:0,r1:0,c1:0};act={r:0,c:0}}
   clampSel();applySel();
+  if(cardMQ.matches)renderCards();
 }
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 function clampSel(){const R=rows.length-1;act.r=clamp(act.r,0,Math.max(R,0));sel.r0=clamp(sel.r0,0,Math.max(R,0));sel.r1=clamp(sel.r1,0,Math.max(R,0))}
@@ -446,13 +447,19 @@ function setCell(r,c,val,batch){
   if(k==="year"&&v.length>40)return;                       // free text is fine: "2019", "2019, 2022", "Summer 2021"
   const old=cellVal(p,k);if(old===v)return;
   put(p,k,v);batch.push({id:p.id,k,old,val:v});
-  const td=cell(r,c);if(td){if(k==="visited")td.querySelector("input").checked=v==="TRUE";else{td.textContent=v;const ed=isEdited(p,k);td.classList.toggle("edited",ed);if(ed)td.title="Official: "+(official(p,k)||"(blank)");else td.removeAttribute("title")}}
+  const td=cell(r,c);if(td){if(k==="visited")td.querySelector("input").checked=v==="TRUE";else{td.textContent=v;const ed=isEdited(p,k);td.classList.toggle("edited",ed);if(ed)td.title="Edited. Official: "+(official(p,k)||"(blank)");else td.removeAttribute("title")}}
 }
-function finish(batch){if(!batch.length)return;hist.push(batch);redoS.length=0;saveEdits();refreshOthers();refreshTips(batch.map(x=>x.id));renderEditsPanel();applySel()}
+function finish(batch){if(!batch.length)return;hist.push(batch);if(batch.length>1)toast(`Changed ${batch.length} cells`,"Undo",undo);redoS.length=0;saveEdits();refreshOthers();refreshTips(batch.map(x=>x.id));renderEditsPanel();applySel()}
 function applyBatch(batch,dir){ // dir: 'old' for undo, 'val' for redo
   (dir==="old"?batch.slice().reverse():batch).forEach(x=>put(byId.get(x.id),x.k,x[dir]));saveEdits();renderList(true);refreshOthers();refreshTips(batch.map(x=>x.id));renderEditsPanel()}
-function undo(){const b=hist.pop();if(!b)return;redoS.push(b);applyBatch(b,"old")}
-function redo(){const b=redoS.pop();if(!b)return;hist.push(b);applyBatch(b,"val")}
+function describe(b){const p=byId.get(b[0].id),t=COLS.find(c=>c.k===b[0].k);return b.length===1?`${t?t.t:b[0].k} of ${p?disp(p):"row"}`:`${b.length} changes`}
+function undo(){const b=hist.pop();if(!b)return;redoS.push(b);applyBatch(b,"old");toast("Undone: "+describe(b),"Redo",redo)}
+function redo(){const b=redoS.pop();if(!b)return;hist.push(b);applyBatch(b,"val");toast("Redone: "+describe(b),"Undo",undo)}
+// toasts (polite live region)
+let toastT=0;
+function toast(msg,label,fn){const t=$("#toast");t.innerHTML=`<span></span>${label?`<button type="button"></button>`:""}`;t.firstChild.textContent=msg;
+  if(label){const b=t.querySelector("button");b.textContent=label;b.onclick=()=>{t.hidden=true;fn()}}
+  t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},6000)}
 
 // ----- editing a cell
 function startEdit(r,c,initial){
@@ -489,6 +496,39 @@ tbody.addEventListener("click",e=>{ // checkbox in the Visited column
   if(!e.target.matches("input[type=checkbox]"))return;const td=e.target.closest("td");const r=+td.parentElement.dataset.r;
   const b=[];setCell(r,visIdx(),e.target.checked?"TRUE":"FALSE",b);finish(b);});
 
+// ----- card view (narrow screens): rows as expandable cards, bottom-sheet editor
+const cardMQ=matchMedia("(max-width:700px)"),openCards=new Set();
+cardMQ.addEventListener("change",()=>renderList(true));
+function renderCards(){
+  const host=$("#cardlist");
+  host.innerHTML=rows.map((p,r)=>{const open=openCards.has(p.id),ed=COLS.some(c=>isEdited(p,c.k));
+    return `<article class="rc${open?" open":""}${ed?" edited":""}" data-r="${r}">
+    <div class="rc-h"><label class="rc-v"><input type="checkbox" ${checked.has(p.id)?"checked":""} aria-label="Visited: ${esc(disp(p))}"></label>
+    <button type="button" class="rc-t" aria-expanded="${open}"><b>${esc(cellVal(p,"name")||"(unnamed)")}</b><span>${esc([cellVal(p,"d"),cellVal(p,"city"),cellVal(p,"state")].filter(Boolean).join(" · "))}</span></button>${ed?`<span class="ed" title="Edited from the official value">edited</span>`:""}</div>
+    ${open?`<div class="rc-b"><p><b>${esc(COLS[5].t)}:</b> ${esc(cellVal(p,"year"))||"—"}</p><p><b>${esc(COLS[6].t)}:</b> ${esc(cellVal(p,"hl"))||"—"}</p>
+    <div class="rc-a"><button type="button" data-a="edit" class="pri">Edit</button>${p.lat?`<button type="button" data-a="map">Show on map</button>`:""}</div></div>`:""}</article>`}).join("")||`<p class="gridmsg">No rows match.</p>`;
+}
+$("#cardlist").addEventListener("click",e=>{
+  const art=e.target.closest(".rc");if(!art)return;const r=+art.dataset.r,p=rows[r];
+  if(e.target.matches("input[type=checkbox]")){const b=[];setCell(r,visIdx(),e.target.checked?"TRUE":"FALSE",b);finish(b);return}
+  if(e.target.closest(".rc-t")){openCards.has(p.id)?openCards.delete(p.id):openCards.add(p.id);renderCards();return}
+  const a=e.target.dataset.a;if(a==="edit")openSheet(r);else if(a==="map")focusOnMap(p.id);
+});
+$("#cardSort").onchange=e=>{sortKey=e.target.value;sortDir=1;renderList(true)};
+let sheetR=-1;
+function openSheet(r){
+  sheetR=r;const p=rows[r],f=$("#sheetFields");
+  f.innerHTML=["name","d","city","state","year","hl"].map(k=>{const ci=COLS.findIndex(c=>c.k===k);
+    return `<label>${esc(COLS[ci].t)}${k==="hl"?`<textarea name="${k}" rows="3">${esc(cellVal(p,k))}</textarea>`:`<input name="${k}" value="${esc(cellVal(p,k))}">`}</label>`}).join("");
+  $("#sheetTitle").textContent=cellVal(p,"name")||"Edit row";$("#sheet").showModal();
+}
+$("#sheetForm").onsubmit=e=>{e.preventDefault();const b=[];
+  new FormData($("#sheetForm")).forEach((v,k)=>{const ci=COLS.findIndex(c=>c.k===k);if(ci>=0)setCell(sheetR,ci,v,b)});
+  finish(b);$("#sheet").close();renderCards()};
+$("#sheetCancel").onclick=()=>$("#sheet").close();
+$("#keysBtn").onclick=()=>$("#keysDlg").showModal();
+document.addEventListener("keydown",e=>{if(e.key==="?"&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)&&!e.target.isContentEditable&&!e.target.closest("#tablewrap")){e.preventDefault();$("#keysDlg").showModal()}});
+
 // ----- keyboard
 function move(dr,dc,ext){
   if(ext){sel.r1=clamp(sel.r1+dr,0,rows.length-1);sel.c1=clamp(sel.c1+dc,0,COLS.length-1);act.r=act.r}
@@ -498,6 +538,7 @@ function move(dr,dc,ext){
 function clearSel(){const {r0,r1,c0,c1}=rect(),b=[];for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)setCell(r,c,"",b);finish(b)}
 function fillDown(){const {r0,r1,c0,c1}=rect(),b=[];for(let c=c0;c<=c1;c++){const v=cellVal(rows[r0],COLS[c].k);for(let r=r0+1;r<=r1;r++)setCell(r,c,v,b)}finish(b)}
 wrap.addEventListener("keydown",e=>{
+  if(e.target.closest("thead"))return;                       // header buttons (sort / filter) keep their own keys
   const mod=e.ctrlKey||e.metaKey;
   if(editing){
     if(e.key==="Enter"){e.preventDefault();endEdit(true,e.shiftKey?-1:1,0)}
@@ -516,7 +557,11 @@ wrap.addEventListener("keydown",e=>{
   else if(k==="ArrowUp"){e.preventDefault();move(-1,0,e.shiftKey)}
   else if(k==="ArrowLeft"){e.preventDefault();move(0,-1,e.shiftKey)}
   else if(k==="ArrowRight"){e.preventDefault();move(0,1,e.shiftKey)}
-  else if(k==="Tab"){e.preventDefault();move(0,e.shiftKey?-1:1,false)}
+  else if(k==="Tab"){const first=act.r===0&&act.c===0,last=act.r===rows.length-1&&act.c===COLS.length-1;
+    if(e.shiftKey?first:last)return;                         // leave the grid at its edges instead of trapping Tab
+    e.preventDefault();move(0,e.shiftKey?-1:1,false)}
+  else if(k==="Escape"){sel={r0:act.r,c0:act.c,r1:act.r,c1:act.c};applySel()}
+  else if(k==="?"){e.preventDefault();$("#keysDlg").showModal()}
   else if(k==="Enter"||k==="F2"){e.preventDefault();startEdit(act.r,act.c)}
   else if(k==="Delete"||k==="Backspace"){e.preventDefault();clearSel()}
   else if(k===" "&&COLS[act.c].k==="visited"){e.preventDefault();startEdit(act.r,act.c)}

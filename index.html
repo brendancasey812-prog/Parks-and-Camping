@@ -90,10 +90,11 @@
       </div>
       <span id="dsTrails" class="dstrails" hidden>Trails · live from the NPS Public Trails service</span>
       <div class="seg" id="dataset"><button data-ds="nps">National (NPS)</button><button data-ds="ca">California State Parks</button></div>
-      <span id="lcount" class="lcount"></span>
+      <span id="lcount" class="lcount" role="status" aria-live="polite"></span><button id="keysBtn" type="button" class="ghost keysbtn" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">?</button>
     </div>
     <details class="hint tips" id="listHint"><summary>Editing &amp; keyboard tips</summary>Click a cell to select (drag or Shift-click for a range). Type, double-click or press Enter to edit · arrows / Tab / Enter to move · Ctrl+C / X / V copy, cut, paste (works with Google Sheets) · Ctrl+Z / Y undo · Ctrl+D fill down · Delete clears. Drag a column header to move it. Use the ▾ in a header to sort or filter.</details>
-    <div class="tablewrap" id="tablewrap" tabindex="0"><table id="ltable" class="lt"><thead><tr><th class="rn"></th>
+    <div class="cardbar"><label>Sort <select id="cardSort"><option value="name">Name</option><option value="state">State</option><option value="d">Designation</option><option value="year">Year visited</option></select></label></div>
+    <div class="tablewrap" id="tablewrap" tabindex="0" role="region" aria-label="Editable table; press ? for shortcuts"><table id="ltable" class="lt"><thead><tr><th class="rn"></th>
       <th data-k="name"><span class="ht">Name</span><button class="fbtn" type="button" aria-label="Filter Name">▾</button></th>
       <th data-k="d"><span class="ht">Designation</span><button class="fbtn" type="button" aria-label="Filter Designation">▾</button></th>
       <th data-k="city"><span class="ht">Nearest City / Community</span><button class="fbtn" type="button" aria-label="Filter city">▾</button></th>
@@ -102,6 +103,7 @@
       <th data-k="year"><span class="ht">Year Last Visited</span><button class="fbtn" type="button" aria-label="Filter Year">▾</button></th>
       <th data-k="hl"><span class="ht">Highlights</span><button class="fbtn" type="button" aria-label="Filter Highlights">▾</button></th></tr></thead>
       <tbody id="lbody"></tbody></table></div>
+    <div id="cardlist" class="cardlist" aria-label="Rows"></div>
     <div id="colmenu" class="colmenu" hidden></div>
   </section>
 
@@ -187,6 +189,22 @@
   </section>
 </main>
 
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="keysDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Keyboard shortcuts</h2><table class="keys">
+<tr><td>Arrows / Tab / Enter</td><td>Move between cells (Tab leaves the table at its edges)</td></tr>
+<tr><td>Shift + arrows, click-drag</td><td>Select a range</td></tr>
+<tr><td>Type, F2, Enter, double-click</td><td>Edit the cell · Enter saves · Esc cancels</td></tr>
+<tr><td>Space</td><td>Toggle Visited</td></tr>
+<tr><td>Ctrl/⌘ + C / X / V</td><td>Copy, cut, paste (works with Google Sheets)</td></tr>
+<tr><td>Ctrl/⌘ + Z / Y</td><td>Undo / redo</td></tr>
+<tr><td>Ctrl/⌘ + D</td><td>Fill down</td></tr>
+<tr><td>Ctrl/⌘ + A</td><td>Select all</td></tr>
+<tr><td>Delete</td><td>Clear selected cells</td></tr>
+<tr><td>Column ▾ button</td><td>Sort or filter · drag a header to reorder</td></tr>
+<tr><td>/</td><td>Jump to search</td></tr>
+<tr><td>?</td><td>This list</td></tr></table></div></dialog>
+<dialog id="sheet" class="tdlg sheet"><form id="sheetForm" method="dialog"><div class="in"><h2 id="sheetTitle">Edit row</h2><div id="sheetFields"></div>
+<div class="act"><button type="submit" class="pri">Save</button><button type="button" id="sheetCancel">Cancel</button></div></div></form></dialog>
 <dialog id="trailDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div id="trailDlgBody"></div></dialog>
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/topojson-client.min.js"></script>
