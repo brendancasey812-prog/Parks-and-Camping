@@ -374,3 +374,15 @@ html{scroll-padding-top:6rem}
 .panpad .pp-n{grid-area:1/2}.panpad .pp-w{grid-area:2/1}.panpad .pp-e{grid-area:2/3}.panpad .pp-s{grid-area:3/2}
 @media(pointer:coarse){.panpad{--pp:44px}}
 @media(max-width:700px){.panpad{display:none}}
+
+/* ===== map size control (Explore) ===== */
+.mszctl{display:flex;flex-direction:column;border-radius:var(--r-md);overflow:hidden;margin:8px 10px 0 0!important;background:var(--glass);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 6px 18px -6px rgba(6,32,24,.45),inset 0 0 0 1px var(--glass-line)}
+.mszctl button{width:40px;height:40px;border:0;background:transparent;color:var(--glass-ink);font-size:20px;cursor:pointer;min-height:0}
+.mszctl button+button{border-top:1px solid var(--glass-line)}.mszctl button:hover:not(:disabled){background:rgba(127,180,160,.28)}.mszctl button:disabled{opacity:.35;cursor:default}
+@media(pointer:coarse){.mszctl button{width:48px;height:48px}}
+/* level 1: header out of the way (phones) / narrower table (desktop); level 2: map only */
+body.explore[data-msz="2"] .top,body.explore[data-msz="2"] .filters,body.explore[data-msz="2"] .nag,body.explore[data-msz="2"] #tab-map .toolbar{display:none}
+body.explore[data-msz="2"] main{grid-template-columns:minmax(0,1fr)}body.explore[data-msz="2"] #tab-list{display:none}
+body.explore[data-msz="1"] .nag{display:none}
+@media(max-width:900px){body.explore[data-msz="1"] .top{display:none}}
+@media(min-width:901px){body.explore[data-msz="1"] main{grid-template-columns:minmax(300px,30%) minmax(0,1fr)}}

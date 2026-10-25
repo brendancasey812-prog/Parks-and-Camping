@@ -82,6 +82,11 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   p=await open({viewport:{width:390,height:800},hasTouch:true});
   await check('Mobile','Table/Map toggle',async()=>{await p.click('#paneSeg [data-pane=map]');const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));await p.click('#paneSeg [data-pane=table]');return m});
   await check('Mobile','rows render as cards; edit sheet saves',async()=>{const vis=await p.isVisible('#cardlist .rc')&&!(await p.isVisible('#tablewrap'));await p.click('#cardlist .rc:nth-child(2) .rc-t');await p.click('#cardlist .rc:nth-child(2) [data-a=edit]');await p.fill('#sheet [name=hl]','Sheet test');await p.click('#sheet .pri');await p.waitForTimeout(200);return vis&&await p.isVisible('#cardlist .rc.edited')});
+  await check('Mobile','map size control: bigger hides header, again = map only, smaller restores',async()=>{await p.click('#paneSeg [data-pane=map]');await p.waitForTimeout(600);
+    const h0=await p.$eval('#map',e=>e.getBoundingClientRect().height);await p.click('.msz-up');await p.waitForTimeout(300);const h1=await p.$eval('#map',e=>e.getBoundingClientRect().height);const hid=!(await p.isVisible('.top'));
+    await p.click('.msz-up');await p.waitForTimeout(300);const h2=await p.$eval('#map',e=>e.getBoundingClientRect().height);await p.click('.msz-dn');await p.click('.msz-dn');await p.waitForTimeout(300);
+    return h1>h0+40&&h2>h1&&hid&&await p.isVisible('.top')&&await p.$eval('.msz-dn',e=>e.disabled)});
+  await check('Mobile','map size persists across reload',async()=>{await p.click('.msz-up');await p.reload();await p.waitForTimeout(1200);return await p.evaluate(()=>document.body.dataset.msz==='1')});
   await p.context().close();
   // ---- trails (mocked service)
   {const ctx=await b.newContext({viewport:{width:1280,height:800}});let fail=true;

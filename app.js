@@ -124,6 +124,14 @@ function setPane(p,quiet){
 }
 $$("#paneSeg button").forEach(b=>b.onclick=()=>setPane(b.dataset.pane));
 window.addEventListener("resize",()=>{if(currentTab==="explore"&&mainView.map)mainView.map.invalidateSize()});
+// map size: 0 normal, 1 larger (header hidden / narrower table), 2 map only. Corner buttons on the map step it up and down.
+let mapSize=0;
+function setMapSize(n){
+  mapSize=clamp(n,0,2);document.body.dataset.msz=mapSize;store.set("mapSize",mapSize);
+  $$(".msz-up").forEach(b=>b.disabled=mapSize>=2);$$(".msz-dn").forEach(b=>b.disabled=mapSize<=0);
+  setTimeout(()=>{const m=mainView.map;if(!m)return;m.invalidateSize();window.scrollTo(0,0);
+    if(filt.u.size||filt.st.size)zoomToFilter(true);else m.fitBounds(VIEW_BOUNDS[store.get("view","lower48")]||VIEW_BOUNDS.lower48,{animate:false})},80);   // re-frame after the map changes size
+}
 // "Filters" button reveals the State / Park / Designation dropdowns on narrow screens
 $("#moreBtn").onclick=()=>{const o=document.body.classList.toggle("more-open");$("#moreBtn").setAttribute("aria-expanded",o)};
 // Layers menus close on outside click / Esc
@@ -332,6 +340,10 @@ function createMapView(c){
         b.onclick=()=>{const sz=map.getSize();map.panBy([dx*sz.x*.4,dy*sz.y*.4],{animate:!reduceMotion.matches})}});
       L.DomEvent.disableClickPropagation(d);return d}});
     new Pan({position:"topleft"}).addTo(map);
+    if(c.key==="")new (L.Control.extend({onAdd(){const d=L.DomUtil.create("div","mszctl");d.setAttribute("role","group");d.setAttribute("aria-label","Map size");
+      d.innerHTML=`<button type="button" class="msz-up" aria-label="Make the map bigger" title="Bigger map">⤢</button><button type="button" class="msz-dn" aria-label="Make the map smaller" title="Smaller map">⤡</button>`;
+      d.querySelector(".msz-up").onclick=()=>setMapSize(mapSize+1);d.querySelector(".msz-dn").onclick=()=>setMapSize(mapSize-1);
+      L.DomEvent.disableClickPropagation(d);return d}}))({position:"topright"}).addTo(map);
     const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited ✓</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
     new Legend({position:"bottomright"}).addTo(map);
     ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
@@ -873,7 +885,7 @@ $("#reset").onclick=()=>{if(!checked.size)return;if(confirm(`Uncheck all ${check
 syncCAChecks();setDataset(dataset);
 {const u=store.get("undoRestore",null);if(u){localStorage.removeItem("undoRestore");
   setTimeout(()=>toast("Backup restored","Undo restore",()=>{store.set("checked",u.checked);store.set("edits",u.edits);store.set("customRows",u.customRows);store.set("dot",u.dot);store.set("cols",u.cols);store.set("showCA",u.showCA);store.set("dataset",u.dataset);store.set("theme",u.theme);location.reload()}),600)}}
-renderSaveState();setTimeout(maybeNag,2500);
+renderSaveState();setTimeout(maybeNag,2500);mainView.onReady(()=>setMapSize(store.get("mapSize",0)));
 {const zs=$("#zoomSens"),zo=$("#zoomSensOut"),names=["gentle","relaxed","balanced","quick","very fast"];
   const show=()=>{zo.textContent=zs.value+" · "+names[zs.value-1]};zs.value=clamp(+store.get("zoomSens",4),1,5);show();zs.oninput=()=>{store.set("zoomSens",+zs.value);show()}}
 setDot(dotScale);setCols(cols);refresh();showTab(store.get("tab","explore")==="about"?"explore":store.get("tab","explore"));renderEditsPanel();
