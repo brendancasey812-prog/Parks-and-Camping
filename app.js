@@ -176,7 +176,7 @@ function renderGrid(list){
     $("#grid").innerHTML=shown.map(p=>`<article class="card trail" data-id="${esc(p.id)}">
       <div class="banner" style="--h1:hsl(${hue({name:p.city})},48%,14%);--h2:hsl(${hue({name:p.city})+10},40%,30%)">
         <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Mark as hiked"></span></div>
-      <div class="body"><h3><a href="#" data-open="${esc(p.id)}">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
+      <div class="body"><h3 aria-level="2"><a href="#" data-open="${esc(p.id)}">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
       <div class="meta">${esc(fld(p,"d"))}</div>
       <div class="meta">${esc(fld(p,"city"))}${fld(p,"state")?" · "+esc(fld(p,"state")):""}</div>
       ${fld(p,"year")?`<div class="meta yr">Last hiked ${esc(fld(p,"year"))}</div>`:""}
@@ -186,7 +186,7 @@ function renderGrid(list){
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
     <div class="banner" style="--h1:hsl(${hue(p)},48%,14%);--h2:hsl(${hue(p)+10},40%,30%)">
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
-    <div class="body"><h3><a href="${esc(p.url||infoUrl(p))}" target="_blank" rel="noopener">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
+    <div class="body"><h3 aria-level="2"><a href="${esc(p.url||infoUrl(p))}" target="_blank" rel="noopener">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
     <div class="meta">${esc(fld(p,"d"))} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
     ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}<button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("");
 }
@@ -206,7 +206,7 @@ $("#vlist").onclick=e=>{const li=e.target.closest("li[data-id]");if(li&&e.target
 const VIEW_BOUNDS={lower48:[[24.5,-125.5],[49.8,-66]],ak:[[51,-170],[71.8,-129]],hi:[[18.8,-160.6],[22.4,-154.6]],terr:[[-15,-171.5],[19.5,-64]]};
 const coarse=matchMedia("(pointer:coarse)").matches;
 const style=p=>({...(checked.has(p.id)?{fillColor:"#e5383b",color:"#ffffff",fillOpacity:1,weight:2}
-                                :{fillColor:"#8a949b",color:"#ffffff",fillOpacity:.92,weight:1.6}),dashArray:p.approx?"2 2":null,...(p.kind==="ca"?{color:"#1b6d73",weight:2.4}:{})});
+                                :{fillColor:"#6b7780",color:"#ffffff",fillOpacity:.92,weight:1.6}),dashArray:p.approx?"2 2":null,...(p.kind==="ca"?{color:"#1b6d73",weight:2.4}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
 const typeLine=p=>`<div class="tt">${esc(fld(p,"d")||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`+(isEdited(p,"name")?`<div class="tt ed2">Official name: ${esc(p.title)}</div>`:"");
 const nearLine=p=>fld(p,"city")?`<div class="tt">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}${fld(p,"year")?" · visited "+esc(fld(p,"year")):""}</div>`:"";
@@ -250,6 +250,7 @@ function setupZoomInput(map){
 }
 const mapList=()=>visible().concat(showCA?visible(caParks):[]);
 const mapViews=[];
+const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)");
 function createMapView(c){
   const V={map:null,markers:new Map(),group:null,hoverCard:null,hoverTimer:null,cfg:c,readyCbs:[]};
   const el=k=>$(c.ctl[k]);
@@ -301,6 +302,9 @@ function createMapView(c){
     const map=V.map=L.map(c.el,{minZoom:2,maxZoom:14,worldCopyJump:true,renderer:L.canvas({tolerance:5,padding:.3}),zoomSnap:0,zoomDelta:.75,scrollWheelZoom:false,
       touchZoom:true,bounceAtZoomLimits:false,inertia:true,inertiaDeceleration:2600,zoomAnimation:true,markerZoomAnimation:true,tapTolerance:12,boxZoom:true,keyboard:true,zoomControl:true,attributionControl:true});
     map.attributionControl.setPrefix(false);window[c.global]=map;
+    const ct=map.getContainer();ct.setAttribute("role","region");ct.setAttribute("aria-roledescription","map");
+    ct.setAttribute("aria-label","Map of parks. Arrow keys pan, plus and minus zoom. The table lists the same places; Alt+M in the table shows the selected row here.");
+    if(reduceMotion.matches){map.flyTo=(ll,z)=>map.setView(ll,z==null?map.getZoom():z,{animate:false});map.flyToBounds=(b,o)=>map.fitBounds(b,{...(o||{}),animate:false});}
     new LocalTiles({tileSize:512,minZoom:2,maxZoom:14,maxNativeZoom:8,keepBuffer:6,updateWhenIdle:false,updateInterval:60,
       attribution:'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (NASA SRTM, USGS 3DEP, GEBCO) · Natural Earth · US Census'}).addTo(map);
     addVectors(map);
@@ -322,6 +326,12 @@ function createMapView(c){
         <text y="-30" class="nl" text-anchor="middle">N</text></svg>`;
       L.DomEvent.disableClickPropagation(d);d.onclick=()=>V.fly();return d}});
     new Rose({position:"bottomleft"}).addTo(map);
+    // buttons to pan without dragging
+    const Pan=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","panpad");d.setAttribute("role","group");d.setAttribute("aria-label","Pan map");
+      [["n","▲","North",0,-1],["w","◀","West",-1,0],["e","▶","East",1,0],["s","▼","South",0,1]].forEach(([k,g,n,dx,dy])=>{const b=L.DomUtil.create("button","pp-"+k,d);b.type="button";b.textContent=g;b.setAttribute("aria-label","Pan "+n);b.title="Pan "+n.toLowerCase();
+        b.onclick=()=>{const sz=map.getSize();map.panBy([dx*sz.x*.4,dy*sz.y*.4],{animate:!reduceMotion.matches})}});
+      L.DomEvent.disableClickPropagation(d);return d}});
+    new Pan({position:"topleft"}).addTo(map);
     const Legend=L.Control.extend({onAdd(){const d=L.DomUtil.create("div","maplegend");d.innerHTML='<span><i class="dot off"></i>Not visited</span><span><i class="dot on"></i>Visited ✓</span><span class="lg-ca"><i class="dot ca"></i>CA State Park</span><span class="lg-ap"><i class="dot ap"></i>Approx. spot</span>';L.DomEvent.disableClickPropagation(d);return d}});
     new Legend({position:"bottomright"}).addTo(map);
     ["click","dblclick","mousedown"].forEach(t=>map.getContainer().addEventListener(t,e=>{if(e.target.closest&&e.target.closest("a.lnk"))e.stopPropagation()},true)); // link clicks must not toggle the dot
@@ -359,11 +369,12 @@ function createMapView(c){
     let singles=list;
     if(V.clusterOn){
       const cells=new Map();singles=[];
-      list.forEach(p=>{const pt=V.map.project([p.lat,p.lng],z),k=Math.floor(pt.x/44)+","+Math.floor(pt.y/44);let g=cells.get(k);if(!g)cells.set(k,g=[]);g.push(p)});
-      cells.forEach(g=>{
+      list.forEach(p=>{const pt=V.map.project([p.lat,p.lng],z),k=Math.floor(pt.x/54)+","+Math.floor(pt.y/54);let g=cells.get(k);if(!g)cells.set(k,g=[]);g.push(p)});
+      cells.forEach((g,key)=>{
         if(g.length===1){singles.push(g[0]);return}
         const vn=g.filter(p=>checked.has(p.id)).length,lat=g.reduce((t,p)=>t+p.lat,0)/g.length,lng=g.reduce((t,p)=>t+p.lng,0)/g.length;
-        const m=L.marker([lat,lng],{icon:L.divIcon({className:"clu"+(vn?" hasv":""),html:`<span>${g.length}${vn?"<i>✓</i>":""}</span>`,iconSize:[34,34]}),
+        const [cx,cy]=key.split(",").map(Number),cc=V.map.unproject([(cx+.5)*54,(cy+.5)*54],z);   // cell centre keeps clusters >= 54px apart
+        const m=L.marker(cc,{icon:L.divIcon({className:"clu"+(vn?" hasv":""),html:`<span>${g.length}${vn?"<i>✓</i>":""}</span>`,iconSize:[34,34]}),
           title:`${g.length} units${vn?` · ${vn} visited`:""} – click to zoom in`,alt:`${g.length} units`,riseOnHover:true});
         m.on("click",()=>V.map.flyToBounds(L.latLngBounds(g.map(p=>[p.lat,p.lng])),{padding:[70,70],maxZoom:Math.max(z+2.5,5),duration:.8}));
         V.clusters.addLayer(m)});
@@ -442,7 +453,7 @@ function renderList(keep){
   $("#lcount").textContent=dataset==="trails"?`${rows.length.toLocaleString()} of ${total.toLocaleString()} trails${trailMsg?" · "+trailMsg:""}`:`${rows.length} of ${total} rows · ${dataset==="ca"?"California State Parks":"National Park Service"}`;
   $$("#ltable th[data-k]").forEach(th=>{const k=th.dataset.k,f=colFilt[k];
     th.querySelector(".fbtn").classList.toggle("on",!!f&&(!!f.vals||!!f.text));
-    th.dataset.dir=k===sortKey?(sortDir>0?"▲":"▼"):""});
+    th.dataset.dir=k===sortKey?(sortDir>0?"▲":"▼"):"";if(k===sortKey)th.setAttribute("aria-sort",sortDir>0?"ascending":"descending");else th.removeAttribute("aria-sort")});
   tbody.innerHTML=rows.map((p,r)=>`<tr data-r="${r}"><td class="rn">${r+1}</td>`+COLS.map((c,ci)=>{
     const v=cellVal(p,c.k);
     const ed=isEdited(p,c.k);
@@ -462,6 +473,8 @@ function applySel(){
   $$("#lbody .rn").forEach((t,r)=>t.classList.toggle("on",r>=r0&&r<=r1));
   $("#delRows").disabled=!(rows.slice(r0,r1+1).some(p=>p.kind==="custom"));
   $("#undo").disabled=!hist.length;$("#redo").disabled=!redoS.length;
+  if(!editing&&wrap.contains(document.activeElement)&&rows[act.r]){const p=rows[act.r],c=COLS[act.c];
+    $("#cellLive").textContent=`Row ${act.r+1} of ${rows.length}, ${c.t}: ${cellVal(p,c.k)||"blank"}${isEdited(p,c.k)?", edited, official value "+(official(p,c.k)||"blank"):""}`}
   if(currentTab==="explore"&&mainView.map&&(linkFlag||wrap.contains(document.activeElement)))mainView.highlight(rows[act.r]);
 }
 let linkFlag=false;
@@ -590,6 +603,7 @@ wrap.addEventListener("keydown",e=>{
   if(mod&&k.toLowerCase()==="y"){e.preventDefault();redo();return}
   if(mod&&k.toLowerCase()==="d"){e.preventDefault();fillDown();return}
   if(mod&&k.toLowerCase()==="a"){e.preventDefault();sel={r0:0,c0:0,r1:rows.length-1,c1:COLS.length-1};applySel();return}
+  if(e.altKey&&k.toLowerCase()==="m"){e.preventDefault();const p=rows[act.r];p&&p.lat&&focusOnMap(p.id);return}
   if(mod)return; // let copy / cut / paste events fire
   if(k==="ArrowDown"){e.preventDefault();move(1,0,e.shiftKey)}
   else if(k==="ArrowUp"){e.preventDefault();move(-1,0,e.shiftKey)}

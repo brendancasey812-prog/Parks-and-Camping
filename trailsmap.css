@@ -18,7 +18,7 @@
 .trailnote.err{color:#b3261e}
 /* trails legend card on the map */
 .tm-legend{min-width:210px;max-width:260px;padding:.7rem .85rem;margin:0 10px 8px 0!important;border-radius:16px;font-size:12px;color:var(--glass-ink);background:var(--glass);-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4);box-shadow:0 6px 18px -6px rgba(6,32,24,.45),inset 0 0 0 1px var(--glass-line)}
-.tm-legend h5{margin:0 0 .35rem;font:700 10.5px var(--font-body);letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.tm-legend .lh{margin:0 0 .35rem;font:700 10.5px var(--font-body);letter-spacing:.1em;text-transform:uppercase;opacity:.9}
 .tm-legend .it{display:flex;align-items:center;gap:.5rem;margin:.22rem 0}.tm-legend .it span:last-child{margin-left:auto;opacity:.65}
 .tm-legend .ln{width:26px;height:0;border-top:4px solid;border-radius:2px;box-shadow:0 0 0 1.5px #fff}
 .tm-legend .sec+.sec{margin-top:.6rem;padding-top:.55rem;border-top:1px solid var(--glass-line)}

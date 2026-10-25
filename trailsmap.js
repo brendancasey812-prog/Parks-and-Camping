@@ -140,14 +140,14 @@ function elevRamp(){
 }
 function renderLegend(){
   if(!legendCtl)return;const el=legendCtl.el;el.style.display=(S.legend&&S.trails)?"":"none";if(!S.legend||!S.trails)return;
-  let h='<div class="sec"><h5>NPS trails</h5>';
+  let h='<div class="sec"><div class="lh">NPS trails</div>';
   if(S.colorBy){
     const counts=new Map();current.forEach(f=>{const v=catOf(f);counts.set(v,(counts.get(v)||0)+1)});
     const rows=[...counts].sort((a,b)=>b[1]-a[1]).slice(0,10);
     h+=rows.map(([v,c])=>`<div class="it"><span class="ln" style="border-color:${colorOf(v)}"></span><span>${esc(v)}</span><span>${c.toLocaleString()}</span></div>`).join("")||'<div class="it"><span>None loaded</span></div>';
     h+=`<div class="it" style="opacity:.6"><span>colored by ${S.colorBy==="__park"?"park":esc(S.colorBy)}</span></div>`;
   }else h+=`<div class="it"><span class="ln" style="border-color:${SOLO}"></span><span>Trail${current.length?"":" (none loaded)"}</span><span>${current.length?current.length.toLocaleString():""}</span></div>`;
-  h+=`</div><div class="sec"><h5>Elevation</h5><div class="ramp" style="background:${elevRamp()}"></div><div class="rl"><span>sea level</span><span>1,700 m</span><span>4,400 m+</span></div></div>`;
+  h+=`</div><div class="sec"><div class="lh">Elevation</div><div class="ramp" style="background:${elevRamp()}"></div><div class="rl"><span>sea level</span><span>1,700 m</span><span>4,400 m+</span></div></div>`;
   el.innerHTML=h;
 }
 function applyTerrainLook(){
