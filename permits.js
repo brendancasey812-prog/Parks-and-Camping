@@ -44,40 +44,33 @@ function status(r, now) {
 }
 
 // ---------- render ----------
-function dateLine(label, d, extraNote, dateOnly) {
-  return '<li><b>' + esc(label) + "</b><span>" + esc(dateOnly ? CC.fmtAt(d, false) : when(d)) + (extraNote ? " <small>" + esc(extraNote) + "</small>" : "") + "</span></li>";
-}
-function phaseHtml(perm, p, D, now) {
+function phaseRow(perm, p, D, now) {
   const r = compute(p, D, now), st = status(r, now);
-  let body = "";
-  if (r.na) body = '<p class="muted">' + esc(r.na) + "</p>";
+  const stat = '<span class="st ' + (st.k === "open" ? "open" : st.k === "soon" ? "later" : "none") + '"' + (st.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(st.t) + "</span>";
+  const proj = r.projected ? '<span class="when-t">Projected from ' + p.announced + '; this year is not published</span>' : "";
+  let opens = "", closes = "", more = "";
+  if (r.na) { opens = '<span class="muted">' + esc(r.na) + "</span>"; }
   else {
-    const lines = [];
-    if (r.week) lines.push('<li><b>Application week</b><span>' + esc(r.week) + "</span></li>");
-    lines.push(dateLine(p.kind === "days" ? "Opens" : "Applications open", r.open, r.approx && p.kind === "annual" ? "start of day; exact time not published" : ""));
-    if (r.close) lines.push(dateLine("Applications close", r.close, r.approx && p.kind === "annual" ? "end of day; exact time not published" : ""));
-    r.extra.forEach(x => lines.push(dateLine(x[0], x[1], "", x[2])));
-    lines.push('<li><b>Results</b><span>' + esc(p.results) + "</span></li>");
-    body = '<ul class="pm-dates">' + lines.join("") + "</ul>";
-    if (r.projected) body += '<p class="warn-line">⚠ Projected from the ' + p.announced + ' dates. The official dates for this year are not published yet.</p>';
+    opens = "<b>" + esc(when(r.open)) + "</b>" + (r.week ? '<span class="when-t">Week of ' + esc(r.week) + "</span>" : "") + (r.approx && p.kind === "annual" ? '<span class="when-t">Exact time not published</span>' : "") + proj;
+    closes = r.close ? esc(when(r.close)) : "None";
+    more = r.extra.map(x => '<span class="when-t">' + esc(x[0]) + ": " + esc(CC.fmtAt(x[1], !x[2])) + "</span>").join("");
   }
-  const rem = !r.na && st.k === "soon" ? '<button type="button" class="btn" data-rem="' + esc(perm.id + "|" + p.id) + '">⏰ Remind me</button>' : "";
-  return '<section class="pm-phase"><header><h4>' + esc(p.label) + '</h4><span class="st ' + (st.k === "open" ? "open" : st.k === "soon" ? "later" : "none") + '"' + (st.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(st.t) + '</span></header><p class="pm-what">' + esc(p.what) + "</p>" + body + (p.note ? '<p class="muted">' + esc(p.note) + "</p>" : "") + rem + "</section>";
+  const rem = !r.na && st.k === "soon" ? '<button type="button" class="btn sm" data-rem="' + esc(perm.id + "|" + p.id) + '">Add reminder</button>' : "";
+  return '<tr><th scope="row" data-l="Step">' + esc(p.label) + '<span class="when-t">' + esc(p.what) + '</span></th><td data-l="Status">' + stat + '</td><td data-l="Opens">' + opens + '</td><td data-l="Closes">' + closes + '</td><td data-l="Results">' + esc(p.results) + more + (p.note ? '<span class="when-t">' + esc(p.note) + "</span>" : "") + '</td><td data-l="">' + rem + "</td></tr>";
 }
 function cardHtml(perm, D, now) {
   const b = conf[perm.conf] || conf.check;
-  return '<article class="pm-card" id="' + esc(perm.id) + '"><header class="pm-h"><span class="pm-ic" aria-hidden="true">' + perm.icon + '</span><div><h3>' + esc(perm.name) + "</h3><p class=\"muted\">" + esc(perm.park) + " · " + esc(perm.system) + '</p></div><span class="badge ' + b[1] + '">' + b[0] + "</span></header>" +
-    '<p>' + esc(perm.summary) + '</p><dl class="pm-meta"><div><dt>Fees</dt><dd>' + esc(perm.fees) + "</dd></div>" + (perm.group ? "<div><dt>Group</dt><dd>" + esc(perm.group) + "</dd></div>" : "") + "</dl>" +
-    '<div class="pm-phases">' + perm.phases.map(p => phaseHtml(perm, p, D, now)).join("") + "</div>" +
-    (perm.check.length ? "<p class=\"muted\"><b>Still to verify:</b> " + perm.check.map(esc).join("; ") + "</p>" : "") +
-    '<div class="pm-foot"><a class="btn" href="' + esc(perm.url) + '" target="_blank" rel="noopener">Open on the booking site ↗</a><details><summary>Sources</summary><ul>' + perm.sources.map(s => '<li><a href="' + esc(s.u) + '" target="_blank" rel="noopener">' + esc(s.t) + " ↗</a></li>").join("") + "</ul></details></div></article>";
+  return '<article class="card flush pm-card" id="' + esc(perm.id) + '"><div class="card-h"><div><h2>' + esc(perm.name) + '</h2><p class="sub">' + esc(perm.park) + " &middot; " + esc(perm.system) + '</p></div><span class="badge ' + b[1] + '">' + b[0] + "</span></div>" +
+    '<div class="pm-body"><p>' + esc(perm.summary) + '</p><table class="tbl simple"><tbody><tr><th scope="row">Fees</th><td>' + esc(perm.fees) + "</td></tr>" + (perm.group ? '<tr><th scope="row">Group</th><td>' + esc(perm.group) + "</td></tr>" : "") + (perm.check.length ? '<tr><th scope="row">To verify</th><td>' + perm.check.map(esc).join("; ") + "</td></tr>" : "") + "</tbody></table></div>" +
+    '<div class="tw" tabindex="-1"><table class="tbl stack"><thead><tr><th scope="col">Step</th><th scope="col">Status</th><th scope="col">Opens</th><th scope="col">Closes</th><th scope="col">Results and notes</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody>' + perm.phases.map(p => phaseRow(perm, p, D, now)).join("") + "</tbody></table></div>" +
+    '<div class="pm-foot"><a class="btn" href="' + esc(perm.url) + '" target="_blank" rel="noopener">Open on the booking site</a><details><summary>Sources</summary><ul>' + perm.sources.map(s => '<li><a href="' + esc(s.u) + '" target="_blank" rel="noopener">' + esc(s.t) + "</a></li>").join("") + "</ul></details></div></article>";
 }
 // ---------- "coming up": the next open of each recurring lottery ----------
 function nextEvents(now) {
   const out = [], hd = PERMITS.find(x => x.id === "half-dome").phases[0], y = E.parseISO(CC.todayPT()).y;
   for (const Y of [y, y + 1]) {
     const o = at(Y + "-" + pad(hd.open.m) + "-" + pad(hd.open.d), "00:00"), c = at(Y + "-" + pad(hd.close.m) + "-" + pad(hd.close.d), "23:59");
-    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026 (2027 dates not published)" : "Applications", open: o, close: c, rule: "Apply March 1-31. Results mid-April.", url: PERMITS[0].url, park: "Yosemite" }); break; }
+    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026; 2027 dates not published" : "Applications", open: o, close: c, rule: "Apply March 1-31. Results mid-April.", url: PERMITS[0].url, park: "Yosemite" }); break; }
   }
   const yw = PERMITS.find(x => x.id === "yose-wilderness").phases[0];
   let sun = CC.todayPT(); sun = E.addDays(sun, -dow(sun));
@@ -90,10 +83,10 @@ function nextEvents(now) {
 }
 let events = [];
 function render() {
-  if ($("#viewPermits").hidden) return;
+  if ($("#vPermits").hidden) return;
   const D = CC.st.target, now = new Date();
   events = nextEvents(now);
-  $("#pmSoon").innerHTML = events.map((e, i) => '<article class="card"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + "</span><h3>" + esc(e.title) + "</h3><p class=\"rl\">" + esc(e.rule) + "</p><p><b>" + esc(when(e.open)) + "</b></p><p>Closes <b>" + esc(when(e.close)) + "</b></p><p class=\"muted\">" + esc(e.sub) + '</p><button type="button" class="btn" data-ev="' + i + '">⏰ Remind me</button></article>').join("");
+  $("#pmSoon tbody").innerHTML = events.map((e, i) => '<tr><th scope="row" data-l="Permit">' + esc(e.title) + '<span class="when-t">' + esc(e.sub) + '</span></th><td data-l="Opens"><b>' + esc(when(e.open)) + '</b><span class="when-t">' + esc(e.rule) + '</span></td><td data-l="Closes">' + esc(when(e.close)) + '</td><td data-l="Starts in"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + '</span></td><td data-l=""><button type="button" class="btn sm" data-ev="' + i + '">Add reminder</button></td></tr>').join("");
   $("#pmList").innerHTML = PERMITS.map(p => cardHtml(p, D, now)).join("");
 }
 document.addEventListener("click", e => {

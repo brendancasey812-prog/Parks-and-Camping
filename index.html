@@ -3,93 +3,142 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#052018">
-<title>California Campsite Release Tracker</title>
-<meta name="description" content="When do California campsites open for booking? Release day and time for Recreation.gov and ReserveCalifornia campgrounds, with season, peak season and walk-up filters.">
+<meta name="theme-color" content="#fbfaf8">
+<title>Campsite release dates, California</title>
+<meta name="description" content="When California campgrounds open for booking, with season, peak season and walk-up information for each park.">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <script>try{var t=JSON.parse(localStorage.getItem("cc-theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<a class="skip" href="#table">Skip to the table</a>
-<header class="top">
-  <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>
-    <div><h1>California Campsite Release Tracker</h1><p>When each campground opens for booking: day, time, season, peak season and walk-up</p></div></div>
-  <div class="top-r"><span id="checked" class="chip-info"></span><button id="themeBtn" type="button" class="ghost" aria-label="Switch light or dark">◐</button></div>
-</header>
+<a class="skip" href="#content">Skip to content</a>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Navigation">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><span class="brand-t">California camping</span></div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/" class="nav-i" data-nav="parks">Parks</a>
+      <a href="#/permits" class="nav-i" data-nav="permits">Permits and lotteries</a>
+      <a href="#/data" class="nav-i" data-nav="data">Data and edits</a>
+    </nav>
+    <div class="side-g" id="sideGroups"></div>
+    <div class="side-f"><button id="themeBtn" type="button" class="link-btn">Switch theme</button></div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
 
-<nav class="tabs" aria-label="Sections"><a href="#campgrounds" class="tab" data-view="campgrounds">Campgrounds</a><a href="#permits" class="tab" data-view="permits">Permits &amp; lotteries</a></nav>
-<main id="main">
-  <section class="plan" aria-labelledby="planH">
-    <h2 id="planH">When are you going?</h2>
-    <div class="plan-row">
-      <label class="field">Arrival or hike date<input id="target" type="date"></label>
-      <div class="quick" role="group" aria-label="Quick dates"><button type="button" data-add="30">+1 month</button><button type="button" data-add="90">+3 months</button><button type="button" data-add="180">+6 months</button><button type="button" data-add="365">+1 year</button><button type="button" data-fri="1">Next Friday</button></div>
-      <div class="seg" id="tz" role="group" aria-label="Show times in"><button type="button" data-tz="pt">Pacific Time</button><button type="button" data-tz="local">My time zone</button></div>
-    </div>
-    <p id="planNote" class="plan-note" role="status" aria-live="polite"></p>
-  </section>
+  <div class="main">
+    <header class="bar">
+      <button id="menuBtn" type="button" class="icon-btn" aria-label="Open navigation" aria-controls="side" aria-expanded="false"><span></span><span></span><span></span></button>
+      <form id="ask" class="ask" role="search" autocomplete="off">
+        <svg class="ask-i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <label for="q" class="sr">Search parks or describe what you need</label>
+        <input id="q" type="search" placeholder="Search a park, or ask: walk-up sites in July, Yosemite peak season">
+        <button type="submit" class="ask-go">Search</button>
+      </form>
+      <div class="when">
+        <label class="mini">Trip date<input id="target" type="date"></label>
+        <label class="mini">Times in<select id="tz"><option value="pt">Pacific</option><option value="local">My time zone</option></select></label>
+      </div>
+    </header>
 
-  <div id="viewCamp" class="view">
-  <section class="soon" aria-labelledby="soonH">
-    <div class="soon-h"><h2 id="soonH">Opening next</h2><span class="muted">The next release moment for each booking rule. Set a reminder so you are logged in 15 minutes early.</span></div>
-    <div id="soonList" class="soon-list"></div>
-  </section>
+    <main id="content" tabindex="-1">
+      <!-- Parks overview -->
+      <section id="vParks" class="view">
+        <div class="page-h"><h1>Parks</h1><p id="parksSub" class="sub"></p></div>
+        <div class="sugg" id="sugg" role="group" aria-label="Quick filters"></div>
+        <details class="filters" id="filters">
+          <summary>Filters <span id="fCount" class="count-pill" hidden></span></summary>
+          <div class="f-grid">
+            <label class="field">Park type<select id="fKind"><option value="">All</option><option value="nps">National parks and monuments</option><option value="state">State parks</option><option value="forest">National forests</option></select></label>
+            <label class="field">Booking site<select id="fSys"><option value="">All</option><option value="rec">Recreation.gov</option><option value="rc">ReserveCalifornia</option><option value="fcfs">First-come only</option></select></label>
+            <label class="field">Region<select id="fRegion"><option value="">All</option></select></label>
+            <label class="field">Date available<select id="fAvail"><option value="">Any</option><option value="open">Already open for my date</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking on my date</option></select></label>
+            <label class="field">Season<select id="fSeason"><option value="">Any</option><option value="on">Open on my date</option><option value="year">Year-round</option><option value="seasonal">Seasonal only</option></select></label>
+            <label class="field">Open in month<select id="fMonth"><option value="">Any</option></select></label>
+            <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak on my date</option><option value="off">Not peak on my date</option><option value="has">Has a defined peak</option></select></label>
+            <label class="field">Walk-up<select id="fWalk"><option value="">Any</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></label>
+            <label class="field">Data status<select id="fConf"><option value="">Any</option><option value="good">Verified</option><option value="check">Needs checking</option><option value="assumed">Not yet researched</option></select></label>
+          </div>
+          <label class="chk"><input type="checkbox" id="fUnk" checked> Keep campgrounds with unknown season, peak or walk-up when those filters are on</label>
+          <div class="f-act"><button id="clear" type="button" class="btn">Clear filters</button><button id="csv" type="button" class="btn">Export CSV</button></div>
+        </details>
+        <div id="chips" class="chips" aria-label="Active filters"></div>
+        <div class="card flush">
+          <div class="tw" tabindex="-1"><table class="tbl" id="parksTable">
+            <thead><tr>
+              <th scope="col" data-k="name"><button type="button">Park</button></th>
+              <th scope="col" data-k="region"><button type="button">Region</button></th>
+              <th scope="col" data-k="sys"><button type="button">Booking site</button></th>
+              <th scope="col" data-k="rule"><button type="button">How it opens</button></th>
+              <th scope="col" data-k="opens"><button type="button">Opens for your date</button></th>
+              <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
+              <th scope="col" data-k="n"><button type="button">Campgrounds</button></th>
+              <th scope="col" data-k="conf"><button type="button">Data</button></th>
+            </tr></thead>
+            <tbody id="parksBody"></tbody>
+          </table></div>
+        </div>
+        <p id="parksCount" class="foot-note" role="status" aria-live="polite"></p>
+      </section>
 
-  <section class="filters" aria-label="Filters">
-    <label class="field grow">Search<input id="q" type="search" placeholder="Park, campground, region…"></label>
-    <label class="field">Booking site<select id="fSys"><option value="">Any</option><option value="rec">Recreation.gov</option><option value="rc">ReserveCalifornia</option><option value="fcfs">First-come only</option></select></label>
-    <label class="field">Date available<select id="fAvail"><option value="">Any</option><option value="open">Already open for my date</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking on my date</option></select></label>
-    <label class="field">Season<select id="fSeason"><option value="">Any</option><option value="on">Open on my date</option><option value="year">Year-round</option><option value="seasonal">Seasonal only</option></select></label>
-    <label class="field">Open in month<select id="fMonth"><option value="">Any</option></select></label>
-    <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak on my date</option><option value="off">Not peak on my date</option><option value="has">Has a peak season</option></select></label>
-    <label class="field">Walk-up<select id="fWalk"><option value="">Any</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></label>
-    <label class="field">Data check<select id="fConf"><option value="">Any</option><option value="good">Confirmed</option><option value="check">Needs checking</option><option value="assumed">Default rule (not checked yet)</option></select></label>
-    <label class="field">Region<select id="fRegion"><option value="">Any</option></select></label>
-    <label class="chk"><input type="checkbox" id="fUnk" checked> Include listings whose season, peak or walk-up is not verified yet</label>
-    <div class="f-actions"><button id="clear" type="button" class="ghost">Clear filters</button><button id="csv" type="button" class="ghost">Export CSV</button></div>
-    <div id="chips" class="chips" aria-label="Active filters"></div>
-  </section>
+      <!-- One park -->
+      <section id="vPark" class="view" hidden>
+        <nav class="crumb" aria-label="Breadcrumb"><a href="#/">Parks</a><span aria-hidden="true">/</span><span id="crumbName"></span></nav>
+        <div class="page-h"><h1 id="parkName"></h1><p id="parkMeta" class="sub"></p></div>
+        <div class="park-grid">
+          <div class="park-main">
+            <div class="park-tools">
+              <label class="field grow">Filter campgrounds<input id="cq" type="search" placeholder="Campground name"></label>
+              <div class="seg" id="cMode" role="group" aria-label="Show"><button type="button" data-m="all">All</button><button type="button" data-m="open">Open on my date</button><button type="button" data-m="peak">Peak on my date</button><button type="button" data-m="walk">Walk-up</button></div>
+            </div>
+            <div class="card flush">
+              <div class="tw" tabindex="-1"><table class="tbl" id="campTable">
+                <thead><tr>
+                  <th scope="col" data-k="name"><button type="button">Campground</button></th>
+                  <th scope="col" data-k="opens"><button type="button">Opens for your date</button></th>
+                  <th scope="col" data-k="season"><button type="button">Season</button></th>
+                  <th scope="col" data-k="peak"><button type="button">Peak season</button></th>
+                  <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
+                  <th scope="col" data-k="conf"><button type="button">Data</button></th>
+                </tr></thead>
+                <tbody id="campBody"></tbody>
+              </table></div>
+            </div>
+            <p id="campCount" class="foot-note" role="status" aria-live="polite"></p>
+          </div>
+          <aside class="panel" id="panel" aria-label="Campground details"></aside>
+        </div>
+      </section>
 
-  <p id="summary" class="summary" role="note"></p>
+      <!-- Permits -->
+      <section id="vPermits" class="view" hidden>
+        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">Application windows, results and release times. Yosemite first. Dates follow the trip date above.</p></div>
+        <div class="card flush"><div class="card-h"><h2>Coming up</h2></div><div class="tw" tabindex="-1"><table class="tbl" id="pmSoon"><thead><tr><th scope="col">Permit</th><th scope="col">Opens</th><th scope="col">Closes</th><th scope="col">Starts in</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody></tbody></table></div></div>
+        <div id="pmList" class="pm-list"></div>
+      </section>
 
-  <section class="results" aria-labelledby="resH">
-    <div class="res-h"><h2 id="resH">Campgrounds</h2><span id="count" class="muted" role="status" aria-live="polite"></span></div>
-    <div class="tablewrap" id="table" tabindex="-1">
-      <table class="t">
-        <thead><tr>
-          <th scope="col" data-k="name"><button type="button">Location</button></th>
-          <th scope="col" data-k="sys"><button type="button">Booking site</button></th>
-          <th scope="col" data-k="rule"><button type="button">How it opens</button></th>
-          <th scope="col" data-k="opens"><button type="button">Date available <small>for your arrival</small></button></th>
-          <th scope="col" data-k="season"><button type="button">Season</button></th>
-          <th scope="col" data-k="peak"><button type="button">Peak season</button></th>
-          <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
-          <th scope="col" data-k="conf"><button type="button">Data check</button></th>
-          <th scope="col"><span class="sr">Actions</span></th>
-        </tr></thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-  </section>
+      <!-- Data and edits -->
+      <section id="vData" class="view" hidden>
+        <div class="page-h"><h1>Data and edits</h1><p class="sub">What the dates are based on, and how to correct them.</p></div>
+        <div class="card"><h2>How to read the data</h2>
+          <table class="tbl simple"><tbody>
+            <tr><th scope="row">Recreation.gov</th><td>Usually 6 months ahead. A new date opens each day at 7:00 AM Pacific (10:00 AM Eastern). Some campgrounds use monthly blocks, shorter windows or lotteries.</td></tr>
+            <tr><th scope="row">ReserveCalifornia</th><td>6 months to the day, with a new date each day at 8:00 AM Pacific.</td></tr>
+            <tr><th scope="row">Month-end dates</th><td>If the date 6 months earlier does not exist (for example Aug 31), the last day of that month is used.</td></tr>
+            <tr><th scope="row">Verified</th><td>An official page or several agreeing sources.</td></tr>
+            <tr><th scope="row">Needs checking</th><td>A secondary or conflicting source. The fields to confirm are listed on each campground.</td></tr>
+            <tr><th scope="row">Not yet researched</th><td>The booking site's standard release rule is applied. Season, peak season and walk-up are unknown.</td></tr>
+          </tbody></table>
+          <p class="foot-note">Built from a web search on <span id="aboutDate"></span>. Unofficial and not affiliated with Recreation.gov, ReserveCalifornia, the National Park Service or California State Parks. Confirm on the booking site before you rely on a date.</p>
+        </div>
+        <div class="card"><h2>Your edits</h2>
+          <p class="sub" id="editSummary"></p>
+          <div class="f-act left"><button id="exportEdits" type="button" class="btn">Export edits</button><label class="btn file">Import edits<input id="importEdits" type="file" accept="application/json" hidden></label><button id="resetEdits" type="button" class="btn danger">Reset all edits</button></div>
+          <p class="foot-note">Edits and photos are saved in this browser only. Export to keep a copy or move to another device.</p>
+        </div>
+      </section>
+    </main>
   </div>
-  <div id="viewPermits" class="view" hidden>
-    <section class="pm-intro" aria-labelledby="pmH"><h2 id="pmH">Permits &amp; lotteries</h2><p class="muted">Yosemite first: when each permit lottery opens and closes, and when you must apply for your date. Dates use the arrival or hike date above.</p></section>
-    <section class="pm-soon" aria-labelledby="pmSoonH"><h2 id="pmSoonH">Coming up</h2><div id="pmSoon" class="soon-list"></div></section>
-    <div id="pmList" class="pm-list"></div>
-  </div>
-
-  <section class="about" aria-labelledby="aboutH">
-    <h2 id="aboutH">About this data</h2>
-    <p><strong>Unofficial.</strong> Not affiliated with Recreation.gov, ReserveCalifornia, the National Park Service or California State Parks. Always confirm on the booking site before you rely on a date.</p>
-    <ul>
-      <li><b>Recreation.gov</b> usually opens each new date 6 months ahead at 7:00 AM Pacific (10:00 AM Eastern). Some campgrounds use monthly blocks (Yosemite's Pines, Wawona and Hodgdon Meadow open one month at a time on the 15th), shorter windows or lotteries.</li>
-      <li><b>ReserveCalifornia</b> opens each new date 6 months to the day at 8:00 AM Pacific.</li>
-      <li>"Date available" is computed in Pacific time from your arrival date and shown in the time zone you pick. If the 6-month date does not exist (for example Aug 31), the last day of that month is used.</li>
-      <li><b>Data check:</b> <span class="badge good">Confirmed</span> official page or several agreeing sources. <span class="badge check">Needs checking</span> a secondary source or conflicting sources; the fields to verify are listed in each row. <span class="badge assumed">Default rule</span> the campground uses its booking site's standard release rule; season, peak season and walk-up are not verified yet. Built from a web search on <span id="aboutDate"></span>; the daily check (see <code>docs/DAILY-SEARCH.md</code>) will confirm and refresh it.</li>
-    </ul>
-  </section>
-</main>
+</div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="data/sites.js"></script>
 <script src="data/roster.js"></script>

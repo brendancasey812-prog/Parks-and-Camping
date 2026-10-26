@@ -8,7 +8,7 @@
      oneTime  a lottery that ran once  {open:"YYYY-MM-DDTHH:MM", close:"…"} Pacific wall-clock
    valid: {from:"MM-DD", to:"MM-DD"} trip dates the phase applies to */
 window.PERMITS = [
-  { id: "half-dome", name: "Half Dome cables permit", park: "Yosemite National Park", icon: "⛰", system: "Recreation.gov", url: "https://www.recreation.gov/permits/234652",
+  { id: "half-dome", name: "Half Dome cables permit", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/permits/234652",
     summary: "Required for the cables section, up to 300 hikers a day (225 day hikers, 75 backpackers). Cables are normally up from late May to mid-October, depending on snow.",
     fees: "$10 per lottery application, plus $10 per person if you win", group: "Up to 6 people; up to 7 dates ranked on one application", conf: "check",
     check: ["2027 dates (not published yet)", "application open and close times", "results and acceptance deadline", "cable season dates"],
@@ -20,7 +20,7 @@ window.PERMITS = [
     ],
     sources: [{ t: "Half Dome permits: how the lottery works (2026)", u: "https://tohikecalifornia.substack.com/p/half-dome-permits" }, { t: "Half Dome permit lottery dates, odds (2026)", u: "https://hikewithryan.com/half-dome-permit-lottery/" }, { t: "Recreation.gov Half Dome permit", u: "https://www.recreation.gov/permits/234652" }] },
 
-  { id: "yose-wilderness", name: "Yosemite wilderness permits (overnight trailheads)", park: "Yosemite National Park", icon: "🎒", system: "Recreation.gov", url: "https://www.recreation.gov/permits/445859",
+  { id: "yose-wilderness", name: "Yosemite wilderness permits (overnight trailheads)", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/permits/445859",
     summary: "Overnight trips from any trailhead, including Little Yosemite Valley (Mist Trail) and Cathedral Lakes. About 60% of permits go through a weekly lottery 24 weeks ahead; the rest release 7 days before the start date.",
     fees: "$10 lottery or reservation fee, plus $5 per person for an awarded permit", group: "Trailhead quotas apply", conf: "check",
     check: ["lottery open time (7 vs 9 AM)", "weekly lottery season start and end", "trailhead quotas", "Friday leftover release"],
@@ -33,7 +33,7 @@ window.PERMITS = [
     ],
     sources: [{ t: "NPS: Yosemite wilderness permit reservations", u: "https://www.nps.gov/yose/planyourvisit/wpres.htm" }, { t: "Big Dirty Hikes: Yosemite wilderness permit (2026)", u: "https://bigdirtyhikes.com/guides/yosemite-wilderness-permit" }, { t: "The Big Outside: Yosemite and High Sierra permits", u: "https://thebigoutside.com/how-to-get-a-yosemite-or-high-sierra-wilderness-permit/" }] },
 
-  { id: "north-pines-early", name: "North Pines campground early-access lottery", park: "Yosemite National Park", icon: "⛺", system: "Recreation.gov", url: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm",
+  { id: "north-pines-early", name: "North Pines campground early-access lottery", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm",
     summary: "A one-time lottery for the 2026 season (April 21 - October 25). Remaining sites went into the regular February 15 release. No 2027 lottery is announced.",
     fees: "See the NPS page", group: "", conf: "check", check: ["whether a 2027 lottery is announced"],
     phases: [
