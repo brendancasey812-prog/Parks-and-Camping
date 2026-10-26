@@ -54,6 +54,7 @@
     <div id="fDesig"></div>
   </div>
   <button id="clear" type="button" class="ghost">Clear filters</button>
+  <button id="mmFiltDone" type="button" class="ghost mmdone">Done</button>
   <div class="seg panesw" id="paneSeg" role="group" aria-label="Show"><button type="button" data-pane="table" class="on" aria-pressed="true">Table</button><button type="button" data-pane="map" aria-pressed="false">Map</button></div>
   <span id="count" class="count" role="status" aria-live="polite"></span>
   <div id="chips" class="chips" aria-label="Active filters"></div>
@@ -124,6 +125,7 @@
       <label class="dotctl"><input type="checkbox" id="citynames" checked> Cities</label>
       <label class="dotctl"><input type="checkbox" id="rose" checked> Compass</label>
       </div></details>
+      <button id="mmLayersDone" type="button" class="mmdone">Done</button>
     </div>
     <div id="map"></div>
   </section>
@@ -195,6 +197,24 @@
 </main>
 
 <div id="cellLive" class="sr" aria-live="polite" aria-atomic="true"></div>
+<div id="mmBar" class="mmbar" hidden>
+  <button id="mmList" type="button" aria-label="Show the table">☰</button>
+  <button id="mmSearchBtn" type="button" aria-label="Search parks"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+  <input id="mmQ" type="search" placeholder="Search parks, cities…" aria-label="Search parks">
+  <button id="mmFilt" type="button" aria-label="Filters">Filters</button>
+  <button id="mmMenu" type="button" aria-label="Settings and backup">⚙</button>
+</div>
+<div id="mmFabs" class="mmfabs" hidden>
+  <button id="mmLocate" type="button" aria-label="Near me: show my location and the nearest places">◎</button>
+  <button id="mmLayers" type="button" aria-label="Map layers and regions" aria-expanded="false">▤</button>
+  <button id="mmFit" type="button" aria-label="Reset the map view">⌂</button>
+</div>
+<button id="mmPill" class="mmpill" type="button" aria-label="Show the list of places" hidden></button>
+<section id="mmSheet" class="mmsheet" aria-label="Places" hidden>
+  <button id="mmGrab" class="mmgrab" type="button" aria-label="Resize the list"><i></i></button>
+  <div class="mmhead"><strong id="mmTitle"></strong><button id="mmSort" type="button">A–Z</button></div>
+  <div id="mmBody" class="mmbody"></div>
+</section>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="keysDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Keyboard shortcuts</h2><table class="keys">
 <tr><td>Arrows / Tab / Enter</td><td>Move between cells (Tab leaves the table at its edges)</td></tr>

@@ -386,3 +386,59 @@ body.explore[data-msz="2"] main{grid-template-columns:minmax(0,1fr)}body.explore
 body.explore[data-msz="1"] .nag{display:none}
 @media(max-width:900px){body.explore[data-msz="1"] .top{display:none}}
 @media(min-width:901px){body.explore[data-msz="1"] main{grid-template-columns:minmax(300px,30%) minmax(0,1fr)}}
+
+/* ===== Mobile map: map-first screen (phones, Explore > Map) ===== */
+.mmbar,.mmfabs,.mmsheet,.mmdone{display:none}
+@media(max-width:700px){
+  body.mm{overflow:hidden}
+  body.mm .top,body.mm .nag,body.mm .filters,body.mm .mszctl,body.mm #tab-map .toolbar{display:none}
+  body.mm main{position:fixed;inset:0;display:block}
+  body.mm #tab-map{display:flex;flex-direction:column;position:absolute;inset:0;padding:0;border:0}
+  body.mm #map{flex:1 1 auto}
+  .mmbar:not([hidden]){display:flex;position:fixed;top:calc(8px + env(safe-area-inset-top));right:8px;z-index:3000;gap:8px;justify-content:flex-end}
+  .mmbar #mmQ{display:none}.mmbar.searching{left:8px}.mmbar.searching #mmQ{display:block}.mmbar.searching button{display:none}
+  .mmbar #mmSearchBtn.has{background:var(--pine);color:#fff}
+  .mmpill:not([hidden]){display:block;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));z-index:3000;height:48px;padding:0 1.3rem;border:0;border-radius:999px;background:var(--glass-solid);color:var(--glass-ink);font:700 .9rem var(--font-body);white-space:pre;box-shadow:0 6px 18px -4px rgba(6,32,24,.55),inset 0 0 0 1px var(--glass-line);cursor:pointer}
+  .mmbar button,.mmbar input{height:48px;border:0;border-radius:14px;background:var(--glass-solid);color:var(--glass-ink);box-shadow:0 4px 14px -4px rgba(6,32,24,.5),inset 0 0 0 1px var(--glass-line);font:600 .9rem var(--font-body)}
+  .mmbar button{min-width:48px;padding:0 .8rem;cursor:pointer}
+  .mmbar input{flex:1;min-width:0;padding:0 .9rem;font:16px var(--font-body);font-weight:400}
+  .mmfabs:not([hidden]){display:flex;flex-direction:column;gap:8px;position:fixed;right:10px;bottom:calc(var(--mm-sheet,96px) + 64px);z-index:2900}
+  .mmfabs button{width:48px;height:48px;border:0;border-radius:50%;background:var(--glass-solid);color:var(--glass-ink);font-size:22px;box-shadow:0 4px 14px -4px rgba(6,32,24,.5),inset 0 0 0 1px var(--glass-line);cursor:pointer}
+  .mmfabs button[aria-expanded="true"]{background:var(--pine);color:#fff}
+  .mmsheet:not([hidden]){display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:3000;background:var(--surface);color:var(--ink);border-radius:20px 20px 0 0;box-shadow:0 -10px 30px -8px rgba(0,0,0,.35);transition:height .22s ease;padding-bottom:env(safe-area-inset-bottom);overflow:hidden}
+  .mmsheet.dragging{transition:none}.mmsheet.closed{box-shadow:none;padding:0;visibility:hidden}
+  .mmgrab{flex:none;height:28px;border:0;background:transparent;cursor:grab;touch-action:none;display:grid;place-items:center}
+  .mmgrab i{display:block;width:44px;height:5px;border-radius:3px;background:var(--line);box-shadow:inset 0 0 0 1px var(--muted)}
+  .mmhead{flex:none;display:flex;align-items:center;gap:.6rem;padding:0 1rem .5rem;touch-action:none}.mmhead strong{flex:1;font-size:.9rem}
+  .mmhead button{min-height:40px;padding:0 .8rem;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:.82rem;cursor:pointer}
+  .mmbody{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 .5rem 1rem}
+  .mml{list-style:none;margin:0;padding:0}.mml li{display:flex;align-items:center;border-top:1px solid var(--line)}
+  .mmv{display:grid;place-items:center;width:48px;height:56px}.mmv input{width:24px;height:24px;accent-color:var(--red)}
+  .mmi{flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--ink);padding:.5rem .3rem;min-height:56px;cursor:pointer;font:inherit}
+  .mmi b{display:block}.mmi span{display:block;font-size:.8rem;color:var(--muted)}
+  .mmd{padding:0 .6rem 1rem}.mmd h2{margin:.2rem 0 0;font-size:1.35rem}.mmd .sub{margin:.1rem 0 .5rem;color:var(--muted);font-size:.86rem}.mmd p{margin:.35rem 0}.mmd .hl{color:var(--ink);opacity:.9}
+  .mmback{min-height:44px;border:0;background:none;color:var(--link);font:600 .9rem var(--font-body);padding:0;cursor:pointer}
+  .mmvisit{width:100%;min-height:52px;margin:.6rem 0;border-radius:14px;border:2px solid var(--pine);background:transparent;color:var(--ink);font:700 1rem var(--font-body);cursor:pointer}
+  .mmvisit.on{background:var(--red);border-color:var(--red);color:#fff}
+  .mmacts{display:flex;gap:.5rem;flex-wrap:wrap}.mmacts a,.mmacts button{flex:1;min-width:30%;display:grid;place-items:center;min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--link);font:600 .88rem var(--font-body);text-decoration:none;cursor:pointer}
+  body.mm .toast{bottom:auto;top:calc(72px + env(safe-area-inset-top))}
+  body.mm.mm-layers .mmsheet,body.mm.mm-layers .mmfabs{display:none}
+  body.mm .leaflet-top.leaflet-left{top:calc(8px + env(safe-area-inset-top))}
+  body.mm .leaflet-bottom{margin-bottom:var(--mm-sheet,96px);transition:margin .22s}
+  body.mm .leaflet-control-attribution{max-width:60vw}
+  /* filters sheet (reuses the normal filter bar) */
+  body.mm.mm-filters .filters{display:flex;position:fixed;top:0;left:0;right:0;z-index:5200;max-height:85dvh;overflow:auto;padding:1rem;background:var(--surface);box-shadow:0 20px 40px -10px rgba(0,0,0,.5);border-radius:0 0 20px 20px}
+  body.mm.mm-filters .morefilters{display:flex}body.mm.mm-filters .morebtn,body.mm.mm-filters .panesw{display:none}
+  body.mm.mm-filters .mmdone,body.mm.mm-layers .mmdone{display:block;min-height:48px;padding:0 1.2rem;font-weight:700}
+  /* layers + regions sheet (reuses the map toolbar) */
+  body.mm.mm-layers #tab-map .toolbar{display:flex;flex-direction:column;align-items:stretch;position:fixed;left:0;right:0;bottom:0;z-index:5100;padding:1rem;margin:0;background:var(--surface);border-radius:20px 20px 0 0;max-height:65dvh;overflow:auto;box-shadow:0 -14px 40px -10px rgba(0,0,0,.5)}
+  body.mm.mm-layers .layers>summary{display:none}
+  body.mm.mm-layers .layerbox{position:static;border:0;box-shadow:none;padding:0;flex-direction:row;flex-wrap:wrap;margin-top:.6rem}
+  body.mm.mm-layers #jump{display:flex}body.mm.mm-layers #jump button{flex:1;min-height:48px}
+  body.mm.mm-layers #tab-map .dotctl:has(input[type=checkbox]){min-height:44px;display:flex;align-items:center}
+}
+@media(prefers-reduced-motion:reduce){.mmsheet,body.mm .leaflet-bottom{transition:none}}
+@media(max-width:700px){body.mm.mm-layers .mmpill,body.mm.mm-filters .mmpill{display:none}}
+@media(max-width:700px){
+  body.mm.mm-clean .mmbar,body.mm.mm-clean .mmfabs,body.mm.mm-clean .mmpill,body.mm.mm-clean .maplegend,body.mm.mm-clean .leaflet-control.rose{display:none!important}
+}

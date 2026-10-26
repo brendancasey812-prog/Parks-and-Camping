@@ -102,10 +102,10 @@ function showTab(t){
   if(t==="tlist")setDataset("trails");else if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
   if(grp==="trails"&&window.TrailsMap)window.TrailsMap.ensureLoaded();
   if(sec==="grid"){refreshOthers()}
-  if(t==="explore"){setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");mainView.init();setPane(store.get("pane","table"),true);setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
+  if(t==="explore"){setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");mainView.init();setPane(store.get("pane",mmMQ.matches?"map":"table"),true);setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   if(t==="trails"){trailsView.init();setTimeout(()=>{trailsView.map.invalidateSize();zoomToFilter(true)},80);window.TrailsMap&&window.TrailsMap.show()}
-  store.set("tab",t);
+  store.set("tab",t);updateMM();
 }
 // Settings / backup / edits / about live in a side drawer so the table + map stay on screen
 function toggleDrawer(open){
@@ -120,6 +120,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.class
 function setPane(p,quiet){
   document.body.dataset.pane=p;store.set("pane",p);
   $$("#paneSeg button").forEach(b=>{const on=b.dataset.pane===p;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
+  updateMM();
   if(!quiet&&p==="map"&&mainView.map)setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},60);
 }
 $$("#paneSeg button").forEach(b=>b.onclick=()=>setPane(b.dataset.pane));
@@ -135,7 +136,7 @@ function setMapSize(n){
 // "Filters" button reveals the State / Park / Designation dropdowns on narrow screens
 $("#moreBtn").onclick=()=>{const o=document.body.classList.toggle("more-open");$("#moreBtn").setAttribute("aria-expanded",o)};
 // Layers menus close on outside click / Esc
-document.addEventListener("click",e=>$$("details.layers[open]").forEach(d=>{if(!d.contains(e.target))d.open=false}));
+document.addEventListener("click",e=>{if(document.body.classList.contains("mm-layers"))return;$$("details.layers[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")$$("details.layers[open]").forEach(d=>{d.open=false;d.querySelector("summary").focus()})});
 // "/" jumps to search
 document.addEventListener("keydown",e=>{if(e.key==="/"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)&&!e.target.isContentEditable){e.preventDefault();$("#q").focus()}});
@@ -320,7 +321,7 @@ function createMapView(c){
     [...parks,...caParks].forEach(p=>{
       const m=L.circleMarker([p.lat,p.lng],{radius:6,bubblingMouseEvents:false,...style(p)});
       if(!coarse){m.on("mouseover",()=>{showHover(p,m);rowHover(p.id,true)});m.on("mouseout",()=>{hideHover(1200);rowHover(p.id,false)})}
-      m.on("click",()=>{selectRowById(p.id);                 // desktop: click toggles; touch: tap opens a card
+      m.on("click",()=>{if(document.body.classList.contains("mm")){mmSelect(p.id);return}selectRowById(p.id);                 // desktop: click toggles; touch: tap opens a card
         if(!coarse){toggle(p.id);return}
         L.popup({autoPanPadding:[24,70],maxWidth:260}).setLatLng(m.getLatLng()).setContent(
           `<strong>${esc(disp(p))}</strong>${typeLine(p)}${nearLine(p)}<div class="pp"><button type="button" data-id="${esc(p.id)}">${checked.has(p.id)?"✓ Visited – tap to undo":"Mark as visited"}</button>
@@ -828,6 +829,107 @@ const snap=()=>({checked:[...checked],edits:JSON.parse(JSON.stringify(edits)),cu
 function restoreSnap(sn){checked=new Set(sn.checked);edits=sn.edits;customRows.forEach(r=>byId.delete(r.id));customRows=sn.customRows;customRows.forEach(r=>byId.set(r.id,mkCustom(r)));
   save();saveEdits();saveCustom();hist=[];redoS=[];renderList(true);refresh();renderEditsPanel()}
 
+// ---------- mobile map: map-first screen with a bottom sheet, detail card, near-me, layers and filters sheets ----------
+const mmMQ=matchMedia("(max-width:700px)");let mmSel=null,mmSnap=0,myPos=null,mmSort="name",meLayer=null;
+const SNAPS=()=>[0,Math.round(innerHeight*.5),innerHeight-84];   // 0 = map only (just a small "places" pill)
+const mmOn=()=>document.body.classList.contains("mm");
+function distMi(a,b){const R=3958.8,r=x=>x*Math.PI/180,dLa=r(b.lat-a.lat),dLo=r(b.lng-a.lng),h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+const fmtDist=d=>d<10?d.toFixed(1)+" mi":Math.round(d).toLocaleString()+" mi";
+function updateMM(){
+  const on=currentTab==="explore"&&document.body.dataset.pane==="map"&&mmMQ.matches;
+  const was=mmOn();document.body.classList.toggle("mm",on);
+  ["#mmBar","#mmFabs","#mmSheet","#mmPill"].forEach(i=>$(i).hidden=!on);
+  if(!on){document.body.classList.remove("mm-filters","mm-layers","mm-clean");return}
+  if(!was&&!store.get("cleanHint",false)){store.set("cleanHint",true);setTimeout(()=>toast("Tap empty map to hide or show the controls"),900)}
+  if(!was){setSheet(mmSnap,true)}
+  mmRender();setTimeout(()=>mainView.map&&mainView.map.invalidateSize(),60);
+}
+let sheetT=0;
+function setSheet(i,quiet){sheetT=Date.now();mmSnap=clamp(i,0,2);const h=SNAPS()[mmSnap];$("#mmSheet").style.height=h+"px";$("#mmSheet").classList.toggle("closed",h===0);document.body.style.setProperty("--mm-sheet",Math.max(h,56)+"px");$("#mmPill").hidden=!(mmOn()&&h===0);
+  $("#mmGrab").setAttribute("aria-label",`Resize the list (now ${["small","half","full"][mmSnap]}). Drag, or press Up / Down.`);$("#mmSheet").dataset.snap=mmSnap;
+  if(!quiet&&mainView.map)setTimeout(()=>mainView.map.invalidateSize(),260)}
+function mmRender(){
+  if(!mmOn())return;
+  const body=$("#mmBody"),head=$("#mmTitle");
+  const np=parks.filter(p=>p.np63),vn=np.filter(p=>checked.has(p.id)).length;
+  const sel=mmSel&&byId.get(mmSel);
+  if(sel){
+    $("#mmSort").hidden=true;head.textContent="";
+    const vis=checked.has(sel.id),near=fld(sel,"city")?`Near ${esc(fld(sel,"city"))}${fld(sel,"state")?", "+esc(fld(sel,"state")):""}`:"";
+    const d=myPos&&sel.lat?` · ${fmtDist(distMi(myPos,sel))} away`:"";
+    body.innerHTML=`<div class="mmd"><button type="button" class="mmback" id="mmBack">← All parks</button>
+      <h2>${esc(disp(sel))}</h2><p class="sub">${esc(fld(sel,"d")||"Unit")} · ${esc(sel.states.slice(0,2).join(", "))}${sel.approx?" · approximate spot":""}</p>
+      <p>${near}${d}${fld(sel,"year")?" · last visited "+esc(fld(sel,"year")):""}</p>${fld(sel,"hl")?`<p class="hl">${esc(fld(sel,"hl"))}</p>`:""}
+      <button type="button" id="mmVisit" class="mmvisit${vis?" on":""}" aria-pressed="${vis}">${vis?"✓ Visited – tap to undo":"Mark as visited"}</button>
+      <div class="mmacts"><a href="${esc(infoUrl(sel))}" target="_blank" rel="noopener">Info page ↗</a>
+      ${sel.lat?`<a href="https://www.google.com/maps/dir/?api=1&destination=${sel.lat},${sel.lng}" target="_blank" rel="noopener">Directions ↗</a>`:""}
+      <button type="button" id="mmEdit">Edit details</button></div></div>`;
+    return;
+  }
+  $("#mmSort").hidden=false;$("#mmSort").textContent=mmSort==="near"?"Nearest first":"A–Z";
+  let list=mapList();
+  if(mmSort==="near"&&myPos)list=list.map(p=>({p,d:distMi(myPos,p)})).sort((a,b)=>a.d-b.d).map(x=>(x.p._d=x.d,x.p));
+  else list=list.slice().sort((a,b)=>disp(a).localeCompare(disp(b)));
+  head.textContent=`${list.length} place${list.length===1?"":"s"} · ${vn} of ${np.length} national parks visited`;$("#mmPill").textContent=`☰  ${list.length} place${list.length===1?"":"s"}  ·  ${vn}/${np.length} visited`;
+  body.innerHTML=`<ul class="mml">`+list.map(p=>{const v=checked.has(p.id);return `<li><label class="mmv"><input type="checkbox" data-id="${esc(p.id)}" ${v?"checked":""} aria-label="Visited: ${esc(disp(p))}"></label>
+    <button type="button" class="mmi" data-id="${esc(p.id)}"><b>${esc(disp(p))}</b><span>${esc([fld(p,"d"),fld(p,"state")].filter(Boolean).join(" · "))}${mmSort==="near"&&myPos?" · "+fmtDist(p._d):""}</span></button></li>`}).join("")+`</ul>`||"";
+  if(!list.length)body.innerHTML=`<p class="gridmsg">Nothing matches the current filters.</p>`;
+}
+function mmSelect(id){
+  const p=byId.get(id);if(!p)return;setClean(false);mmSel=id;if(mmSnap===2)setSheet(1);else if(mmSnap===0)setSheet(1);
+  mmRender();mainView.highlight(p,false);
+  const m=mainView.map;if(m&&p.lat){const z=Math.max(m.getZoom(),7),pt=m.project([p.lat,p.lng],z);pt.y+=SNAPS()[mmSnap]/2;m.flyTo(m.unproject(pt,z),z,{duration:.7})}
+  $("#mmBody").scrollTop=0}
+function mmClear(){mmSel=null;mainView.highlight(null);mmRender()}
+$("#mmBody").addEventListener("click",e=>{
+  if(e.target.id==="mmBack"){mmClear();return}
+  if(e.target.id==="mmVisit"){toggle(mmSel);return}
+  if(e.target.id==="mmEdit"){const r=rows.findIndex(p=>p.id===mmSel);if(r>=0){const was=currentTab;openSheet(r)}else toast("Show this place in the list to edit it");return}
+  const cb=e.target.closest("input[type=checkbox][data-id]");if(cb){toggle(cb.dataset.id);return}
+  const it=e.target.closest(".mmi");if(it)mmSelect(it.dataset.id)});
+$("#mmSort").onclick=()=>{if(mmSort==="name"&&!myPos){locate();return}mmSort=mmSort==="name"?"near":"name";mmRender()};
+// sheet: drag the handle (or the header) to resize, tap/keys to step
+{const sh=$("#mmSheet"),grab=$("#mmGrab"),head=$(".mmhead");let y0=0,h0=0,drag=false,moved=false;
+  const down=e=>{if(e.target.closest("button:not(#mmGrab)"))return;drag=true;moved=false;y0=e.clientY;h0=sh.getBoundingClientRect().height;sh.classList.add("dragging");e.currentTarget.setPointerCapture&&e.currentTarget.setPointerCapture(e.pointerId)};
+  const move=e=>{if(!drag)return;const dy=y0-e.clientY;if(Math.abs(dy)>4)moved=true;const [lo,,hi]=SNAPS(),h=clamp(h0+dy,lo,hi);sh.style.height=h+"px";document.body.style.setProperty("--mm-sheet",Math.max(h,56)+"px")};
+  const up=e=>{if(!drag)return;drag=false;sh.classList.remove("dragging");
+    if(!moved){setSheet((mmSnap+1)%3);return}
+    const h=sh.getBoundingClientRect().height,S=SNAPS();setSheet(S.reduce((b,v,i)=>Math.abs(v-h)<Math.abs(S[b]-h)?i:b,0))};
+  [grab,head].forEach(el=>{el.addEventListener("pointerdown",down);el.addEventListener("pointermove",move);el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up)});
+  grab.addEventListener("keydown",e=>{if(e.key==="ArrowUp"){e.preventDefault();setSheet(mmSnap+1)}else if(e.key==="ArrowDown"){e.preventDefault();setSheet(mmSnap-1)}});
+  window.addEventListener("resize",()=>{if(mmOn())setSheet(mmSnap,true)})}
+// near me
+function locate(){
+  if(!navigator.geolocation){toast("Location is not available on this device");return}
+  toast("Finding you…");
+  navigator.geolocation.getCurrentPosition(pos=>{
+    myPos={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};mmSort="near";
+    const m=mainView.map;if(m){meLayer&&meLayer.remove();meLayer=L.layerGroup([L.circle([myPos.lat,myPos.lng],{radius:Math.min(myPos.acc,5000),interactive:false,stroke:false,fillColor:"#0b5cd5",fillOpacity:.14}),
+      L.circleMarker([myPos.lat,myPos.lng],{radius:8,interactive:false,color:"#fff",weight:3,fillColor:"#0b5cd5",fillOpacity:1})]).addTo(m);m.flyTo([myPos.lat,myPos.lng],Math.max(m.getZoom(),7),{duration:.8})}
+    mmClear();toast("Nearest places are listed first")},
+    err=>toast(err.code===1?"Location permission was denied. Allow it in your browser settings to use Near me.":"Couldn't find your location."),
+    {enableHighAccuracy:false,timeout:10000,maximumAge:60000})}
+$("#mmLocate").onclick=locate;
+$("#mmFit").onclick=()=>{mmClear();mainView.fly()};
+$("#mmLayers").onclick=()=>{const o=document.body.classList.toggle("mm-layers");$("#mmLayers").setAttribute("aria-expanded",o);document.body.classList.remove("mm-filters");const d=$("#tab-map details.layers");if(d)d.open=o;if(o)setSheet(0)};
+$("#mmLayersDone").onclick=()=>{document.body.classList.remove("mm-layers");$("#mmLayers").setAttribute("aria-expanded",false)};
+$("#mmFilt").onclick=()=>{document.body.classList.add("mm-filters");document.body.classList.remove("mm-layers");$("#q").focus()};
+$("#mmFiltDone").onclick=()=>document.body.classList.remove("mm-filters");
+$("#mmList").onclick=()=>setPane("table");
+$("#mmMenu").onclick=()=>toggleDrawer(!document.body.classList.contains("drawer-open"));
+$("#mmPill").onclick=()=>setSheet(1);
+$("#mmSearchBtn").onclick=()=>{$("#mmBar").classList.add("searching");$("#mmQ").focus()};
+$("#mmQ").addEventListener("blur",()=>{$("#mmBar").classList.remove("searching");$("#mmSearchBtn").classList.toggle("has",!!$("#mmQ").value)});
+$("#mmQ").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key==="Escape"){e.preventDefault();e.target.blur()}});
+$("#mmQ").addEventListener("input",e=>{$("#q").value=e.target.value;filt.q=e.target.value;mmSel=null;refresh()});
+$("#q").addEventListener("input",e=>{const q=$("#mmQ");if(q&&q.value!==e.target.value)q.value=e.target.value});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&mmOn()){if(document.body.classList.contains("mm-filters"))document.body.classList.remove("mm-filters");else if(document.body.classList.contains("mm-layers"))$("#mmLayersDone").click();else if(mmSel)mmClear()}});
+mmMQ.addEventListener("change",updateMM);
+// "just the map": tap empty map -> closes the sheet; tap again -> hides every control; tap again -> brings them back
+function setClean(on){document.body.classList.toggle("mm-clean",on)}
+mainView.onReady(map=>map.on("click",()=>{const b=document.body;if(!mmOn()||b.classList.contains("mm-layers")||b.classList.contains("mm-filters")||Date.now()-sheetT<600)return;   // ignore the ghost click after a sheet moves
+  if(mmSnap>0){setSheet(0);return}setClean(!b.classList.contains("mm-clean"))}));
+
 // ---------- refresh ----------
 function refresh(){refreshOthers();renderList(true)}
 // active-filter chips + progress summary
@@ -854,7 +956,7 @@ function refreshOthers(){
   if(inTrails){const tl=visible(trailRecords);$("#count").textContent=`${tl.length.toLocaleString()} of ${trailRecords.length.toLocaleString()} trails · ${list.length} parks selected`+(trailMsg?` · ${trailMsg}`:"")}
   else $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].length} checked`;
   renderGrid(gridMode==="trails"?visible(trailRecords):list);mapViews.forEach(v=>v.render());syncCAChecks();renderVisited();
-  renderChips();
+  renderChips();mmRender();
   bridgeSubs.forEach(f=>{try{f()}catch(e){}});
 }
 

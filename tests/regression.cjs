@@ -78,16 +78,38 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
     const n=/476/.test(await txt(p,'#lcount'));await p.click('#lbody tr:has-text("My Camp") td.k-name');await menu(p);p.once('dialog',d=>d.accept());await p.click('#delRows',{timeout:5000});await p.waitForTimeout(300);return n&&/475 of 475/.test(await txt(p,'#lcount'))});
   await check('List','CSV export has header and rows',async()=>{await menu(p);const [d]=await Promise.all([p.waitForEvent('download',{timeout:5000}),p.click('#csv',{timeout:5000})]);const t=fs.readFileSync(await d.path(),'utf8');return /"Name","Designation"/.test(t)&&t.split('\n').length>50});
   await p.context().close();
-  // ---- mobile
-  p=await open({viewport:{width:390,height:800},hasTouch:true});
-  await check('Mobile','Table/Map toggle',async()=>{await p.click('#paneSeg [data-pane=map]');const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));await p.click('#paneSeg [data-pane=table]');return m});
+  // ---- mobile: table cards (phone, table pane)
+  p=await open({viewport:{width:390,height:800},hasTouch:true},{pane:'table'});
+  await check('Mobile','Table/Map toggle',async()=>{await p.click('#paneSeg [data-pane=map]');const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));await p.click('#mmList');await p.waitForTimeout(300);return m&&await p.isVisible('#cardlist .rc')});
   await check('Mobile','rows render as cards; edit sheet saves',async()=>{const vis=await p.isVisible('#cardlist .rc')&&!(await p.isVisible('#tablewrap'));await p.click('#cardlist .rc:nth-child(2) .rc-t');await p.click('#cardlist .rc:nth-child(2) [data-a=edit]');await p.fill('#sheet [name=hl]','Sheet test');await p.click('#sheet .pri');await p.waitForTimeout(200);return vis&&await p.isVisible('#cardlist .rc.edited')});
-  await check('Mobile','map size control: bigger hides header, again = map only, smaller restores',async()=>{await p.click('#paneSeg [data-pane=map]');await p.waitForTimeout(600);
+  await p.context().close();
+  // ---- tablet: map size control
+  p=await open({viewport:{width:800,height:800},hasTouch:true},{pane:'map'});
+  await check('Tablet','map size control: bigger hides header, again = map only, smaller restores',async()=>{await p.waitForTimeout(600);
     const h0=await p.$eval('#map',e=>e.getBoundingClientRect().height);await p.click('.msz-up');await p.waitForTimeout(300);const h1=await p.$eval('#map',e=>e.getBoundingClientRect().height);const hid=!(await p.isVisible('.top'));
     await p.click('.msz-up');await p.waitForTimeout(300);const h2=await p.$eval('#map',e=>e.getBoundingClientRect().height);await p.click('.msz-dn');await p.click('.msz-dn');await p.waitForTimeout(300);
     return h1>h0+40&&h2>h1&&hid&&await p.isVisible('.top')&&await p.$eval('.msz-dn',e=>e.disabled)});
-  await check('Mobile','map size persists across reload',async()=>{await p.click('.msz-up');await p.reload();await p.waitForTimeout(1200);return await p.evaluate(()=>document.body.dataset.msz==='1')});
+  await check('Tablet','map size persists across reload',async()=>{await p.click('.msz-up');await p.reload();await p.waitForTimeout(1200);return await p.evaluate(()=>document.body.dataset.msz==='1')});
   await p.context().close();
+  // ---- mobile map: map-first screen
+  {const ctx=await b.newContext({viewport:{width:390,height:800},hasTouch:true,isMobile:true,permissions:['geolocation'],geolocation:{latitude:37.75,longitude:-119.59,accuracy:50}});
+   await ctx.route('**/mapservices.nps.gov/**',r=>r.abort());const m=await ctx.newPage();const opn=async()=>{if(await m.isVisible('#mmPill'))await m.tap('#mmPill');await m.waitForTimeout(350)};
+   await m.goto(URL_);await m.evaluate(()=>localStorage.clear());await m.reload();await m.waitForTimeout(1500);
+   await check('MobileMap','phones open on just the map: full screen, small buttons, a places pill, no header or list',async()=>await m.evaluate(()=>document.body.classList.contains('mm'))&&await m.isVisible('#mmBar')&&await m.isVisible('#mmFabs')&&await m.isVisible('#mmPill')&&!(await m.isVisible('#mmSheet'))&&!(await m.isVisible('.top'))&&(await m.$eval('#map',e=>e.getBoundingClientRect().height))>=780);
+   await check('MobileMap','tap the pill: sheet lists 63 places; handle steps its size; swipe-down style close',async()=>{await m.tap('#mmPill');await m.waitForTimeout(400);const n=(await m.$$('#mmBody .mmi')).length===63;const h0=await m.$eval('#mmSheet',e=>e.getBoundingClientRect().height);await m.tap('#mmGrab');await m.waitForTimeout(400);const ok=n&&(await m.$eval('#mmSheet',e=>e.getBoundingClientRect().height))>h0+100;await m.tap('#mmGrab');await m.waitForTimeout(400);return ok&&await m.isVisible('#mmPill')&&!(await m.isVisible('#mmSheet'))});
+   await check('MobileMap','tap a list item: detail card, map flies, Mark visited works',async()=>{await opn();await m.tap('#mmBody .mmi:has-text("Yosemite")');await m.waitForTimeout(1200);const d=/Yosemite/.test(await m.textContent('#mmBody h2'))&&await m.evaluate(()=>window.parksMap.getZoom()>=7);await m.tap('#mmVisit');await m.waitForTimeout(200);return d&&await m.$eval('#mmVisit',e=>e.getAttribute('aria-pressed')==='true')&&/^1 of 63/.test(await txt(m,'#progress'))});
+   await check('MobileMap','detail has Info and Directions links; Back returns to the list',async()=>{const l=await m.$$eval('.mmacts a',a=>a.length===2&&/maps/.test(a[1].href));await m.tap('#mmBack');return l&&(await m.$$('#mmBody .mmi')).length===63});
+   await check('MobileMap','tapping a dot on the map opens its detail card',async()=>{await m.evaluate(()=>{window.parksMap.setView([36.1,-112.1],8,{animate:false});window.parksMap.panBy([0,150],{animate:false})});await m.waitForTimeout(600);
+     const pt=await m.evaluate(()=>{const mp=window.parksMap;let best=null,bd=1e9;const c=mp.getSize().divideBy(2);for(const l of Object.values(mp._layers)){if(l.options&&l.options.radius&&l.getLatLng&&l.options.interactive!==false&&l.options.fillColor!=='#fff'&&mp.hasLayer(l)){const q=mp.latLngToContainerPoint(l.getLatLng());const d=q.distanceTo(c);if(d<bd&&q.y<330&&q.y>130&&q.x>70&&q.x<320){bd=d;best={x:q.x,y:q.y}}}}return best});
+     await m.touchscreen.tap(pt.x,pt.y);await m.waitForTimeout(900);const ok=await m.isVisible('#mmBody h2');if(await m.isVisible('#mmBack'))await m.tap('#mmBack');return ok});
+   await check('MobileMap','Near me sorts nearest first with distances and marks my location',async()=>{await m.tap('#mmLocate');await m.waitForTimeout(1500);return /Yosemite/.test(await txt(m,'#mmBody .mmi'))&&/mi/.test(await txt(m,'#mmBody .mmi span'))&&await m.evaluate(()=>Object.values(window.parksMap._layers).some(l=>l.options&&l.options.fillColor==='#0b5cd5'&&l.options.radius===8))});
+   await check('MobileMap','search box narrows the list',async()=>{await opn();await m.tap('#mmSearchBtn');await m.fill('#mmQ','zion');await m.waitForTimeout(300);const ok=(await m.$$('#mmBody .mmi')).length<=2;await m.fill('#mmQ','');await m.keyboard.press('Enter');await m.waitForTimeout(300);return ok});
+   await check('MobileMap','Filters sheet opens and closes',async()=>{await m.tap('#mmFilt');await m.waitForTimeout(200);const o=await m.isVisible('#fState');await m.tap('#mmFiltDone');return o&&!(await m.isVisible('.filters'))});
+   await check('MobileMap','Layers sheet: regions + toggles; region button flies; closes',async()=>{await m.tap('#mmLayers');await m.waitForTimeout(200);const o=await m.isVisible('#jump')&&await m.isVisible('label:has(#stnames)');await m.tap('#jump [data-v=ak]');await m.waitForTimeout(2200);const f=await m.evaluate(()=>window.parksMap.getCenter().lat>55);await m.tap('#mmLayersDone');return o&&f&&!(await m.isVisible('#jump'))});
+   await check('MobileMap','tap empty map: hides every control, tap again shows them',async()=>{await m.evaluate(()=>{window.parksMap.setView([30,-150],4,{animate:false})});await m.waitForTimeout(500);await m.touchscreen.tap(195,400);await m.waitForTimeout(250);
+     const hid=!(await m.isVisible('#mmBar'))&&!(await m.isVisible('#mmFabs'))&&!(await m.isVisible('#mmPill'));await m.touchscreen.tap(195,400);await m.waitForTimeout(250);return hid&&await m.isVisible('#mmBar')&&await m.isVisible('#mmPill')});
+   await check('MobileMap','List button returns to the table cards',async()=>{await m.tap('#mmList');await m.waitForTimeout(400);return await m.isVisible('#cardlist .rc')&&!(await m.evaluate(()=>document.body.classList.contains('mm')))});
+   await ctx.close()}
   // ---- trails (mocked service)
   {const ctx=await b.newContext({viewport:{width:1280,height:800}});let fail=true;
    await ctx.route('**/mapservices.nps.gov/**',r=>{const u=new URL(r.request().url());if(fail)return r.fulfill({status:500,body:'{"error":{"message":"boom"}}'});
