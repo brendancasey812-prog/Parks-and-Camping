@@ -276,7 +276,7 @@ body.drawer-open #tab-about{display:block;position:fixed;top:0;right:0;bottom:0;
   .morebtn{display:inline-flex;align-items:center;gap:.4rem}
   .morefilters{display:none;flex-basis:100%;flex-wrap:wrap;gap:.5rem}
   body.more-open .morefilters{display:flex}
-  body.explore .panesw{display:inline-flex}
+  body.explore .panesw{display:none}
   body.explore main{grid-template-columns:minmax(0,1fr)}
   body.explore[data-pane="table"] #tab-map,body.explore[data-pane="map"] #tab-list{display:none}
   body.explore #tab-map{border-left:0}
@@ -389,7 +389,7 @@ body.explore[data-msz="1"] .nag{display:none}
   body.mm main{position:fixed;inset:0;display:block}
   body.mm #tab-map{display:flex;flex-direction:column;position:absolute;inset:0;padding:0;border:0}
   body.mm #map{flex:1 1 auto}
-  .mmbar:not([hidden]){display:flex;position:fixed;top:calc(8px + env(safe-area-inset-top));right:8px;z-index:3000;gap:8px;justify-content:flex-end}
+  .mmbar:not([hidden]){display:flex;position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px;z-index:3000;gap:6px;justify-content:flex-end}
   .mmbar #mmQ{display:none}.mmbar.searching{left:8px}.mmbar.searching #mmQ{display:block}.mmbar.searching button{display:none}
   .mmbar #mmSearchBtn.has{background:var(--pine);color:#fff}
   .mmpill:not([hidden]){display:block;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));z-index:3000;height:48px;padding:0 1.3rem;border:0;border-radius:999px;background:var(--glass-solid);color:var(--glass-ink);font:700 .9rem var(--font-body);white-space:pre;box-shadow:0 6px 18px -4px rgba(6,32,24,.55),inset 0 0 0 1px var(--glass-line);cursor:pointer}
@@ -606,3 +606,25 @@ body.trips{height:100dvh;overflow:hidden}
 .tped .g2>*,.tped .g3>*{min-width:0}
 @container (max-width:215px){.w-camp .w-row .w-btn:not(:first-child){display:none}.w-camp-top .pill{display:none}.w-camp-top span:nth-of-type(2){display:none}}
 @media(max-width:900px){.tp-goto{display:none}.tp-cal{padding:.4rem .6rem}.tp-nav h2{font-size:1.05rem}}
+
+/* ===== Explore: List / Split / Map toggle, top middle ===== */
+.exbar{display:none}
+body.explore .exbar{display:flex;justify-content:center;padding:.4rem 1rem;background:var(--bg);border-bottom:1px solid var(--line)}
+.exseg button{min-height:var(--tap);padding:.3rem 1.1rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 .86rem var(--font-body);cursor:pointer;border-radius:0;margin-left:-1px}
+.exseg button:first-child{border-radius:999px 0 0 999px;margin:0}.exseg button:last-child{border-radius:0 999px 999px 0}
+.exseg button.on{background:var(--pine);border-color:var(--pine);color:#fff}
+@media(min-width:901px){
+  body.explore[data-ex="list"] main,body.explore[data-ex="map"] main{grid-template-columns:minmax(0,1fr)}
+  body.explore[data-ex="list"] #tab-map,body.explore[data-ex="map"] #tab-list{display:none}
+  body.explore[data-ex="list"] #tab-list .lt td.k-hl{min-width:420px}
+}
+@media(max-width:900px){.exseg [data-m="split"]{display:none}.exseg button[data-m="list"]{border-radius:999px 0 0 999px}.exseg button[data-m="map"]{border-radius:0 999px 999px 0}}
+@media(max-width:700px){
+  body.mm .exbar{display:none}
+  .mmbar .exseg{position:absolute;left:50%;transform:translateX(-50%);box-shadow:0 4px 14px -4px rgba(6,32,24,.5)}
+  .mmbar .exseg button{height:42px;min-height:42px;padding:0 .55rem;font-size:.8rem;border-radius:0;box-shadow:inset 0 0 0 1px var(--glass-line);background:var(--glass-solid);color:var(--glass-ink)}
+  .mmbar .exseg button:first-child{border-radius:999px 0 0 999px}.mmbar .exseg button:last-child{border-radius:0 999px 999px 0}
+  .mmbar .exseg button.on{background:var(--pine);color:#fff}
+  .mmbar button:not(.exseg *){min-width:42px;height:42px;padding:0 .5rem}
+  .mmbar.searching .exseg{display:none}
+}

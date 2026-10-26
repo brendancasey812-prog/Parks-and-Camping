@@ -101,7 +101,7 @@ function showTab(t){
   document.body.dataset.group=grp||"";
   if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
   if(sec==="grid"){refreshOthers()}
-  if(t==="explore"){setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");mainView.init();setPane(store.get("pane",mmMQ.matches?"map":"table"),true);setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
+  if(t==="explore"){setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");mainView.init();if(narrow900.matches)setPane(store.get("pane",mmMQ.matches?"map":"table"),true);else{document.body.dataset.ex=exMode;setPane(exMode==="map"?"map":"table",true)}syncExSeg();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   store.set("tab",t);updateMM();
 }
@@ -118,18 +118,33 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.class
 function setPane(p,quiet){
   document.body.dataset.pane=p;store.set("pane",p);
   $$("#paneSeg button").forEach(b=>{const on=b.dataset.pane===p;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
-  updateMM();
+  syncExSeg();updateMM();
   if(!quiet&&p==="map"&&mainView.map)setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},60);
 }
 $$("#paneSeg button").forEach(b=>b.onclick=()=>setPane(b.dataset.pane));
+// List / Split / Map toggle at the top middle of the Explore view (Split is desktop only)
+const narrow900=matchMedia("(max-width:900px)");let exMode=store.get("exMode","split");
+function curMode(){return narrow900.matches?(document.body.dataset.pane==="map"?"map":"list"):exMode}
+function syncExSeg(){const m=curMode();$$(".exseg button").forEach(b=>{const on=b.dataset.m===m;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)})}
+function setExMode(m,quiet){
+  if(narrow900.matches&&m==="split")m="list";
+  exMode=m;store.set("exMode",m);document.body.dataset.ex=m;
+  setPane(m==="map"?"map":"table",true);syncExSeg();
+  if(!quiet&&m!=="list"&&mainView.map)setTimeout(reframeMap,90);
+}
+$$(".exseg button").forEach(b=>b.onclick=()=>setExMode(b.dataset.m));
+narrow900.addEventListener("change",()=>{document.body.dataset.ex=exMode;syncExSeg();if(mainView.map)setTimeout(()=>mainView.map.invalidateSize(),90)});
+// make sure the map is on screen before flying to something
+function revealMap(){if(narrow900.matches)setPane("map");else if(exMode==="list")setExMode("split")}
 window.addEventListener("resize",()=>{if(currentTab==="explore"&&mainView.map)mainView.map.invalidateSize()});
 // map size: 0 normal, 1 larger (header hidden / narrower table), 2 map only. Corner buttons on the map step it up and down.
 let mapSize=0;
+function reframeMap(){const m=mainView.map;if(!m)return;m.invalidateSize();   // re-frame after the map changes size
+  if(filt.u.size||filt.st.size)zoomToFilter(true);else m.fitBounds(VIEW_BOUNDS[store.get("view","lower48")]||VIEW_BOUNDS.lower48,{animate:false})}
 function setMapSize(n){
   mapSize=clamp(n,0,2);document.body.dataset.msz=mapSize;store.set("mapSize",mapSize);
   $$(".msz-up").forEach(b=>b.disabled=mapSize>=2);$$(".msz-dn").forEach(b=>b.disabled=mapSize<=0);
-  setTimeout(()=>{const m=mainView.map;if(!m)return;m.invalidateSize();window.scrollTo(0,0);
-    if(filt.u.size||filt.st.size)zoomToFilter(true);else m.fitBounds(VIEW_BOUNDS[store.get("view","lower48")]||VIEW_BOUNDS.lower48,{animate:false})},80);   // re-frame after the map changes size
+  setTimeout(()=>{window.scrollTo(0,0);reframeMap()},80);
 }
 // "Filters" button reveals the State / Park / Designation dropdowns on narrow screens
 $("#moreBtn").onclick=()=>{const o=document.body.classList.toggle("more-open");$("#moreBtn").setAttribute("aria-expanded",o)};
@@ -414,7 +429,7 @@ function zoomToFilter(instant){
 function focusOnMap(id){
   const p=byId.get(id);if(!p)return;
   if(p.kind==="ca"&&!showCA){showCA=true;store.set("showCA",true);syncCAChecks();refresh()}
-  if(currentTab==="explore")setPane("map");else showTab("map");setTimeout(()=>mainView.focus(p),120);
+  if(currentTab==="explore")revealMap();else showTab("map");setTimeout(()=>mainView.focus(p),120);
 }
 function syncCAChecks(){mapViews.forEach(v=>{v.cfg&&$(v.cfg.ctl.ca)&&($(v.cfg.ctl.ca).checked=showCA)});document.body.classList.toggle("show-ca",showCA)}
 
@@ -728,7 +743,7 @@ function setDataset(d){
 $$("#dataset button").forEach(b=>b.onclick=()=>setDataset(b.dataset.ds));
 $("#mapSel").onclick=()=>{const {r0,r1}=rect(),sel=rows.slice(r0,r1+1).filter(p=>p&&p.lat);if(!sel.length)return;
   if(sel.length===1){focusOnMap(sel[0].id);return}
-  if(currentTab==="explore")setPane("map");else showTab("map");setTimeout(()=>mainView.fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
+  if(currentTab==="explore")revealMap();else showTab("map");setTimeout(()=>mainView.fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
 $("#undo").onclick=undo;$("#redo").onclick=redo;
 $("#addRow").onclick=()=>{
   const r={id:"X:"+Date.now().toString(36),ds:dataset};customRows.push(r);byId.set(r.id,mkCustom(r));saveCustom();
@@ -893,7 +908,6 @@ $("#mmLayers").onclick=()=>{const o=document.body.classList.toggle("mm-layers");
 $("#mmLayersDone").onclick=()=>{document.body.classList.remove("mm-layers");$("#mmLayers").setAttribute("aria-expanded",false)};
 $("#mmFilt").onclick=()=>{document.body.classList.add("mm-filters");document.body.classList.remove("mm-layers");$("#q").focus()};
 $("#mmFiltDone").onclick=()=>document.body.classList.remove("mm-filters");
-$("#mmList").onclick=()=>setPane("table");
 $("#mmMenu").onclick=()=>toggleDrawer(!document.body.classList.contains("drawer-open"));
 $("#mmPill").onclick=()=>setSheet(1);
 $("#mmSearchBtn").onclick=()=>{$("#mmBar").classList.add("searching");$("#mmQ").focus()};

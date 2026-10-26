@@ -18,6 +18,11 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   const txt=(p,s)=>p.textContent(s);const menu=async p=>{if(await p.$eval('.hamb-menu',e=>e.hidden))await p.click('#hamb .hamb-btn');await p.waitForTimeout(150)};const drawer=async p=>{if(!(await p.isVisible('#tab-about')))await p.click('.tab[data-tab=about]');await p.waitForTimeout(150)};const cell=(r,k)=>`#lbody tr:nth-child(${r}) td.k-${k}`;
   let p=await open();
   await check('Explore','table and map side by side',async()=>await p.isVisible('#lbody')&&await p.isVisible('#map'));
+  await check('Explore','List / Split / Map toggle sits at the top middle',async()=>{const r=await p.$eval('#exSeg',e=>{const b=e.getBoundingClientRect();return{c:b.left+b.width/2,top:b.top}});return Math.abs(r.c-640)<30&&r.top<160&&(await p.$$('#exSeg button')).length===3});
+  await check('Explore','Map shows only the map, List only the table, Split both; choice persists',async()=>{await p.click('#exSeg [data-m=map]');await p.waitForTimeout(500);const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));
+    await p.click('#exSeg [data-m=list]');await p.waitForTimeout(300);const l=await p.isVisible('#lbody')&&!(await p.isVisible('#map'));await p.reload();await p.waitForTimeout(800);const kept=await p.isVisible('#lbody')&&!(await p.isVisible('#map'));
+    await p.click('#exSeg [data-m=split]');await p.waitForTimeout(500);const s=await p.isVisible('#lbody')&&await p.isVisible('#map');return m&&l&&kept&&s&&await p.$eval('#exSeg [data-m=split]',e=>e.classList.contains('on'))});
+  await check('Explore','map still frames correctly after switching from List to Map',async()=>{await p.click('#exSeg [data-m=list]');await p.click('#exSeg [data-m=map]');await p.waitForTimeout(900);const h=await p.$eval('#map',e=>e.getBoundingClientRect().height),w=await p.$eval('#map',e=>e.getBoundingClientRect().width);const ok=await p.evaluate(()=>{const m=window.parksMap;return m.getSize().x>600&&m.getZoom()>3});await p.click('#exSeg [data-m=split]');if(!(h>400&&w>900&&ok))throw new Error('h '+h+' w '+w+' ok '+ok);return true});
   await check('Explore','progress summary counts national parks',async()=>/^0 of 64 national parks visited/.test(await txt(p,'#progress')));
   // ---- filters
   await check('Filter','default is the 64 national parks',async()=>/64 of 475/.test(await txt(p,'#lcount')));
@@ -138,9 +143,12 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
     const n=/476/.test(await txt(p,'#lcount'));await p.click('#lbody tr:has-text("My Camp") td.k-name');await menu(p);p.once('dialog',d=>d.accept());await p.click('#delRows',{timeout:5000});await p.waitForTimeout(300);return n&&/475 of 475/.test(await txt(p,'#lcount'))});
   await check('List','CSV export has header and rows',async()=>{await menu(p);const [d]=await Promise.all([p.waitForEvent('download',{timeout:5000}),p.click('#csv',{timeout:5000})]);const t=fs.readFileSync(await d.path(),'utf8');return /"Name","Designation"/.test(t)&&t.split('\n').length>50});
   await p.context().close();
+  {const tp=await open({viewport:{width:800,height:800},hasTouch:true},{});
+   await check('Explore','tablet: toggle offers List and Map only',async()=>{const vis=await tp.$$eval('#exSeg button',e=>e.filter(x=>x.offsetParent).map(x=>x.dataset.m));await tp.click('#exSeg [data-m=map]');await tp.waitForTimeout(400);const m=await tp.isVisible('#map')&&!(await tp.isVisible('#lbody'));await tp.click('#exSeg [data-m=list]');await tp.waitForTimeout(300);return vis.join()==='list,map'&&m&&await tp.isVisible('#lbody')});
+   await tp.context().close()}
   // ---- mobile: table cards (phone, table pane)
   p=await open({viewport:{width:390,height:800},hasTouch:true},{pane:'table'});
-  await check('Mobile','Table/Map toggle',async()=>{await p.click('#paneSeg [data-pane=map]');const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));await p.click('#mmList');await p.waitForTimeout(300);return m&&await p.isVisible('#cardlist .rc')});
+  await check('Mobile','Table/Map toggle',async()=>{await p.click('#exBar [data-m=map]');await p.waitForTimeout(300);const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));await p.click('#mmBar [data-m=list]');await p.waitForTimeout(300);return m&&await p.isVisible('#cardlist .rc')});
   await check('Mobile','rows render as cards; edit sheet saves',async()=>{const vis=await p.isVisible('#cardlist .rc')&&!(await p.isVisible('#tablewrap'));await p.click('#cardlist .rc:nth-child(2) .rc-t');await p.click('#cardlist .rc:nth-child(2) [data-a=edit]');await p.fill('#sheet [name=hl]','Sheet test');await p.click('#sheet .pri');await p.waitForTimeout(200);return vis&&await p.isVisible('#cardlist .rc.edited')});
   await p.context().close();
   // ---- tablet: map size control
@@ -168,7 +176,7 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
    await check('MobileMap','Layers sheet: regions + toggles; region button flies; closes',async()=>{await m.tap('#mmLayers');await m.waitForTimeout(200);const o=await m.isVisible('#jump')&&await m.isVisible('label:has(#stnames)');await m.tap('#jump [data-v=ak]');await m.waitForTimeout(2200);const f=await m.evaluate(()=>window.parksMap.getCenter().lat>55);await m.tap('#mmLayersDone');return o&&f&&!(await m.isVisible('#jump'))});
    await check('MobileMap','tap empty map: hides every control, tap again shows them',async()=>{await m.evaluate(()=>{window.parksMap.setView([30,-150],4,{animate:false})});await m.waitForTimeout(500);await m.touchscreen.tap(195,400);await m.waitForTimeout(250);
      const hid=!(await m.isVisible('#mmBar'))&&!(await m.isVisible('#mmFabs'))&&!(await m.isVisible('#mmPill'));await m.touchscreen.tap(195,400);await m.waitForTimeout(250);return hid&&await m.isVisible('#mmBar')&&await m.isVisible('#mmPill')});
-   await check('MobileMap','List button returns to the table cards',async()=>{await m.tap('#mmList');await m.waitForTimeout(400);return await m.isVisible('#cardlist .rc')&&!(await m.evaluate(()=>document.body.classList.contains('mm')))});
+   await check('MobileMap','List button returns to the table cards',async()=>{await m.tap('#mmBar [data-m=list]');await m.waitForTimeout(400);return await m.isVisible('#cardlist .rc')&&!(await m.evaluate(()=>document.body.classList.contains('mm')))});
    await ctx.close()}
   const bad=results.filter(r=>!r.ok);console.log(`\n${results.length-bad.length}/${results.length} passed`);
   await b.close();srv.close();process.exit(bad.length?1:0);

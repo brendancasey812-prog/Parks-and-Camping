@@ -58,6 +58,8 @@
   <div id="chips" class="chips" aria-label="Active filters"></div>
 </section>
 
+<div id="exBar" class="exbar"><div class="seg exseg" id="exSeg" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">☰ List</button><button type="button" data-m="split" aria-pressed="false">◫ Split</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div></div>
+
 <main id="main" tabindex="-1">
   <section id="tab-dashboard" class="panel">
     <div id="dashWrap" class="dashwrap">
@@ -193,10 +195,10 @@
 
 <div id="cellLive" class="sr" aria-live="polite" aria-atomic="true"></div>
 <div id="mmBar" class="mmbar" hidden>
-  <button id="mmList" type="button" aria-label="Show the table">☰</button>
+  <div class="seg exseg" id="exSegM" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">☰ List</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div>
   <button id="mmSearchBtn" type="button" aria-label="Search parks"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
   <input id="mmQ" type="search" placeholder="Search parks, cities…" aria-label="Search parks">
-  <button id="mmFilt" type="button" aria-label="Filters">Filters</button>
+  <button id="mmFilt" type="button" aria-label="Filters"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg></button>
   <button id="mmMenu" type="button" aria-label="Settings and backup">⚙</button>
 </div>
 <div id="mmFabs" class="mmfabs" hidden>
