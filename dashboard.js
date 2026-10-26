@@ -21,13 +21,14 @@ const T={
   countdown:{name:"Trip countdown",desc:"Days until your next trip",sizes:[[2,1],[1,1],[4,1]],def:[2,1]},
   recent:{name:"Recently visited",desc:"Latest years from your list",sizes:[[2,2],[4,2]],def:[2,2]},
   topStates:{name:"Top states",desc:"Where you've visited most",sizes:[[2,2],[4,2]],def:[2,2]},
-  app:{name:"App shortcut",desc:"Jump to a part of the site",sizes:[[1,1]],def:[1,1]}
+  app:{name:"App shortcut",desc:"Jump to a part of the site",sizes:[[2,1],[1,1]],def:[2,1]}
 };
 const uid=()=>Math.random().toString(36).slice(2,8);
 const mk=(type,cfg)=>({id:type+"-"+uid(),type,w:T[type].def[0],h:T[type].def[1],cfg:cfg||{}});
 const DEFAULT=()=>({v:1,cols:4,items:[mk("clock"),mk("statVisited"),mk("statStates"),mk("progress"),mk("favorites"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
-  ...APPS.map(a=>mk("app",{target:a[0]}))]});
+  ...APPS.map(a=>{const it=mk("app",{target:a[0]});if(a[0]==="backup")it.w=1;return it})]});   // the main apps are large, Backup is the small one
 let st=A.store.get("dash",null);if(!st||!Array.isArray(st.items)||![1,2,3,4].includes(st.cols))st=DEFAULT();
+if((st.v||1)<2){st.v=2;st.items.forEach(it=>{if(it.type==="app"&&it.cfg&&it.cfg.target!=="backup"){it.w=2;it.h=1}});A.store.set("dash",st)}   // v2: main app shortcuts became large tiles
 const save=()=>A.store.set("dash",st);
 let editing=false,visible=false,timer=0;
 
@@ -65,12 +66,12 @@ const body={
     return `<div class="w-rec"><div class="w-h">Recently visited</div>${l.length?`<ul>${l.map(x=>`<li><button type="button" data-open="${esc(x.p.id)}">${esc(A.disp(x.p))}</button><span>${x.y}</span></li>`).join("")}</ul>`:`<p class="w-empty">Add a year in the list's "Year Last Visited" column to see your latest trips here.</p>`}</div>`},
   topStates(){const m=new Map();visitedAll().forEach(p=>{const s=p.states[0];if(s)m.set(s,(m.get(s)||0)+1)});const l=[...m].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,5),mx=l[0]?l[0][1]:1;
     return `<div class="w-top"><div class="w-h">Top states</div>${l.length?`<ul>${l.map(([s,n])=>`<li><span>${esc(s)}</span><i style="--w:${Math.round(n/mx*100)}%"></i><b>${n}</b></li>`).join("")}</ul>`:`<p class="w-empty">Mark places as visited to see your top states.</p>`}</div>`},
-  app(tile){const a=APPS.find(x=>x[0]===tile.cfg.target)||APPS[0];return `<button type="button" class="w-app" data-go="${a[0]}"><span class="ico">${a[1]}</span><span class="alb">${esc(a[2])}</span></button>`}
+  app(tile){const a=APPS.find(x=>x[0]===tile.cfg.target)||APPS[0],lg=tile.w>=2;return `<button type="button" class="w-app${lg?" lg":""}" data-go="${a[0]}"><span class="ico">${a[1]}</span><span class="alb">${esc(a[2])}${lg?`<small>${esc(a[3])}</small>`:""}</span></button>`}
 };
 function tileHtml(it,i,n){
   const t=T[it.type],name=it.type==="app"?(APPS.find(x=>x[0]===it.cfg.target)||APPS[0])[2]:t.name;
   const w=Math.min(it.w,st.cols),h=it.h;
-  return `<section class="dw dw-${it.type}" data-id="${esc(it.id)}" style="grid-column:span ${w};grid-row:span ${h}" aria-label="${esc(name)}">
+  return `<section class="dw dw-${it.type}${it.type==="app"&&it.w>=2?" lg":""}" data-id="${esc(it.id)}" style="grid-column:span ${w};grid-row:span ${h}" aria-label="${esc(name)}">
     ${body[it.type](it)}
     <div class="dw-edit"><button type="button" class="dw-rm" data-edit="rm" aria-label="Remove ${esc(name)}">−</button>
       ${t.sizes.length>1?`<button type="button" class="dw-sz" data-edit="size" aria-label="Change size of ${esc(name)}">⤡</button>`:""}
