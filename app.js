@@ -15,6 +15,7 @@ const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", sys: "", re
 if (st.target < todayPT()) st.target = defaultTarget();
 const persist = () => store.set("cc-state", st);
 const open = new Set();
+const CC = { subs: [] };   // small bridge for permits.js
 
 // ---------- per-row calculation ----------
 const monthOf = iso => E.parseISO(iso).m;
@@ -142,6 +143,7 @@ function render() {
   $("#count").textContent = rows.length + " of " + SITES.length + " listings";
   $$("thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; th.setAttribute("aria-sort", on ? (st.dir > 0 ? "ascending" : "descending") : "none"); th.classList.toggle("on", on); });
   renderChips(); renderPlanNote(); renderSoon(); renderSummary();
+  CC.subs.forEach(f => { try { f(); } catch (e) {} });
 }
 function renderSummary() {
   const by = k => SITES.filter(s => s.system === k).length, ok = SITES.filter(s => s.conf !== "assumed").length;
@@ -224,7 +226,13 @@ $("#fRegion").insertAdjacentHTML("beforeend", [...new Set(SITES.map(s => s.regio
 $("#target").min = todayPT(); $("#target").value = st.target; syncFields(); syncTz();
 $("#checked").textContent = "Data checked " + new Date(window.DATA_CHECKED + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 $("#aboutDate").textContent = new Date(window.DATA_CHECKED + "T12:00:00").toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
+function showView() { const v = location.hash === "#permits" ? "permits" : "campgrounds"; $("#viewCamp").hidden = v !== "campgrounds"; $("#viewPermits").hidden = v !== "permits";
+  $$(".tabs .tab").forEach(t => { const on = t.dataset.view === v; t.classList.toggle("on", on); on ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"); });
+  document.title = v === "permits" ? "Permits & lotteries | California Campsite Release Tracker" : "California Campsite Release Tracker"; }
+window.addEventListener("hashchange", showView); showView();
 render();
-setInterval(() => { $$("[data-cd]").forEach(e => { const t = +e.dataset.cd; e.textContent = countdown(new Date(t)); if (t <= Date.now()) render(); }); }, 1000);
+setInterval(() => { $$("[data-cd]").forEach(e => { const t = +e.dataset.cd; e.textContent = (e.dataset.pre || "") + countdown(new Date(t)); if (t <= Date.now()) render(); }); }, 1000);
+Object.assign(CC, { st, fmtAt, fmtShort, fmtDate, countdown, ics, download, toast, todayPT, esc });
+window.CC = CC;
 window.__app = { st, calc, render };
 })();

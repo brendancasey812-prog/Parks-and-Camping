@@ -18,17 +18,19 @@
   <div class="top-r"><span id="checked" class="chip-info"></span><button id="themeBtn" type="button" class="ghost" aria-label="Switch light or dark">◐</button></div>
 </header>
 
+<nav class="tabs" aria-label="Sections"><a href="#campgrounds" class="tab" data-view="campgrounds">Campgrounds</a><a href="#permits" class="tab" data-view="permits">Permits &amp; lotteries</a></nav>
 <main id="main">
   <section class="plan" aria-labelledby="planH">
-    <h2 id="planH">When do you want to camp?</h2>
+    <h2 id="planH">When are you going?</h2>
     <div class="plan-row">
-      <label class="field">Arrival date<input id="target" type="date"></label>
+      <label class="field">Arrival or hike date<input id="target" type="date"></label>
       <div class="quick" role="group" aria-label="Quick dates"><button type="button" data-add="30">+1 month</button><button type="button" data-add="90">+3 months</button><button type="button" data-add="180">+6 months</button><button type="button" data-add="365">+1 year</button><button type="button" data-fri="1">Next Friday</button></div>
       <div class="seg" id="tz" role="group" aria-label="Show times in"><button type="button" data-tz="pt">Pacific Time</button><button type="button" data-tz="local">My time zone</button></div>
     </div>
     <p id="planNote" class="plan-note" role="status" aria-live="polite"></p>
   </section>
 
+  <div id="viewCamp" class="view">
   <section class="soon" aria-labelledby="soonH">
     <div class="soon-h"><h2 id="soonH">Opening next</h2><span class="muted">The next release moment for each booking rule. Set a reminder so you are logged in 15 minutes early.</span></div>
     <div id="soonList" class="soon-list"></div>
@@ -70,6 +72,12 @@
       </table>
     </div>
   </section>
+  </div>
+  <div id="viewPermits" class="view" hidden>
+    <section class="pm-intro" aria-labelledby="pmH"><h2 id="pmH">Permits &amp; lotteries</h2><p class="muted">Yosemite first: when each permit lottery opens and closes, and when you must apply for your date. Dates use the arrival or hike date above.</p></section>
+    <section class="pm-soon" aria-labelledby="pmSoonH"><h2 id="pmSoonH">Coming up</h2><div id="pmSoon" class="soon-list"></div></section>
+    <div id="pmList" class="pm-list"></div>
+  </div>
 
   <section class="about" aria-labelledby="aboutH">
     <h2 id="aboutH">About this data</h2>
@@ -85,7 +93,9 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="data/sites.js"></script>
 <script src="data/roster.js"></script>
+<script src="data/permits.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
+<script src="permits.js"></script>
 </body>
 </html>

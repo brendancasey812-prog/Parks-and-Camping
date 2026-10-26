@@ -30,3 +30,9 @@ A scheduled GitHub Action (cron, once a day, early morning Pacific). It needs no
 - Terms of service and rate limits for each site; prefer official APIs and public pages over scraping logged-in views.
 - Where API keys live (GitHub Actions secrets) and who reviews the pull requests.
 - Whether to add live availability later (needs a small server-side proxy because browsers block these calls and keys must stay private); see the Trip Planner notes in the main project's `docs/INTEGRATIONS.md`.
+
+## Permits and lotteries (added)
+`data/permits.js` holds the Yosemite lottery schedules. The daily check should also:
+- watch the NPS Yosemite wilderness-permit and Half Dome pages and the Recreation.gov permit pages (234652 Half Dome, 445859 wilderness per search results) for the new season's dates. Half Dome's preseason window has been March 1-31 with results in mid-April; the 2027 dates are shown as "projected" until an official page publishes them.
+- flag any change to the weekly lottery season (mid-November to early May), the lead time (24 weeks), the leftover release (Friday 9:00 AM Pacific) and the 7-day release time.
+- add other parks' lotteries (for example Mount Whitney, Inyo National Forest) as new entries in the same format.

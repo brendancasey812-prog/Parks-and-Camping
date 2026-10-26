@@ -45,6 +45,17 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('CSV export has the filtered rows',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),p.click('#csv')]);const t=fs.readFileSync(await d.path(),'utf8');return /"Location","Park","Booking site"/.test(t)&&t.split('\r\n').length>5});
  await check('Choices persist after a reload',async()=>{await p.selectOption('#fWalk','some'.length?'any':'any');await p.reload();await p.waitForTimeout(300);return (await p.inputValue('#fWalk'))==='any'&&(await p.inputValue('#target'))==='2027-07-17'});
  await p.context().close();
+ p=await open({},{target:'2027-07-17'});await p.goto(p.url().split('#')[0]+'#permits');await p.waitForTimeout(400);
+ const pm=id=>p.$eval('#'+id,e=>e.textContent);
+ await check('Permits tab: three Yosemite permits, tab marked current',async()=>(await p.$$('.pm-card')).length===3&&await p.$eval('.tabs .tab.on',e=>e.getAttribute('aria-current')==='page')&&!(await p.isVisible('#viewCamp')));
+ await check('Half Dome preseason lottery: Mar 1-31 of the hike year, flagged as projected',async()=>{const t=await pm('half-dome');return /Mon, Mar 1, 2027/.test(t)&&/Wed, Mar 31, 2027/.test(t)&&/Projected from the 2026 dates/.test(t)&&/Mid-April/.test(t)});
+ await check('Half Dome daily lottery: two days before the hike, midnight to 4 PM Pacific',async()=>{const t=await pm('half-dome');return /Thu, Jul 15, 2027, 12:00 AM PDT/.test(t)&&/Thu, Jul 15, 2027, 4:00 PM PDT/.test(t)});
+ await check('Wilderness weekly lottery: the week 24 weeks before the start date, Sunday 12:01 AM to Saturday 11:59 PM',async()=>{const t=await pm('yose-wilderness');return /Jan 24, 2027 – Jan 30, 2027/.test(t)&&/Sun, Jan 24, 2027, 12:01 AM PST/.test(t)&&/Sat, Jan 30, 2027, 11:59 PM PST/.test(t)&&/Mon, Feb 1, 2027/.test(t)});
+ await check('Wilderness 7-day release: 7 days before at 7 AM Pacific',async()=>/Sat, Jul 10, 2027, 7:00 AM PDT/.test(await pm('yose-wilderness')));
+ await check('A winter date says the permit steps do not apply',async()=>{await p.fill('#target','2027-12-01');await p.dispatchEvent('#target','change');const t=await pm('half-dome');await p.fill('#target','2027-07-17');await p.dispatchEvent('#target','change');return /usual season/.test(t)});
+ await check('Coming up lists the next Half Dome and wilderness lotteries with reminders',async()=>{const t=await p.textContent('#pmSoon');return /Half Dome preseason lottery/.test(t)&&/wilderness permit weekly lottery/.test(t)&&(await p.$$('#pmSoon [data-ev]')).length===2});
+ await check('Permit reminder downloads an .ics with an alarm',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),p.click('#pmSoon [data-ev="0"]')]);const x=fs.readFileSync(await d.path(),'utf8');return /BEGIN:VALARM/.test(x)&&/DTSTART:/.test(x)});
+ await p.context().close();
  p=await open({locale:'en-US',timezoneId:'America/New_York'},{target:'2027-07-17'});
  await check('"My time zone" shows Eastern times',async()=>{const pt=(await rows(p)).find(x=>x.id==='jotr-black-rock').t;await p.click('#tz [data-tz=local]');const ny=(await rows(p)).find(x=>x.id==='jotr-black-rock').t;return /PST/.test(pt)&&/EST/.test(ny)&&/10:00 AM/.test(ny)});
  await p.context().close();
