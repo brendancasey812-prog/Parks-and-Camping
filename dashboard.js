@@ -12,7 +12,7 @@ const APPS=[["explore","▦","Explore","Table and map together"],["trips","▣",
 const T={
   clock:{name:"Clock & date",desc:"Time and today's date",sizes:[[2,1],[4,1],[2,2]],def:[2,1]},
   calendar:{name:"Calendar",desc:"This month",sizes:[[2,2],[4,2]],def:[2,2]},
-  progress:{name:"National parks progress",desc:"Visited of the 63 national parks",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
+  progress:{name:"National parks progress",desc:"Visited of the national parks",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
   statVisited:{name:"Visited overall",desc:"Every place you've checked",sizes:[[1,1],[2,1]],def:[1,1]},
   statLeft:{name:"Parks left",desc:"National parks still to go",sizes:[[1,1],[2,1]],def:[1,1]},
   statStates:{name:"States visited",desc:"States with a visited place",sizes:[[1,1],[2,1]],def:[1,1]},

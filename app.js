@@ -15,7 +15,8 @@ function splitCity(str,fallbackStates){
   return {city:segs.map(x=>x.c).join(" / "),state:(sts.length?sts:fallbackStates.slice(0,2)).join(" / ")};
 }
 const NP_DESIG=new Set(["National Park","National Park and Preserve","National Parks","National and State Parks"]);
-parks.forEach(p=>{p.np63=NP_DESIG.has(p.d)&&p.code!=="WOTR"});   // Wolf Trap is a "National Park for the Performing Arts", not one of the 63
+parks.forEach(p=>{p.np63=NP_DESIG.has(p.d)&&p.code!=="WOTR"});   // Wolf Trap is a "National Park for the Performing Arts", not one of the national parks
+const NPN=parks.filter(p=>p.np63).length;   // 64 now that Chiricahua is a national park
 parks.forEach(p=>{const dt=(window.NAT_DETAILS||{})[p.code]||["",""];p.kind="nps";const cs=splitCity(dt[0],p.states);p.city=cs.city;p.state=cs.state;p.hl=dt[1]});
 const caParks=(window.CA_PARKS||[]).map(r=>({id:"CA:"+r[0]+"|"+r[1],name:r[0],title:r[0],
   d:r[1],states:["California"],code:"",lat:r[3],lng:r[4],url:"",approx:false,blurb:"",kind:"ca",city:r[2],state:"California",hl:r[5]}));
@@ -66,7 +67,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(
 const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
 multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st,()=>zoomToFilter());
 multiSelect($("#fUnit"),"Park / unit",[...parks].sort((x,y)=>x.title.localeCompare(y.title)).map(p=>({value:p.code,text:p.title,n:p.d})),filt.u,()=>zoomToFilter());
-multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the 63",n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
+multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the "+NPN,n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
@@ -918,7 +919,7 @@ window.DashAPI={parks,caParks,byId,disp,fld,infoUrl,store,toast,
 function refresh(){refreshOthers();renderList(true)}
 // active-filter chips + progress summary
 function renderChips(){
-  const out=[],desc={"__NP63":"National Parks (63)"};
+  const out=[],desc={"__NP63":`National Parks (${NPN})`};
   if(filt.q.trim())out.push(["q","",`Search: “${filt.q.trim()}”`]);
   filt.st.forEach(v=>out.push(["st",v,v]));
   filt.u.forEach(v=>{const p=parks.find(x=>x.code===v);out.push(["u",v,p?p.title:v])});
