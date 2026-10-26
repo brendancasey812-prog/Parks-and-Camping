@@ -19,6 +19,7 @@
   <button id="progress" class="progress" type="button" title="Show only unvisited national parks" aria-live="polite"></button>
   <span id="saveState" class="savestate" role="status"></span>
   <nav class="tabs" aria-label="Main">
+    <button class="tab" data-tab="dashboard" type="button">Dashboard</button>
     <button class="tab" data-tab="explore" type="button">Explore</button>
     <div class="tabgroup" data-group="parks">
       <button class="tab grp" type="button" data-group="parks" aria-expanded="false">National Parks <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
@@ -52,6 +53,18 @@
 </section>
 
 <main id="main" tabindex="-1">
+  <section id="tab-dashboard" class="panel">
+    <div id="dashWrap" class="dashwrap">
+      <div class="dash-head"><h2>Dashboard</h2><button id="dashEdit" type="button" class="dash-editbtn" aria-pressed="false">Edit</button></div>
+      <div id="dashTools" class="dash-tools" hidden>
+        <div class="dash-cols"><span id="dashColsLbl">Apps across</span><div class="seg" id="dashCols" role="group" aria-labelledby="dashColsLbl"><button type="button" data-c="1">1</button><button type="button" data-c="2">2</button><button type="button" data-c="3">3</button><button type="button" data-c="4">4</button></div></div>
+        <button id="dashAddBtn" type="button">+ Add widget</button><button id="dashReset" type="button" class="ghost">Reset layout</button>
+        <p class="hint">Drag a tile, or use ◀ ▶, to move it. ⤡ changes its size. − removes it. Tap Done when finished.</p>
+      </div>
+      <div id="dashGrid" class="dash-grid"></div>
+    </div>
+  </section>
+
   <section id="tab-grid" class="panel active">
     <div class="toolbar">
       <span>Columns:</span>
@@ -171,6 +184,10 @@
   <div class="mmhead"><strong id="mmTitle"></strong><button id="mmSort" type="button">A–Z</button></div>
   <div id="mmBody" class="mmbody"></div>
 </section>
+<dialog id="dashAdd" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Add to dashboard</h2><div id="dashAddList" class="dash-addlist"></div></div></dialog>
+<dialog id="dashPick" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Favorite parks</h2><input id="dashPickQ" type="search" placeholder="Search parks…" aria-label="Search parks"><ul id="dashPickList" class="dash-picklist"></ul><div class="act"><button type="button" id="dashPickDone" class="pri">Done</button></div></div></dialog>
+<dialog id="dashTrip" class="tdlg sheet"><form method="dialog" id="tripForm"><div class="in"><h2>Trip countdown</h2><label>What is the trip?<input id="tripTitle" placeholder="e.g. Yosemite with Sam"></label><label>Date<input id="tripDate" type="date"></label>
+<div class="act"><button type="submit" id="tripSave" class="pri">Save</button><button type="button" id="tripClear">Remove trip</button><button type="button" id="tripCancel">Cancel</button></div></div></form></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="keysDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Keyboard shortcuts</h2><table class="keys">
 <tr><td>Arrows / Tab / Enter</td><td>Move between cells (Tab leaves the table at its edges)</td></tr>
@@ -194,5 +211,6 @@
 <script defer src="data/details.js"></script>
 <script defer src="data/geo.js"></script>
 <script defer src="app.js"></script>
+<script defer src="dashboard.js"></script>
 </body>
 </html>
