@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="vendor/leaflet.css">
 <script>try{var t=JSON.parse(localStorage.getItem("theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="trailsmap.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -27,14 +26,6 @@
         <button class="tabitem" data-tab="grid"><b>▦</b>Park Info</button>
         <button class="tabitem" data-tab="list"><b>☰</b>Park List</button>
         <button class="tabitem" data-tab="map"><b>◉</b>Park Map</button>
-      </div>
-    </div>
-    <div class="tabgroup" data-group="trails">
-      <button class="tab grp" type="button" data-group="trails" aria-expanded="false">Trails <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
-      <div class="tabmenu" hidden>
-        <button class="tabitem" data-tab="tgrid"><b>▦</b>Trail Info</button>
-        <button class="tabitem" data-tab="tlist"><b>☰</b>Trail List</button>
-        <button class="tabitem" data-tab="trails"><b>◉</b>Trail Map</button>
       </div>
     </div>
     <button class="tab" data-tab="visited">Visited</button>
@@ -93,7 +84,6 @@
           <button id="resetEdits" type="button" class="danger"><b>!</b>Reset all edits</button>
         </div>
       </div>
-      <span id="dsTrails" class="dstrails" hidden>Trails · live from the NPS Public Trails service</span>
       <div class="seg" id="dataset"><button data-ds="nps">National (NPS)</button><button data-ds="ca">California State Parks</button></div>
       <span id="lcount" class="lcount" role="status" aria-live="polite"></span><button id="keysBtn" type="button" class="ghost keysbtn" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">?</button>
     </div>
@@ -130,40 +120,6 @@
     <div id="map"></div>
   </section>
 
-  <section id="tab-trails" class="panel">
-    <div class="toolbar">
-      <div class="hamb" id="tmHamb">
-        <button class="hamb-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Trail settings" title="Trail settings"><i></i><i></i><i></i></button>
-        <div class="hamb-menu tm-menu" hidden>
-          <div class="hm-title">Trail settings</div>
-          <div class="hm-group">Trails</div>
-          <label class="tm-row">Color trails by <select id="tmColorBy"><option value="">One color (stand-out)</option><option value="__park">Park</option></select></label>
-          <label class="tm-row">Line width <input type="range" id="tmWidth" min="1" max="6" step=".5"><output id="tmWidthOut"></output></label>
-          <label class="tm-row">Opacity <input type="range" id="tmOpacity" min=".3" max="1" step=".05"><output id="tmOpacityOut"></output></label>
-          <label class="hm-check"><input type="checkbox" id="tmCasing"><b>▭</b>White outline around trails</label>
-          <label class="hm-check"><input type="checkbox" id="tmLegend"><b>☰</b>Trail legend</label>
-          <div class="hm-group">Terrain</div>
-          <label class="tm-row">Relief strength <input type="range" id="tmRelief" min="0" max="100" step="5"><output id="tmReliefOut"></output></label>
-          <label class="hm-check"><input type="checkbox" id="tmDim"><b>◐</b>Mute terrain colors</label>
-          <div class="hm-note" id="tmFieldInfo">Trail data fields: not loaded yet</div>
-        </div>
-      </div>
-      <div class="seg" id="t_jump">
-        <button data-v="lower48">Lower 48</button><button data-v="ak">Alaska</button>
-        <button data-v="hi">Hawaiʻi</button><button data-v="terr">Territories</button>
-      </div>
-      <details class="layers"><summary>Layers</summary><div class="layerbox">
-      <label class="dotctl" title="Show every name on the map; click a name to open its info page"><input type="checkbox" id="t_labels"> Names</label>
-      <label class="dotctl" title="Off by default"><input type="checkbox" id="t_showCA"> California State Parks</label>
-      <label class="dotctl"><input type="checkbox" id="tmTrails" checked> Trails</label>
-      <label class="dotctl" title="Show each trail's name beside it (zoom in)"><input type="checkbox" id="tmNames" checked> Trail names</label>
-      <label class="dotctl"><input type="checkbox" id="t_stnames" checked> State names</label>
-      <label class="dotctl"><input type="checkbox" id="t_citynames" checked> Cities</label>
-      <label class="dotctl"><input type="checkbox" id="t_rose" checked> Compass</label>
-      </div></details>
-    </div>
-    <div id="tmap"></div>
-  </section>
 
   <section id="tab-visited" class="panel">
     <div class="toolbar"><strong id="vcount"></strong></div>
@@ -191,7 +147,7 @@
       <p><strong>Unofficial personal tracker.</strong> This is not an official site of, and is not affiliated with or endorsed by, the National Park Service or California State Parks. Your checks and edits are saved in this browser only (see Backup above).</p>
       <p>Unit names, designations, states and park codes come from the NPS_Park_Units spreadsheet (475 units; Sequoia and Kings Canyon are shown as two parks). Map coordinates are approximate, and units marked with a dashed dot are placed near their state center. Verify against
       <a href="https://www.nps.gov/findapark/index.htm" target="_blank" rel="noopener">nps.gov/findapark</a>.</p>
-      <p>Trails (optional layer) come live from the NPS Public Trails service. Basemap: shaded relief rendered from AWS Terrain Tiles (NASA SRTM, USGS 3DEP, GEBCO), with Natural Earth and US Census boundaries. It ships with the site, so the map loads without any outside map service.</p>
+      <p>Basemap: shaded relief rendered from AWS Terrain Tiles (NASA SRTM, USGS 3DEP, GEBCO), with Natural Earth and US Census boundaries. It ships with the site, so the map loads without any outside map service.</p>
     </div>
   </section>
 </main>
@@ -232,13 +188,11 @@
 <tr><td>?</td><td>This list</td></tr></table></div></dialog>
 <dialog id="sheet" class="tdlg sheet"><form id="sheetForm" method="dialog"><div class="in"><h2 id="sheetTitle">Edit row</h2><div id="sheetFields"></div>
 <div class="act"><button type="submit" class="pri">Save</button><button type="button" id="sheetCancel">Cancel</button></div></div></form></dialog>
-<dialog id="trailDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div id="trailDlgBody"></div></dialog>
 <script defer src="vendor/leaflet.js"></script>
 <script defer src="vendor/topojson-client.min.js"></script>
 <script defer src="data/parks.js"></script>
 <script defer src="data/details.js"></script>
 <script defer src="data/geo.js"></script>
 <script defer src="app.js"></script>
-<script defer src="trailsmap.js"></script>
 </body>
 </html>

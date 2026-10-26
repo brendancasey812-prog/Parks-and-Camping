@@ -54,3 +54,6 @@ Before/after screenshots: `docs/before-after_*.jpg`.
 - Column filters/sort for the mobile card view beyond the Sort dropdown.
 - Contour lines and land-cover layers; Firebase sync; official NPS coordinate/trail-field refresh (need your NPS API file and Firebase config).
 - Real-device screen reader and iPad testing (checks here are automated).
+
+## Later change
+The Trails feature (Trail Info / Trail List / Trail Map tabs, trail info dialog, live NPS trails layer and its module) was removed at the owner's request. It remains in git history before the commit "Remove Trails". Previously saved trail check marks stay in browser storage and backup files untouched, but are no longer shown.

@@ -110,16 +110,6 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
      const hid=!(await m.isVisible('#mmBar'))&&!(await m.isVisible('#mmFabs'))&&!(await m.isVisible('#mmPill'));await m.touchscreen.tap(195,400);await m.waitForTimeout(250);return hid&&await m.isVisible('#mmBar')&&await m.isVisible('#mmPill')});
    await check('MobileMap','List button returns to the table cards',async()=>{await m.tap('#mmList');await m.waitForTimeout(400);return await m.isVisible('#cardlist .rc')&&!(await m.evaluate(()=>document.body.classList.contains('mm')))});
    await ctx.close()}
-  // ---- trails (mocked service)
-  {const ctx=await b.newContext({viewport:{width:1280,height:800}});let fail=true;
-   await ctx.route('**/mapservices.nps.gov/**',r=>{const u=new URL(r.request().url());if(fail)return r.fulfill({status:500,body:'{"error":{"message":"boom"}}'});
-     if(!u.pathname.endsWith('/query'))return r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({fields:[{name:'TRLNAME'},{name:'UNITCODE'}]})});
-     if(u.searchParams.get('returnCountOnly'))return r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({count:1})});
-     r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({type:'FeatureCollection',features:[{type:'Feature',properties:{TRLNAME:'Mist Trail',UNITCODE:'YOSE'},geometry:{type:'LineString',coordinates:[[-119.55,37.73],[-119.5,37.74]]}}]})})});
-   const t=await ctx.newPage();await t.goto(URL_);await t.evaluate(()=>{localStorage.clear();localStorage.setItem('tab','"trails"')});await t.reload();await t.waitForTimeout(2500);
-   await check('Trails','service error shows an alert with Retry',async()=>await t.isVisible('.trailnote.err button'));
-   await check('Trails','Retry recovers',async()=>{fail=false;await t.click('.trailnote button');await t.waitForTimeout(2000);return !(await t.$('.trailnote.err'))});
-   await ctx.close()}
   const bad=results.filter(r=>!r.ok);console.log(`\n${results.length-bad.length}/${results.length} passed`);
   await b.close();srv.close();process.exit(bad.length?1:0);
 })();

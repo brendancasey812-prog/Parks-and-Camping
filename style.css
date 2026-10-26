@@ -221,8 +221,6 @@ body:not(.show-ca) .lg-ca{display:none}
 .hamb-menu .danger{color:#b3261e}.hamb-menu .danger b{background:#fbdcd9;color:#b3261e}
 .hm-check input{accent-color:var(--pine);margin:0}.hm-check input{order:3;margin-left:auto}
 
-.trailnote{margin:10px 10px 0 0!important;padding:.35rem .8rem;border-radius:999px;font:600 11.5px var(--font-body);color:var(--glass-ink);background:var(--glass);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 6px 18px -6px rgba(6,32,24,.45),inset 0 0 0 1px var(--glass-line)}
-.trailnote[hidden]{display:none}
 
 /* dropdown navigation */
 .tabgroup{position:relative}
@@ -233,7 +231,6 @@ body:not(.show-ca) .lg-ca{display:none}
 .tabitem{display:flex;align-items:center;gap:.65rem;width:100%;padding:.55rem .7rem;border:0;border-radius:10px;background:transparent;color:var(--ink);font:500 .9rem var(--font-body);cursor:pointer;text-align:left}
 .tabitem b{display:inline-grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:8px;background:var(--mist);font-size:.85rem}
 .tabitem:hover{background:var(--mist)}.tabitem.active{background:var(--pine);color:#fff}.tabitem.active b{background:#ffffff26}
-.dstrails{font-size:.84rem;color:var(--muted);padding:.35rem .8rem;border:1px dashed var(--line);border-radius:999px}
 .tdlg{border:0;border-radius:20px;padding:0;max-width:min(640px,94vw);width:100%;background:var(--surface);color:var(--ink);box-shadow:0 30px 70px -20px rgba(0,0,0,.6)}
 .tdlg::backdrop{background:rgba(5,24,20,.55);backdrop-filter:blur(3px)}
 .tdlg form{position:absolute;right:.6rem;top:.6rem;margin:0}.tdlg-x{width:34px;height:34px;border:0;border-radius:50%;background:var(--mist);color:var(--ink);cursor:pointer;font-size:.9rem}
@@ -243,7 +240,6 @@ body:not(.show-ca) .lg-ca{display:none}
 .tdlg .act{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:1rem 0 .3rem}.tdlg .act button,.tdlg .act a{padding:.5rem .9rem;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 .86rem var(--font-body);cursor:pointer;text-decoration:none}
 .tdlg .act .pri{background:var(--pine);border-color:var(--pine);color:#fff}.tdlg .act input[type=text]{width:7.5rem;padding:.4rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .tdlg .act label{display:flex;align-items:center;gap:.4rem;font-size:.88rem}.tdlg .act input[type=checkbox]{accent-color:var(--red);width:1.1rem;height:1.1rem}
-.trlab{white-space:nowrap;cursor:pointer;transform:translate(-50%,-50%)}.trlab span{display:inline-block;padding:1px 7px;border-radius:999px;font:700 10.5px var(--font-body);color:#7a0b3d;background:rgba(255,255,255,.88);box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .gridmsg{grid-column:1/-1;margin:1rem 0;padding:1rem 1.2rem;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center}
 
 .stlab.click{pointer-events:auto;cursor:pointer}.stlab.click:hover{color:#0072ce;text-decoration:underline}
@@ -336,8 +332,6 @@ body.drawer-open #tab-about{display:block;position:fixed;top:0;right:0;bottom:0;
 .clu.hasv span{box-shadow:0 0 0 3px #e5383b,0 2px 8px rgba(0,0,0,.4)}.clu i{font-style:normal;font-size:9px;margin-top:-6px}
 .clu:focus-visible span,.clu:hover span{background:#0f3b30;outline:3px solid #0b5cd5}
 .lt tr.maphl td,.rc.maphl{background:color-mix(in srgb,#0b5cd5 14%,var(--surface))!important}
-.trailnote{display:flex;align-items:center;gap:.6rem}.trailnote.busy::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
-.trailnote.err{background:#fde8e6;color:#8c1d18}.trailnote button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:.15rem .7rem;font:600 11.5px var(--font-body);cursor:pointer;min-height:26px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:700px){.layerbox{max-height:60dvh;overflow:auto}}
 

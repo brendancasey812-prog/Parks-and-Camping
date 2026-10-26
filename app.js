@@ -70,13 +70,11 @@ multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
-  const UA=new Set([...filt.u].map(c=>c==="SEQU"||c==="KICA"?"SEKI":c));            // trail data uses one code for Sequoia + Kings Canyon
   return src.filter(p=>{
-    const trail=p.kind==="trail";
     return (!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+fld(p,"hl")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
     &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))
-    &&(!filt.u.size||(trail?UA.has(p.code):filt.u.has(p.code)))
-    &&(!filt.d.size||(trail?(filt.d.has(p.parkD)||(filt.d.has("__NP63")&&p.np63)):(filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))))
+    &&(!filt.u.size||filt.u.has(p.code))
+    &&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))
     &&(!filt.v.size||filt.v.has(checked.has(p.id)?"1":"0"));
   });
 }
@@ -84,9 +82,9 @@ $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
 $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-const TAB_SECTION={explore:"explore",grid:"grid",tgrid:"grid",list:"list",tlist:"list",map:"map",trails:"trails",visited:"visited",about:"about"};
-const TAB_GROUP={explore:"parks",grid:"parks",list:"parks",map:"parks",tgrid:"trails",tlist:"trails",trails:"trails"};
-let currentTab="grid",gridMode="parks";
+const TAB_SECTION={explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
+const TAB_GROUP={explore:"parks",grid:"parks",list:"parks",map:"parks"};
+let currentTab="grid";
 function showTab(t){
   if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
   if(!TAB_SECTION[t])t="explore";currentTab=t;const sec=TAB_SECTION[t],grp=TAB_GROUP[t];
@@ -96,15 +94,12 @@ function showTab(t){
   $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp&&t!=="explore"));
   $$(".panel").forEach(p=>p.classList.toggle("active",sec==="explore"?(p.id==="tab-list"||p.id==="tab-map"):p.id==="tab-"+sec));
   document.body.classList.toggle("explore",t==="explore");
-  document.body.classList.toggle("map-mode",t==="map"||t==="trails"||t==="explore");
+  document.body.classList.toggle("map-mode",t==="map"||t==="explore");
   document.body.dataset.group=grp||"";
-  gridMode=t==="tgrid"?"trails":"parks";
-  if(t==="tlist")setDataset("trails");else if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
-  if(grp==="trails"&&window.TrailsMap)window.TrailsMap.ensureLoaded();
+  if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
   if(sec==="grid"){refreshOthers()}
   if(t==="explore"){setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");mainView.init();setPane(store.get("pane",mmMQ.matches?"map":"table"),true);setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
-  if(t==="trails"){trailsView.init();setTimeout(()=>{trailsView.map.invalidateSize();zoomToFilter(true)},80);window.TrailsMap&&window.TrailsMap.show()}
   store.set("tab",t);updateMM();
 }
 // Settings / backup / edits / about live in a side drawer so the table + map stay on screen
@@ -173,25 +168,10 @@ function setCols(c){cols=c;$("#grid").style.setProperty("--cols",c);store.set("c
   $$("#cols button").forEach(b=>b.classList.toggle("on",+b.dataset.c===c));}
 $$("#cols button").forEach(b=>b.onclick=()=>setCols(+b.dataset.c));
 const hue=p=>{let h=0;for(const c of p.name)h=(h*31+c.charCodeAt(0))%45;return 128+h}; // greens to blues
-let trailRecords=[],trailMsg="",trailMeta=store.get("trailMeta",{});
 function toggle(id){
   checked.has(id)?checked.delete(id):checked.add(id);
-  if(id.startsWith("T:")&&checked.has(id)&&byId.has(id)){const r=byId.get(id);trailMeta[id]={name:r.title,park:r.city};store.set("trailMeta",trailMeta)}
   save();refresh()}
 function renderGrid(list){
-  if(gridMode==="trails"){
-    if(!list.length){$("#grid").innerHTML=`<p class="gridmsg">${esc(trailMsg||"No trails match the taskbar filters. Pick a park or state above.")}</p>`;return}
-    const shown=list.slice(0,1500);
-    $("#grid").innerHTML=shown.map(p=>`<article class="card trail" data-id="${esc(p.id)}">
-      <div class="banner" style="--h1:hsl(${hue({name:p.city})},48%,14%);--h2:hsl(${hue({name:p.city})+10},40%,30%)">
-        <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Mark as hiked"></span></div>
-      <div class="body"><h3 aria-level="2"><a href="#" data-open="${esc(p.id)}">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
-      <div class="meta">${esc(fld(p,"d"))}</div>
-      <div class="meta">${esc(fld(p,"city"))}${fld(p,"state")?" · "+esc(fld(p,"state")):""}</div>
-      ${fld(p,"year")?`<div class="meta yr">Last hiked ${esc(fld(p,"year"))}</div>`:""}
-      <p>${esc(fld(p,"hl"))}</p><button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("")+(list.length>shown.length?`<p class="gridmsg">Showing the first ${shown.length.toLocaleString()} of ${list.length.toLocaleString()} trails. Narrow with the taskbar filters.</p>`:"");
-    return;
-  }
   $("#grid").innerHTML=list.map(p=>`<article class="card" data-id="${p.id}">
     <div class="banner" style="--h1:hsl(${hue(p)},48%,14%);--h2:hsl(${hue(p)+10},40%,30%)">
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
@@ -199,19 +179,18 @@ function renderGrid(list){
     <div class="meta">${esc(fld(p,"d"))} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
     ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}<button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("");
 }
-$("#grid").onclick=e=>{const mb=e.target.closest("[data-map]");if(mb){focusOnMap(mb.dataset.map);return}const o=e.target.closest("a[data-open]");if(o){e.preventDefault();window.TrailsMap&&window.TrailsMap.openInfo(o.dataset.open);return}const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
+$("#grid").onclick=e=>{const mb=e.target.closest("[data-map]");if(mb){focusOnMap(mb.dataset.map);return}const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
 $("#grid").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){const d=e.target.closest(".dot");if(d){e.preventDefault();toggle(d.closest(".card").dataset.id)}}};
 
 // ---------- visited list ----------
 function renderVisited(){
   const list=[...parks,...caParks].filter(p=>checked.has(p.id));
-  const trails=[...checked].filter(id=>id.startsWith("T:")).map(id=>byId.get(id)||(trailMeta[id]&&{id,title:trailMeta[id].name,name:trailMeta[id].name,city:trailMeta[id].park,d:"Trail",states:[],kind:"trail"})).filter(Boolean);
-  $("#vcount").textContent=`${list.length+trails.length} checked`+(trails.length?` (${trails.length} trail${trails.length>1?"s":""})`:"");
-  $("#vlist").innerHTML=[...list,...trails].map(p=>`<li data-id="${esc(p.id)}"><span class="dot on" style="cursor:pointer"></span>${esc(disp(p))}${p.kind==="trail"&&fld(p,"city")?` <small class="yrs">· ${esc(fld(p,"city"))}</small>`:""}${fld(p,"year")?` <small class="yrs">· ${esc(fld(p,"year"))}</small>`:""}</li>`).join("")||"<li>Nothing checked yet.</li>";
+  $("#vcount").textContent=`${list.length} checked`;
+  $("#vlist").innerHTML=list.map(p=>`<li data-id="${esc(p.id)}"><span class="dot on" style="cursor:pointer"></span>${esc(disp(p))}${fld(p,"year")?` <small class="yrs">· ${esc(fld(p,"year"))}</small>`:""}</li>`).join("")||"<li>Nothing checked yet.</li>";
 }
 $("#vlist").onclick=e=>{const li=e.target.closest("li[data-id]");if(li&&e.target.closest(".dot"))toggle(li.dataset.id)};
 
-// ---------- map views: the Map tab and the Trails Map tab are two instances of the SAME map code ----------
+// ---------- map view (createMapView builds the map instance) ----------
 const VIEW_BOUNDS={lower48:[[24.5,-125.5],[49.8,-66]],ak:[[51,-170],[71.8,-129]],hi:[[18.8,-160.6],[22.4,-154.6]],terr:[[-15,-171.5],[19.5,-64]]};
 const coarse=matchMedia("(pointer:coarse)").matches;
 const style=p=>({...(checked.has(p.id)?{fillColor:"#e5383b",color:"#ffffff",fillOpacity:1,weight:2}
@@ -420,11 +399,10 @@ function createMapView(c){
   mapViews.push(V);return V;
 }
 const mainView=createMapView({el:"map",global:"parksMap",key:"",ctl:{labels:"#labels",ca:"#showCA",stn:"#stnames",cities:"#citynames",rose:"#rose",jump:"#jump"}});
-const trailsView=createMapView({el:"tmap",global:"trailsMap",key:"t_",ctl:{labels:"#t_labels",ca:"#t_showCA",stn:"#t_stnames",cities:"#t_citynames",rose:"#t_rose",jump:"#t_jump"}});
 function refreshTips(ids){mapViews.forEach(v=>v.refreshTips(ids))}
 // picking a state or park in the taskbar flies the open map to that place
 function zoomToFilter(instant){
-  const v=currentTab==="map"||currentTab==="explore"?mainView:currentTab==="trails"?trailsView:null;if(!v||!v.map)return;
+  const v=currentTab==="map"||currentTab==="explore"?mainView:null;if(!v||!v.map)return;
   if(!filt.u.size&&!filt.st.size){if(!instant)v.fly();return}
   const pts=visible().map(p=>[p.lat,p.lng]);if(!pts.length)return;
   v.fitPoints(pts,{instant,maxZoom:filt.u.size&&pts.length<=3?10:8});
@@ -432,7 +410,6 @@ function zoomToFilter(instant){
 // "show this on the map" from cards and the list
 function focusOnMap(id){
   const p=byId.get(id);if(!p)return;
-  if(p.kind==="trail"){window.TrailsMap&&window.TrailsMap.showOnMap(p);return}
   if(p.kind==="ca"&&!showCA){showCA=true;store.set("showCA",true);syncCAChecks();refresh()}
   if(currentTab==="explore")setPane("map");else showTab("map");setTimeout(()=>mainView.focus(p),120);
 }
@@ -446,7 +423,7 @@ const saveCustom=()=>store.set("customRows",customRows);
 const mkCustom=r=>({id:r.id,name:"",title:"",d:"",states:[],code:"",kind:"custom",city:"",state:"",hl:"",lat:null,lng:null,url:"",approx:false,blurb:""});
 customRows.forEach(r=>byId.set(r.id,mkCustom(r)));
 const cellVal=(p,k)=>k==="visited"?(checked.has(p.id)?"TRUE":"FALSE"):String(fld(p,k)??"");
-const baseSrc=()=>(dataset==="trails"?trailRecords:dataset==="ca"?caParks:parks).concat(customRows.filter(r=>r.ds===dataset).map(r=>byId.get(r.id)));
+const baseSrc=()=>(dataset==="ca"?caParks:parks).concat(customRows.filter(r=>r.ds===dataset).map(r=>byId.get(r.id)));
 let onlyEdited=false, colFilt={}, rows=[], sel={r0:0,c0:0,r1:0,c1:0}, act={r:0,c:0}, editing=null, hist=[], redoS=[], dragging=false;
 const visIdx=()=>COLS.findIndex(c=>c.k==="visited");
 const wrap=$("#tablewrap"), tbody=$("#lbody");
@@ -463,7 +440,7 @@ function computeRows(){
 function renderList(keep){
   rows=computeRows();
   const total=baseSrc().length;
-  $("#lcount").textContent=dataset==="trails"?`${rows.length.toLocaleString()} of ${total.toLocaleString()} trails${trailMsg?" · "+trailMsg:""}`:`${rows.length} of ${total} rows · ${dataset==="ca"?"California State Parks":"National Park Service"}`;
+  $("#lcount").textContent=`${rows.length} of ${total} rows · ${dataset==="ca"?"California State Parks":"National Park Service"}`;
   $$("#ltable th[data-k]").forEach(th=>{const k=th.dataset.k,f=colFilt[k];
     th.querySelector(".fbtn").classList.toggle("on",!!f&&(!!f.vals||!!f.text));
     th.dataset.dir=k===sortKey?(sortDir>0?"▲":"▼"):"";if(k===sortKey)th.setAttribute("aria-sort",sortDir>0?"ascending":"descending");else th.removeAttribute("aria-sort")});
@@ -737,20 +714,18 @@ document.addEventListener("pointerup",()=>{
 }
 
 // ----- toolbar
-const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights"},
-                  trails:{name:"Trail",d:"Class / use",city:"Park",state:"State",visited:"Hiked",year:"Year Last Hiked",hl:"Details & Notes"}};
+const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights"}};
 function setDataset(d){
-  const was=dataset;dataset=d;if(d!=="trails")store.set("dataset",d);
+  const was=dataset;dataset=d;store.set("dataset",d);
   $$("#dataset button").forEach(b=>b.classList.toggle("on",b.dataset.ds===d));
-  $("#dataset").style.display=d==="trails"?"none":"";$("#dsTrails").hidden=d!=="trails";
-  const T=COL_TITLES[d==="trails"?"trails":"parks"];COLS.forEach(c=>{c.t=T[c.k]});$$("#ltable th[data-k] .ht").forEach(s=>{s.textContent=T[s.closest("th").dataset.k]});
+  const T=COL_TITLES.parks;COLS.forEach(c=>{c.t=T[c.k]});$$("#ltable th[data-k] .ht").forEach(s=>{s.textContent=T[s.closest("th").dataset.k]});
   $("#listHint").firstChild&&($("#listHint").dataset.mode=d);
   if(was!==d){colFilt={};hist=[];redoS=[]}
   renderList()}
 $$("#dataset button").forEach(b=>b.onclick=()=>setDataset(b.dataset.ds));
 $("#mapSel").onclick=()=>{const {r0,r1}=rect(),sel=rows.slice(r0,r1+1).filter(p=>p&&p.lat);if(!sel.length)return;
   if(sel.length===1){focusOnMap(sel[0].id);return}
-  const trails=sel[0].kind==="trail";if(!trails&&currentTab==="explore")setPane("map");else showTab(trails?"trails":"map");setTimeout(()=>(trails?trailsView:mainView).fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
+  if(currentTab==="explore")setPane("map");else showTab("map");setTimeout(()=>mainView.fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
 $("#undo").onclick=undo;$("#redo").onclick=redo;
 $("#addRow").onclick=()=>{
   const r={id:"X:"+Date.now().toString(36),ds:dataset};customRows.push(r);byId.set(r.id,mkCustom(r));saveCustom();
@@ -952,32 +927,11 @@ $("#chips").onclick=e=>{const c=e.target.closest(".chip");if(!c)return;const k=c
 $("#progress").onclick=()=>{filt.d.clear();filt.d.add("__NP63");filt.v.clear();filt.v.add("0");msInstances.forEach(m=>m.draw());refresh()};
 function refreshOthers(){
   const list=visible();
-  const inTrails=document.body.dataset.group==="trails";
-  if(inTrails){const tl=visible(trailRecords);$("#count").textContent=`${tl.length.toLocaleString()} of ${trailRecords.length.toLocaleString()} trails · ${list.length} parks selected`+(trailMsg?` · ${trailMsg}`:"")}
-  else $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].length} checked`;
-  renderGrid(gridMode==="trails"?visible(trailRecords):list);mapViews.forEach(v=>v.render());syncCAChecks();renderVisited();
+  $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].filter(id=>!id.startsWith("T:")).length} checked`;
+  renderGrid(list);mapViews.forEach(v=>v.render());syncCAChecks();renderVisited();
   renderChips();mmRender();
-  bridgeSubs.forEach(f=>{try{f()}catch(e){}});
 }
 
-// Small bridge so self-contained modules (the Trails Map tab) can share parks, visited checks and edits.
-const bridgeSubs=[];
-window.ParksBridge={
-  parks,caParks,view:trailsView,
-  fld,disp,official,
-  isChecked:id=>checked.has(id),
-  toggle,
-  setField(id,k,v){const p=byId.get(id);if(!p)return;put(p,k,String(v));saveEdits();renderList(true);refreshOthers();renderEditsPanel()},
-  subscribe:f=>bridgeSubs.push(f),
-  infoUrl,
-  visibleParks:()=>visible(),
-  tab:()=>currentTab,
-  setTrails(recs,msg){trailRecords=recs;trailMsg=msg||"";recs.forEach(r=>byId.set(r.id,r));refreshOthers();renderList(true);renderVisited()},
-  trailRecords:()=>trailRecords,
-  tabs:{showTab},                              // parks passing every taskbar filter
-  setUnitFilter(codes){filt.u.clear();codes.forEach(c=>filt.u.add(c));msInstances.forEach(m=>m.draw());refresh()},
-  zoomSens:()=>zoomK()
-};
 $("#export").onclick=()=>{
   const txt=parks.filter(p=>checked.has(p.id)).map(p=>disp(p)+" ("+p.states.join("/")+")").join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"}));a.download="checked-parks.txt";a.click();
