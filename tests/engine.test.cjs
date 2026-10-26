@@ -1,0 +1,27 @@
+// Unit tests for the release-time engine: node tests/engine.test.cjs
+const E=require('../engine.js');let n=0,f=0;
+const eq=(name,a,b)=>{n++;if(a!==b){f++;console.log('FAIL',name,'\n   got ',a,'\n   want',b)}else console.log('PASS',name)};
+const Z=d=>d&&d.at.toISOString();
+const R6={kind:'rolling',months:6,time:'07:00'},RC={kind:'rolling',months:6,time:'08:00'},Y={kind:'monthly',blockStart:15,monthsAhead:5,time:'07:00'};
+eq('Recreation.gov: Apr 26 2027 opens Oct 26 2026 7:00 AM PDT',Z(E.releaseFor(R6,'2027-04-26')),'2026-10-26T14:00:00.000Z');
+eq('ReserveCalifornia: Apr 30 2027 opens Oct 30 2026 8:00 AM PDT',Z(E.releaseFor(RC,'2027-04-30')),'2026-10-30T15:00:00.000Z');
+eq('Winter time: May 31 2027 opens Nov 30 2026 7:00 AM PST',Z(E.releaseFor(R6,'2027-05-31')),'2026-11-30T15:00:00.000Z');
+eq('Month-end clamp: Aug 31 2027 opens Feb 28 2027',Z(E.releaseFor(R6,'2027-08-31')),'2027-02-28T15:00:00.000Z');
+eq('Leap year clamp: Aug 31 2028 opens Feb 29 2028',Z(E.releaseFor(R6,'2028-08-31')),'2028-02-29T15:00:00.000Z');
+eq('Yosemite block: Jul 20 2027 opens Feb 15 2027 7:00 AM PST',Z(E.releaseFor(Y,'2027-07-20')),'2027-02-15T15:00:00.000Z');
+eq('Yosemite block dates: Jul 20 2027',E.releaseFor(Y,'2027-07-20').from+' to '+E.releaseFor(Y,'2027-07-20').to,'2027-07-15 to 2027-08-14');
+eq('Yosemite block: Jul 10 2027 is in the Jun 15-Jul 14 block, opens Jan 15 2027',E.releaseFor(Y,'2027-07-10').from+' '+Z(E.releaseFor(Y,'2027-07-10')),'2027-06-15 2027-01-15T15:00:00.000Z');
+eq('Camp 4 style: 7 days ahead',Z(E.releaseFor({kind:'days',days:7,time:'07:00'},'2027-05-10')),'2027-05-03T14:00:00.000Z');
+eq('No rule returns null',String(E.releaseFor({kind:'none'},'2027-05-10')),'null');
+eq('DST end day: Nov 1 2026 7:00 AM is PST (15:00Z)',E.ptInstant(2026,11,1,7,0).toISOString(),'2026-11-01T15:00:00.000Z');
+eq('DST start day: Mar 14 2027 7:00 AM is PDT (14:00Z)',E.ptInstant(2027,3,14,7,0).toISOString(),'2027-03-14T14:00:00.000Z');
+const nx=E.nextReleases(R6,new Date('2026-10-26T20:00:00Z'),3);
+eq('Next rolling release after Oct 26 1PM PT is Oct 27 and opens Apr 27 2027',nx[0].at.toISOString()+' '+nx[0].from,'2026-10-27T14:00:00.000Z 2027-04-27');
+eq('Three releases are consecutive days',nx.map(x=>x.from).join(),'2027-04-27,2027-04-28,2027-04-29');
+const ny=E.nextReleases(Y,new Date('2026-10-26T20:00:00Z'),2);
+eq('Next Yosemite release is Nov 15 2026 and opens Apr 15-May 14 2027',ny[0].at.toISOString()+' '+ny[0].from+' '+ny[0].to,'2026-11-15T15:00:00.000Z 2027-04-15 2027-05-14');
+eq('Months label wraps the year',E.monthsLabel([10,11,12,1,2,3,4]),'Oct–Apr');
+eq('Months label year-round',E.monthsLabel([1,2,3,4,5,6,7,8,9,10,11,12]),'Year-round');
+eq('Months label split',E.monthsLabel([3,4,5,10]),'Mar–May, Oct');
+eq('Rule text',E.ruleText(RC),'6 months ahead, new day opens daily at 8:00 AM PT');
+console.log(n-f+'/'+n+' passed');process.exit(f?1:0);
