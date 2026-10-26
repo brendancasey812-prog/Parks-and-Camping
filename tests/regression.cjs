@@ -18,7 +18,7 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   const txt=(p,s)=>p.textContent(s);const menu=async p=>{if(await p.$eval('.hamb-menu',e=>e.hidden))await p.click('#hamb .hamb-btn');await p.waitForTimeout(150)};const drawer=async p=>{if(!(await p.isVisible('#tab-about')))await p.click('.tab[data-tab=about]');await p.waitForTimeout(150)};const cell=(r,k)=>`#lbody tr:nth-child(${r}) td.k-${k}`;
   let p=await open();
   await check('Explore','table and map side by side',async()=>await p.isVisible('#lbody')&&await p.isVisible('#map'));
-  await check('Explore','List / Split / Map toggle sits at the top middle',async()=>{const r=await p.$eval('#exSeg',e=>{const b=e.getBoundingClientRect();return{c:b.left+b.width/2,top:b.top}});return Math.abs(r.c-640)<30&&r.top<160&&(await p.$$('#exSeg button')).length===3});
+  await check('Explore','List / Split / Map toggle sits at the top middle',async()=>{const r=await p.$eval('#exSeg',e=>{const b=e.getBoundingClientRect();return{c:b.left+b.width/2,top:b.top}});return Math.abs(r.c-640)<30&&r.top<260&&(await p.$$('#exSeg button')).length===3});
   await check('Explore','Map shows only the map, List only the table, Split both; choice persists',async()=>{await p.click('#exSeg [data-m=map]');await p.waitForTimeout(500);const m=await p.isVisible('#map')&&!(await p.isVisible('#lbody'));
     await p.click('#exSeg [data-m=list]');await p.waitForTimeout(300);const l=await p.isVisible('#lbody')&&!(await p.isVisible('#map'));await p.reload();await p.waitForTimeout(800);const kept=await p.isVisible('#lbody')&&!(await p.isVisible('#map'));
     await p.click('#exSeg [data-m=split]');await p.waitForTimeout(500);const s=await p.isVisible('#lbody')&&await p.isVisible('#map');return m&&l&&kept&&s&&await p.$eval('#exSeg [data-m=split]',e=>e.classList.contains('on'))});
@@ -32,6 +32,15 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Filter','Status filter (Unchecked) + chip',async()=>{await p.click('#fVisited .ms-btn');await p.click('#fVisited label:has(input[value="0"])');await p.keyboard.press('Escape');return await p.isVisible('.chip[data-k=v]')});
   await check('Filter','column filter menu opens from the keyboard (Enter on ▾)',async()=>{await p.click('#clear');await p.focus('#ltable th[data-k=d] .fbtn');await p.keyboard.press('Enter');return await p.isVisible('#colmenu')});
   await check('Filter','column sort Z→A',async()=>{await p.click('#colmenu [data-a=desc]');await p.waitForTimeout(150);const a=await txt(p,cell(1,'d'));return /^[T-Z]/.test(a.trim())});
+  await p.context().close();
+  p=await open();
+  await check('Filter','State Park designation shows state parks in cards, list and map',async()=>{await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[data-tab=explore]');await p.click('#clear');
+    await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="State Park"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+    return /^96 of 258 CA state parks/.test(await txt(p,'#count'))&&/96 of 258 rows · California State Parks/.test(await txt(p,'#lcount'))});
+  await check('Filter','★ California State Parks option lists all of them',async()=>{await p.click('#clear');await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__CA"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+    return /^258 of 258 CA state parks/.test(await txt(p,'#count'))&&await p.isVisible('.chip[data-v="__CA"]')});
+  await check('Filter','adding National Parks shows both; removing the state chip goes back to NPS',async()=>{await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__NP63"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+    const both=/^64 of 475 NPS units \+ 258 of 258 CA state parks/.test(await txt(p,'#count'));await p.click('.chip[data-v="__CA"]');await p.waitForTimeout(300);return both&&/64 of 475 rows · National Park Service/.test(await txt(p,'#lcount'))});
   await p.context().close();
   // ---- editing + undo/redo
   p=await open();
@@ -129,6 +138,35 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
    p=await open({viewport:{width:390,height:844},hasTouch:true},{tab:'trips',trips:seed,pane:'table'});
    await check('Planner','phones: Plans / Calendar toggle',async()=>{const a=await p.isVisible('.tp-list')&&!(await p.isVisible('.tp-cal'));await p.tap('#tpPane [data-p=cal]');await p.waitForTimeout(250);return a&&await p.isVisible('.tp-cal')&&!(await p.isVisible('.tp-list'))&&await p.isVisible('.mo')});
    await p.context().close()}
+  // ---- state park passes
+  p=await open();
+  const pcount=async()=>+((await txt(p,'#pCount')).match(/^(\d+)/)||[0,-1])[1];
+  await check('Passes','tab shows a card per pass and every CA state park',async()=>{await p.click('.tab[data-tab=passes]');await p.waitForTimeout(200);
+    return (await p.$$('#passCards .pcard')).length===4&&/^258 of 258/.test(await txt(p,'#pCount'))&&!(await p.isVisible('#filters'))});
+  await check('Passes','tapping a pass card lists only its parks',async()=>{await p.click('.pcard[data-id=tahoe] .pc-t');await p.waitForTimeout(150);return await pcount()===5&&await p.inputValue('#pPass')==='tahoe'});
+  await check('Passes','pass + status filter (Golden Poppy, not accepted)',async()=>{await p.selectOption('#pPass','poppy');await p.selectOption('#pStatus','no');await p.waitForTimeout(150);return await pcount()===45});
+  await check('Passes','limited status shows its note',async()=>{await p.selectOption('#pPass','explorer');await p.selectOption('#pStatus','limited');await p.waitForTimeout(150);
+    return await pcount()===2&&/Baldwin Hills/.test(await txt(p,'#pBody'))});
+  await check('Passes','designation filter (State Park + Explorer accepted)',async()=>{await p.click('#pClear');await p.selectOption('#pDesig','State Park');const all=await pcount();await p.selectOption('#pPass','explorer');await p.selectOption('#pStatus','yes');await p.waitForTimeout(150);
+    return all===96&&await pcount()>0&&await pcount()<96&&(await p.$$eval('#pBody tr td:nth-child(2)',a=>a.every(x=>x.textContent==='State Park')))});
+  await check('Passes','search narrows the list',async()=>{await p.click('#pClear');await p.fill('#pq','emerald bay');await p.waitForTimeout(150);return await pcount()===1});
+  await check('Passes','visited checkbox here marks the park visited everywhere',async()=>{await p.click('#pBody input[data-vis]');await p.waitForTimeout(150);
+    const own=await p.evaluate(()=>JSON.parse(localStorage.getItem('checked')).includes('CA:Emerald Bay|State Park'));return own&&/Visited 1 of the 5/.test(await txt(p,'.pcard[data-id=tahoe] .pc-v'))});
+  await check('Passes','hold a pass with an end month; it persists and expiry shows',async()=>{await p.click('#pClear');await p.check('.pcard[data-id=historian] input[data-own]');
+    await p.fill('.pcard[data-id=historian] input[data-until]','2020-01');await p.dispatchEvent('.pcard[data-id=historian] input[data-until]','change');await p.reload();await p.waitForTimeout(700);
+    return await p.isVisible('#tab-passes')&&/Expired/.test(await txt(p,'.pcard[data-id=historian] .pbadge'))});
+  await check('Passes','Only passes I hold limits columns and rows',async()=>{await p.check('#pMine');await p.waitForTimeout(150);return (await p.$$('#pHead th.c')).length===3&&await pcount()===43});
+  await check('Passes','CSV export has a column per pass',async()=>{await p.click('#pClear');const [d]=await Promise.all([p.waitForEvent('download'),p.click('#pCsv')]);const c=fs.readFileSync(await d.path(),'utf8');
+    return /"California Explorer","Golden Poppy","Tahoe Regional","Historian Passport"/.test(c.split('\r\n')[0])&&c.split('\r\n').length===259});
+  await check('Passes','Show on map opens the map with state parks on',async()=>{await p.selectOption('#pPass','tahoe');await p.click('#pMap');await p.waitForTimeout(500);
+    return await p.isVisible('#tab-map')&&await p.evaluate(()=>JSON.parse(localStorage.getItem('showCA')))===true});
+  await check('Passes','Park List carries the pass summary',async()=>{await p.click('.tab.grp[data-group=parks]');await p.click('.tabitem[data-tab=list]');await p.click('#dataset [data-ds=ca]');await p.click('#clear');await p.fill('#q','D.L. Bliss');await p.waitForTimeout(250);
+    return /Accepted: Explorer, Golden Poppy, Tahoe/.test(await p.$eval('#lbody td.k-pass',e=>e.textContent))});
+  await check('Passes','no page errors',async()=>!p.errs.length);
+  await p.context().close();
+  p=await open({},{checked:['CA:Hearst San Simeon|State Park']});
+  await check('Passes','a park whose designation was corrected keeps its visited check',async()=>(await p.evaluate(()=>JSON.parse(localStorage.getItem('checked'))))[0]==='CA:Hearst San Simeon|State Historical Monument'&&/Hearst San Simeon/.test(await txt(p,'#vlist')));
+  await p.context().close();
   // ---- settings, theme, drawer
   p=await open();
   await check('Settings','drawer opens, Esc closes',async()=>{await p.click('.tab[data-tab=about]');const o=await p.isVisible('#tab-about');await p.keyboard.press('Escape');return o&&!(await p.isVisible('#tab-about'))});
