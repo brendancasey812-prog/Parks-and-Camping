@@ -5,7 +5,7 @@ const A=window.DashAPI;if(!A||!A.passes.length)return;
 const $=s=>document.querySelector(s);
 const esc=A.esc,P=A.passes,L=A.passLbl,ICON={yes:"✓",limited:"✓",no:"✕",none:"–"};
 let mine=A.store.get("myPasses",{});const saveMine=()=>A.store.set("myPasses",mine);
-const F={q:"",pass:"",status:"",vis:"",mine:false,...A.store.get("passFilt",{})};const saveF=()=>A.store.set("passFilt",F);
+const F={q:"",pass:"",desig:"",status:"",vis:"",mine:false,...A.store.get("passFilt",{})};const saveF=()=>A.store.set("passFilt",F);
 let visible=false;
 
 const st=(p,id)=>p.passes[id]?p.passes[id].s:"none";
@@ -20,6 +20,7 @@ function rows(){
   return A.caParks.filter(p=>{
     if(q&&!(A.disp(p)+" "+A.fld(p,"city")+" "+A.fld(p,"d")).toLowerCase().includes(q))return false;
     if(F.vis&&(A.isChecked(p.id)?"1":"0")!==F.vis)return false;
+    if(F.desig&&A.fld(p,"d")!==F.desig)return false;
     if(F.status)return F.status==="none"?ids.every(id=>st(p,id)==="none"):ids.some(id=>st(p,id)===F.status);
     if(F.pass||F.mine)return ids.some(id=>st(p,id)!=="none");
     return true;
@@ -56,16 +57,19 @@ function renderTable(){
 
 function syncFilters(){
   $("#pPass").innerHTML=`<option value="">Any pass</option>`+P.map(ps=>`<option value="${ps.id}">${esc(ps.name)}</option>`).join("");
-  $("#pq").value=F.q;$("#pPass").value=F.pass;$("#pStatus").value=F.status;$("#pVis").value=F.vis;$("#pMine").checked=F.mine;
+  const ds=[...new Set(A.caParks.map(p=>A.fld(p,"d")))].sort();
+  $("#pDesig").innerHTML=`<option value="">All types</option>`+ds.map(d=>`<option value="${esc(d)}">${esc(d)} (${A.caParks.filter(p=>A.fld(p,"d")===d).length})</option>`).join("");
+  $("#pq").value=F.q;$("#pDesig").value=F.desig;$("#pPass").value=F.pass;$("#pStatus").value=F.status;$("#pVis").value=F.vis;$("#pMine").checked=F.mine;
 }
 function render(){if(!visible)return;renderCards();renderTable()}
 
 $("#pq").addEventListener("input",e=>{F.q=e.target.value;saveF();renderTable()});
 $("#pPass").onchange=e=>{F.pass=e.target.value;saveF();render()};
+$("#pDesig").onchange=e=>{F.desig=e.target.value;saveF();renderTable()};
 $("#pStatus").onchange=e=>{F.status=e.target.value;saveF();renderTable()};
 $("#pVis").onchange=e=>{F.vis=e.target.value;saveF();renderTable()};
 $("#pMine").onchange=e=>{F.mine=e.target.checked;saveF();renderTable()};
-$("#pClear").onclick=()=>{Object.assign(F,{q:"",pass:"",status:"",vis:"",mine:false});saveF();syncFilters();render()};
+$("#pClear").onclick=()=>{Object.assign(F,{q:"",pass:"",desig:"",status:"",vis:"",mine:false});saveF();syncFilters();render()};
 $("#pMap").onclick=()=>A.showOnMap(rows().map(p=>p.id));
 $("#pCsv").onclick=()=>{
   const cs=cols(),data=[["Name","Designation","Nearest City / Community","Visited",...cs.map(ps=>ps.name)]].concat(rows().map(p=>[A.disp(p),A.fld(p,"d"),A.fld(p,"city"),A.isChecked(p.id)?"TRUE":"FALSE",

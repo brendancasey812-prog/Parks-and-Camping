@@ -79,7 +79,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")msInstances.forEach(
 const stateList=[...new Set(parks.flatMap(p=>p.states))].sort((a,b)=>a.localeCompare(b));
 multiSelect($("#fState"),"States / territories",stateList.map(s=>({value:s,text:s,n:parks.filter(p=>p.states.includes(s)).length})),filt.st,()=>zoomToFilter());
 multiSelect($("#fUnit"),"Park / unit",[...parks].sort((x,y)=>x.title.localeCompare(y.title)).map(p=>({value:p.code,text:p.title,n:p.d})),filt.u,()=>zoomToFilter());
-multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the "+NPN,n:parks.filter(p=>p.np63).length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d);
+multiSelect($("#fDesig"),"Designation",[{value:"__NP63",text:"★ National Parks — the "+NPN,n:parks.filter(p=>p.np63).length},{value:"__CA",text:"★ California State Parks",n:caParks.length}].concat(DESIG.map(d=>({value:d,text:d,n:[...parks,...caParks].filter(p=>p.d===d).length}))),filt.d,syncDataset);
+// picking state park designations brings California state parks into the cards, map and list
+const CA_DESIG=new Set(caParks.map(p=>p.d));
+const wantCA=()=>filt.d.has("__CA")||[...filt.d].some(d=>CA_DESIG.has(d));
+const wantNPS=()=>[...filt.d].some(d=>d==="__NP63"||(d!=="__CA"&&!CA_DESIG.has(d)));
+function syncDataset(){if(wantCA()&&!wantNPS()&&dataset!=="ca")setDataset("ca");else if(wantNPS()&&!wantCA()&&dataset!=="nps")setDataset("nps")}
 multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:"Unchecked"}],filt.v);
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
@@ -87,7 +92,7 @@ function visible(src=parks){
     return (!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+fld(p,"hl")+" "+fld(p,"pass")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
     &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))
     &&(!filt.u.size||filt.u.has(p.code))
-    &&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))
+    &&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63)||(filt.d.has("__CA")&&p.kind==="ca"))
     &&(!filt.v.size||filt.v.has(checked.has(p.id)?"1":"0"));
   });
 }
@@ -253,7 +258,7 @@ function setupZoomInput(map){
   el.addEventListener("gesturechange",e=>{e.preventDefault();const boost=0.5+zoomK()*60;map.setZoomAround(map.mouseEventToLatLng(e)||map.getCenter(),clamp(z0+Math.log2(e.scale)*boost,map.getMinZoom(),map.getMaxZoom()),{animate:false})});
   el.addEventListener("gestureend",e=>e.preventDefault());
 }
-const mapList=()=>visible().concat(showCA?visible(caParks):[]);
+const mapList=()=>visible().concat(showCA||wantCA()?visible(caParks):[]);
 const mapViews=[];
 const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)");
 function createMapView(c){
@@ -937,7 +942,7 @@ window.DashAPI={parks,caParks,byId,disp,fld,infoUrl,store,toast,
 function refresh(){refreshOthers();renderList(true)}
 // active-filter chips + progress summary
 function renderChips(){
-  const out=[],desc={"__NP63":`National Parks (${NPN})`};
+  const out=[],desc={"__NP63":`National Parks (${NPN})`,"__CA":"California State Parks"};
   if(filt.q.trim())out.push(["q","",`Search: “${filt.q.trim()}”`]);
   filt.st.forEach(v=>out.push(["st",v,v]));
   filt.u.forEach(v=>{const p=parks.find(x=>x.code===v);out.push(["u",v,p?p.title:v])});
@@ -951,11 +956,11 @@ function renderChips(){
 }
 $("#chips").onclick=e=>{const c=e.target.closest(".chip");if(!c)return;const k=c.dataset.k,v=c.dataset.v;
   if(k==="q"){$("#q").value="";filt.q=""}else filt[k].delete(v);
-  msInstances.forEach(m=>m.draw());refresh();if(k==="st"||k==="u")zoomToFilter()};
+  msInstances.forEach(m=>m.draw());refresh();if(k==="d")syncDataset();if(k==="st"||k==="u")zoomToFilter()};
 $("#progress").onclick=()=>{filt.d.clear();filt.d.add("__NP63");filt.v.clear();filt.v.add("0");msInstances.forEach(m=>m.draw());refresh()};
 function refreshOthers(){
-  const list=visible();
-  $("#count").textContent=`${list.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""} · ${[...checked].filter(id=>!id.startsWith("T:")).length} checked`;
+  const np=visible(),ca=wantCA()?visible(caParks):[],list=np.concat(ca);
+  $("#count").textContent=(wantCA()?`${np.length?np.length+" of "+parks.length+" NPS units + ":""}${ca.length} of ${caParks.length} CA state parks`:`${np.length} of ${parks.length} NPS units${showCA?" (+ CA state parks on map)":""}`)+` · ${[...checked].filter(id=>!id.startsWith("T:")).length} checked`;
   renderGrid(list);mapViews.forEach(v=>v.render());syncCAChecks();renderVisited();
   renderChips();mmRender();dashSubs.forEach(f=>{try{f()}catch(e){}});
 }

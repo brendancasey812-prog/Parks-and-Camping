@@ -28,6 +28,15 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Filter','column filter menu opens from the keyboard (Enter on ▾)',async()=>{await p.click('#clear');await p.focus('#ltable th[data-k=d] .fbtn');await p.keyboard.press('Enter');return await p.isVisible('#colmenu')});
   await check('Filter','column sort Z→A',async()=>{await p.click('#colmenu [data-a=desc]');await p.waitForTimeout(150);const a=await txt(p,cell(1,'d'));return /^[T-Z]/.test(a.trim())});
   await p.context().close();
+  p=await open();
+  await check('Filter','State Park designation shows state parks in cards, list and map',async()=>{await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[data-tab=explore]');await p.click('#clear');
+    await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="State Park"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+    return /^96 of 258 CA state parks/.test(await txt(p,'#count'))&&/96 of 258 rows · California State Parks/.test(await txt(p,'#lcount'))});
+  await check('Filter','★ California State Parks option lists all of them',async()=>{await p.click('#clear');await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__CA"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+    return /^258 of 258 CA state parks/.test(await txt(p,'#count'))&&await p.isVisible('.chip[data-v="__CA"]')});
+  await check('Filter','adding National Parks shows both; removing the state chip goes back to NPS',async()=>{await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__NP63"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+    const both=/^64 of 475 NPS units \+ 258 of 258 CA state parks/.test(await txt(p,'#count'));await p.click('.chip[data-v="__CA"]');await p.waitForTimeout(300);return both&&/64 of 475 rows · National Park Service/.test(await txt(p,'#lcount'))});
+  await p.context().close();
   // ---- editing + undo/redo
   p=await open();
   await check('Edit','typing into a cell edits it and marks it edited',async()=>{await p.click(cell(1,'city'));await p.keyboard.type('Testville');await p.keyboard.press('Enter');return await p.$eval(cell(1,'city'),e=>e.textContent==='Testville'&&e.classList.contains('edited')&&/Official/.test(e.title))});
@@ -133,6 +142,8 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Passes','pass + status filter (Golden Poppy, not accepted)',async()=>{await p.selectOption('#pPass','poppy');await p.selectOption('#pStatus','no');await p.waitForTimeout(150);return await pcount()===45});
   await check('Passes','limited status shows its note',async()=>{await p.selectOption('#pPass','explorer');await p.selectOption('#pStatus','limited');await p.waitForTimeout(150);
     return await pcount()===2&&/Baldwin Hills/.test(await txt(p,'#pBody'))});
+  await check('Passes','designation filter (State Park + Explorer accepted)',async()=>{await p.click('#pClear');await p.selectOption('#pDesig','State Park');const all=await pcount();await p.selectOption('#pPass','explorer');await p.selectOption('#pStatus','yes');await p.waitForTimeout(150);
+    return all===96&&await pcount()>0&&await pcount()<96&&(await p.$$eval('#pBody tr td:nth-child(2)',a=>a.every(x=>x.textContent==='State Park')))});
   await check('Passes','search narrows the list',async()=>{await p.click('#pClear');await p.fill('#pq','emerald bay');await p.waitForTimeout(150);return await pcount()===1});
   await check('Passes','visited checkbox here marks the park visited everywhere',async()=>{await p.click('#pBody input[data-vis]');await p.waitForTimeout(150);
     const own=await p.evaluate(()=>JSON.parse(localStorage.getItem('checked')).includes('CA:Emerald Bay|State Park'));return own&&/Visited 1 of the 5/.test(await txt(p,'.pcard[data-id=tahoe] .pc-v'))});
