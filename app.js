@@ -17,9 +17,9 @@ function splitCity(str,fallbackStates){
 const NP_DESIG=new Set(["National Park","National Park and Preserve","National Parks","National and State Parks"]);
 parks.forEach(p=>{p.np63=NP_DESIG.has(p.d)&&p.code!=="WOTR"});   // Wolf Trap is a "National Park for the Performing Arts", not one of the national parks
 const NPN=parks.filter(p=>p.np63).length;   // 64 now that Chiricahua is a national park
-parks.forEach(p=>{const dt=(window.NAT_DETAILS||{})[p.code]||["",""];p.kind="nps";const cs=splitCity(dt[0],p.states);p.city=cs.city;p.state=cs.state;p.hl=dt[1]});
+parks.forEach(p=>{const dt=(window.NAT_DETAILS||{})[p.code]||["",""];p.kind="nps";p.pass="";const cs=splitCity(dt[0],p.states);p.city=cs.city;p.state=cs.state;p.hl=dt[1]});
 const caParks=(window.CA_PARKS||[]).map(r=>({id:"CA:"+r[0]+"|"+r[1],name:r[0],title:r[0],
-  d:r[1],states:["California"],code:"",lat:r[3],lng:r[4],url:"",approx:false,blurb:"",kind:"ca",city:r[2],state:"California",hl:r[5]}));
+  d:r[1],states:["California"],code:"",lat:r[3],lng:r[4],url:"",approx:!!r[7],blurb:"",kind:"ca",city:r[2],state:"California",hl:r[5],pass:r[6]||""}));
 caParks.forEach(p=>{p.title=p.name.endsWith(p.d.replace("State ","").split(" ")[0])?p.name:p.name+" "+p.d});
 const esc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
 const byId=new Map([...parks,...caParks].map(p=>[p.id,p]));
@@ -72,7 +72,7 @@ multiSelect($("#fVisited"),"Status",[{value:"1",text:"Checked"},{value:"0",text:
 function visible(src=parks){
   const q=filt.q.toLowerCase().trim();
   return src.filter(p=>{
-    return (!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+fld(p,"hl")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
+    return (!q||(disp(p)+" "+fld(p,"name")+" "+fld(p,"d")+" "+fld(p,"city")+" "+fld(p,"state")+" "+fld(p,"hl")+" "+fld(p,"pass")+" "+p.code+" "+pstates(p).join(" ")).toLowerCase().includes(q))
     &&(!filt.st.size||pstates(p).some(s=>filt.st.has(s)))
     &&(!filt.u.size||filt.u.has(p.code))
     &&(!filt.d.size||filt.d.has(fld(p,"d"))||(filt.d.has("__NP63")&&p.np63))
@@ -180,7 +180,7 @@ function renderGrid(list){
       <span class="dot ${checked.has(p.id)?"on":"off"}" role="checkbox" aria-checked="${checked.has(p.id)}" tabindex="0" title="Check / uncheck"></span></div>
     <div class="body"><h3 aria-level="2"><a href="${esc(p.url||infoUrl(p))}" target="_blank" rel="noopener">${esc(disp(p))}</a>${isEdited(p,"name")?' <span class="ed" title="Official: '+esc(p.title)+'">edited</span>':""}</h3>
     <div class="meta">${esc(fld(p,"d"))} · ${p.states.slice(0,4).join(", ")}${p.states.length>4?" +"+(p.states.length-4):""}</div>
-    ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}<button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("");
+    ${fld(p,"year")?`<div class="meta yr">Last visited ${esc(fld(p,"year"))}</div>`:""}${fld(p,"city")?`<div class="meta">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}</div>`:""}${passTxt(p)?`<div class="meta">${esc(passTxt(p))}</div>`:""}${p.blurb?`<p>${p.blurb}</p>`:""}<button type="button" class="mapbtn" data-map="${esc(p.id)}">📍 Show on map</button></div></article>`).join("");
 }
 $("#grid").onclick=e=>{const mb=e.target.closest("[data-map]");if(mb){focusOnMap(mb.dataset.map);return}const d=e.target.closest(".dot");if(d)toggle(d.closest(".card").dataset.id)};
 $("#grid").onkeydown=e=>{if(e.key===" "||e.key==="Enter"){const d=e.target.closest(".dot");if(d){e.preventDefault();toggle(d.closest(".card").dataset.id)}}};
@@ -200,7 +200,8 @@ const style=p=>({...(checked.has(p.id)?{fillColor:"#e5383b",color:"#ffffff",fill
                                 :{fillColor:"#6b7780",color:"#ffffff",fillOpacity:.92,weight:1.6}),dashArray:p.approx?"2 2":null,...(p.kind==="ca"?{color:"#1b6d73",weight:2.4}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
 const typeLine=p=>`<div class="tt">${esc(fld(p,"d")||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`+(isEdited(p,"name")?`<div class="tt ed2">Official name: ${esc(p.title)}</div>`:"");
-const nearLine=p=>fld(p,"city")?`<div class="tt">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}${fld(p,"year")?" · visited "+esc(fld(p,"year")):""}</div>`:"";
+const passTxt=p=>{const v=fld(p,"pass");return v?"Explorer Pass: "+(/^accepted$/i.test(v)?"accepted":v):""};
+const nearLine=p=>(fld(p,"city")?`<div class="tt">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}${fld(p,"year")?" · visited "+esc(fld(p,"year")):""}</div>`:"")+(passTxt(p)?`<div class="tt">${esc(passTxt(p))}</div>`:"");
 const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(disp(p))}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
 const tipFull=p=>tipName(p)+typeLine(p);
 
@@ -419,11 +420,11 @@ function focusOnMap(id){
 function syncCAChecks(){mapViews.forEach(v=>{v.cfg&&$(v.cfg.ctl.ca)&&($(v.cfg.ctl.ca).checked=showCA)});document.body.classList.toggle("show-ca",showCA)}
 
 // ---------- list format (Google-Sheets-style grid) ----------
-const COLS=[{k:"name",t:"Name"},{k:"d",t:"Designation"},{k:"city",t:"Nearest City / Community"},{k:"state",t:"State"},{k:"visited",t:"Visited"},{k:"year",t:"Year Last Visited"},{k:"hl",t:"Highlights"}];
+const COLS=[{k:"name",t:"Name"},{k:"d",t:"Designation"},{k:"city",t:"Nearest City / Community"},{k:"state",t:"State"},{k:"visited",t:"Visited"},{k:"year",t:"Year Last Visited"},{k:"hl",t:"Highlights"},{k:"pass",t:"CA Explorer Pass"}];
 let dataset=store.get("dataset","nps"), sortKey="name", sortDir=1;
 let customRows=store.get("customRows",[]);
 const saveCustom=()=>store.set("customRows",customRows);
-const mkCustom=r=>({id:r.id,name:"",title:"",d:"",states:[],code:"",kind:"custom",city:"",state:"",hl:"",lat:null,lng:null,url:"",approx:false,blurb:""});
+const mkCustom=r=>({id:r.id,name:"",title:"",d:"",states:[],code:"",kind:"custom",city:"",state:"",hl:"",pass:"",lat:null,lng:null,url:"",approx:false,blurb:""});
 customRows.forEach(r=>byId.set(r.id,mkCustom(r)));
 const cellVal=(p,k)=>k==="visited"?(checked.has(p.id)?"TRUE":"FALSE"):String(fld(p,k)??"");
 const baseSrc=()=>(dataset==="ca"?caParks:parks).concat(customRows.filter(r=>r.ds===dataset).map(r=>byId.get(r.id)));
@@ -549,7 +550,7 @@ function renderCards(){
     return `<article class="rc${open?" open":""}${ed?" edited":""}" data-r="${r}">
     <div class="rc-h"><label class="rc-v"><input type="checkbox" ${checked.has(p.id)?"checked":""} aria-label="Visited: ${esc(disp(p))}"></label>
     <button type="button" class="rc-t" aria-expanded="${open}"><b>${esc(cellVal(p,"name")||"(unnamed)")}</b><span>${esc([cellVal(p,"d"),cellVal(p,"city"),cellVal(p,"state")].filter(Boolean).join(" · "))}</span></button>${ed?`<span class="ed" title="Edited from the official value">edited</span>`:""}</div>
-    ${open?`<div class="rc-b"><p><b>${esc(COLS[5].t)}:</b> ${esc(cellVal(p,"year"))||"—"}</p><p><b>${esc(COLS[6].t)}:</b> ${esc(cellVal(p,"hl"))||"—"}</p>
+    ${open?`<div class="rc-b"><p><b>Year Last Visited:</b> ${esc(cellVal(p,"year"))||"—"}</p><p><b>Highlights:</b> ${esc(cellVal(p,"hl"))||"—"}</p>${cellVal(p,"pass")?`<p><b>CA Explorer Pass:</b> ${esc(cellVal(p,"pass"))}</p>`:""}
     <div class="rc-a"><button type="button" data-a="edit" class="pri">Edit</button>${p.lat?`<button type="button" data-a="map">Show on map</button>`:""}</div></div>`:""}</article>`}).join("")||`<p class="gridmsg">No rows match.</p>`;
 }
 $("#cardlist").addEventListener("click",e=>{
@@ -562,7 +563,7 @@ $("#cardSort").onchange=e=>{sortKey=e.target.value;sortDir=1;renderList(true)};
 let sheetR=-1;
 function openSheet(r){
   sheetR=r;const p=rows[r],f=$("#sheetFields");
-  f.innerHTML=["name","d","city","state","year","hl"].map(k=>{const ci=COLS.findIndex(c=>c.k===k);
+  f.innerHTML=["name","d","city","state","year","hl","pass"].map(k=>{const ci=COLS.findIndex(c=>c.k===k);
     return `<label>${esc(COLS[ci].t)}${k==="hl"?`<textarea name="${k}" rows="3">${esc(cellVal(p,k))}</textarea>`:`<input name="${k}" value="${esc(cellVal(p,k))}">`}</label>`}).join("");
   $("#sheetTitle").textContent=cellVal(p,"name")||"Edit row";$("#sheet").showModal();
 }
@@ -717,7 +718,7 @@ document.addEventListener("pointerup",()=>{
 }
 
 // ----- toolbar
-const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights"}};
+const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights",pass:"CA Explorer Pass"}};
 function setDataset(d){
   const was=dataset;dataset=d;store.set("dataset",d);
   $$("#dataset button").forEach(b=>b.classList.toggle("on",b.dataset.ds===d));
@@ -754,7 +755,7 @@ $("#onlyEdited").onchange=e=>{onlyEdited=e.target.checked;renderList(false)};
 $("#revert").onclick=()=>{const {r0,r1,c0,c1}=rect(),b=[];
   for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){const p=rows[r],k=COLS[c].k;if(p&&k!=="visited"&&isEdited(p,k))setCell(r,c,official(p,k),b)}
   finish(b)};
-const FIELD={name:"Name",d:"Designation",city:"Nearest city",state:"State",hl:"Highlights",year:"Year visited"};
+const FIELD={name:"Name",d:"Designation",city:"Nearest city",state:"State",hl:"Highlights",year:"Year visited",pass:"CA Explorer Pass"};
 function editedList(){const out=[];for(const id in edits){const p=byId.get(id);if(!p)continue;
   for(const k in FIELD)if(edits[id][k]!==undefined&&isEdited(p,k))out.push({p,id,k,off:official(p,k),mine:edits[id][k]})}
   return out.sort((x,y)=>disp(x.p).localeCompare(disp(y.p)))}
@@ -837,7 +838,7 @@ function mmRender(){
     const d=myPos&&sel.lat?` · ${fmtDist(distMi(myPos,sel))} away`:"";
     body.innerHTML=`<div class="mmd"><button type="button" class="mmback" id="mmBack">← All parks</button>
       <h2>${esc(disp(sel))}</h2><p class="sub">${esc(fld(sel,"d")||"Unit")} · ${esc(sel.states.slice(0,2).join(", "))}${sel.approx?" · approximate spot":""}</p>
-      <p>${near}${d}${fld(sel,"year")?" · last visited "+esc(fld(sel,"year")):""}</p>${fld(sel,"hl")?`<p class="hl">${esc(fld(sel,"hl"))}</p>`:""}
+      <p>${near}${d}${fld(sel,"year")?" · last visited "+esc(fld(sel,"year")):""}</p>${passTxt(sel)?`<p>${esc(passTxt(sel))}</p>`:""}${fld(sel,"hl")?`<p class="hl">${esc(fld(sel,"hl"))}</p>`:""}
       <button type="button" id="mmVisit" class="mmvisit${vis?" on":""}" aria-pressed="${vis}">${vis?"✓ Visited – tap to undo":"Mark as visited"}</button>
       <div class="mmacts"><a href="${esc(infoUrl(sel))}" target="_blank" rel="noopener">Info page ↗</a>
       ${sel.lat?`<a href="https://www.google.com/maps/dir/?api=1&destination=${sel.lat},${sel.lng}" target="_blank" rel="noopener">Directions ↗</a>`:""}
