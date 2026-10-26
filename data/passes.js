@@ -365,7 +365,7 @@ window.PASSES=[
     "Folsom Powerhouse|State Historic Park": "yes",
     "Fort Ross|State Historic Park": "yes",
     "Fort Tejon|State Historic Park": "yes",
-    "Hearst San Simeon|State Park": "no",
+    "Hearst San Simeon|State Historical Monument": "no",
     "Indian Grinding Rock|State Historic Park": "yes",
     "Jack London|State Historic Park": "yes",
     "La Purísima Mission|State Historic Park": "yes",

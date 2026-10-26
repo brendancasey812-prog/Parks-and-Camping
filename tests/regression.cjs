@@ -148,6 +148,9 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
     return /Accepted: Explorer, Golden Poppy, Tahoe/.test(await p.$eval('#lbody td.k-pass',e=>e.textContent))});
   await check('Passes','no page errors',async()=>!p.errs.length);
   await p.context().close();
+  p=await open({},{checked:['CA:Hearst San Simeon|State Park']});
+  await check('Passes','a park whose designation was corrected keeps its visited check',async()=>(await p.evaluate(()=>JSON.parse(localStorage.getItem('checked'))))[0]==='CA:Hearst San Simeon|State Historical Monument'&&/Hearst San Simeon/.test(await txt(p,'#vlist')));
+  await p.context().close();
   // ---- settings, theme, drawer
   p=await open();
   await check('Settings','drawer opens, Esc closes',async()=>{await p.click('.tab[data-tab=about]');const o=await p.isVisible('#tab-about');await p.keyboard.press('Escape');return o&&!(await p.isVisible('#tab-about'))});
