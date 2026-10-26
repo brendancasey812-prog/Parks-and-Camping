@@ -124,6 +124,30 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
    p=await open({viewport:{width:390,height:844},hasTouch:true},{tab:'trips',trips:seed,pane:'table'});
    await check('Planner','phones: Plans / Calendar toggle',async()=>{const a=await p.isVisible('.tp-list')&&!(await p.isVisible('.tp-cal'));await p.tap('#tpPane [data-p=cal]');await p.waitForTimeout(250);return a&&await p.isVisible('.tp-cal')&&!(await p.isVisible('.tp-list'))&&await p.isVisible('.mo')});
    await p.context().close()}
+  // ---- state park passes
+  p=await open();
+  const pcount=async()=>+((await txt(p,'#pCount')).match(/^(\d+)/)||[0,-1])[1];
+  await check('Passes','tab shows a card per pass and every CA state park',async()=>{await p.click('.tab[data-tab=passes]');await p.waitForTimeout(200);
+    return (await p.$$('#passCards .pcard')).length===4&&/^258 of 258/.test(await txt(p,'#pCount'))&&!(await p.isVisible('#filters'))});
+  await check('Passes','tapping a pass card lists only its parks',async()=>{await p.click('.pcard[data-id=tahoe] .pc-t');await p.waitForTimeout(150);return await pcount()===5&&await p.inputValue('#pPass')==='tahoe'});
+  await check('Passes','pass + status filter (Golden Poppy, not accepted)',async()=>{await p.selectOption('#pPass','poppy');await p.selectOption('#pStatus','no');await p.waitForTimeout(150);return await pcount()===45});
+  await check('Passes','limited status shows its note',async()=>{await p.selectOption('#pPass','explorer');await p.selectOption('#pStatus','limited');await p.waitForTimeout(150);
+    return await pcount()===2&&/Baldwin Hills/.test(await txt(p,'#pBody'))});
+  await check('Passes','search narrows the list',async()=>{await p.click('#pClear');await p.fill('#pq','emerald bay');await p.waitForTimeout(150);return await pcount()===1});
+  await check('Passes','visited checkbox here marks the park visited everywhere',async()=>{await p.click('#pBody input[data-vis]');await p.waitForTimeout(150);
+    const own=await p.evaluate(()=>JSON.parse(localStorage.getItem('checked')).includes('CA:Emerald Bay|State Park'));return own&&/Visited 1 of the 5/.test(await txt(p,'.pcard[data-id=tahoe] .pc-v'))});
+  await check('Passes','hold a pass with an end month; it persists and expiry shows',async()=>{await p.click('#pClear');await p.check('.pcard[data-id=historian] input[data-own]');
+    await p.fill('.pcard[data-id=historian] input[data-until]','2020-01');await p.dispatchEvent('.pcard[data-id=historian] input[data-until]','change');await p.reload();await p.waitForTimeout(700);
+    return await p.isVisible('#tab-passes')&&/Expired/.test(await txt(p,'.pcard[data-id=historian] .pbadge'))});
+  await check('Passes','Only passes I hold limits columns and rows',async()=>{await p.check('#pMine');await p.waitForTimeout(150);return (await p.$$('#pHead th.c')).length===3&&await pcount()===43});
+  await check('Passes','CSV export has a column per pass',async()=>{await p.click('#pClear');const [d]=await Promise.all([p.waitForEvent('download'),p.click('#pCsv')]);const c=fs.readFileSync(await d.path(),'utf8');
+    return /"California Explorer","Golden Poppy","Tahoe Regional","Historian Passport"/.test(c.split('\r\n')[0])&&c.split('\r\n').length===259});
+  await check('Passes','Show on map opens the map with state parks on',async()=>{await p.selectOption('#pPass','tahoe');await p.click('#pMap');await p.waitForTimeout(500);
+    return await p.isVisible('#tab-map')&&await p.evaluate(()=>JSON.parse(localStorage.getItem('showCA')))===true});
+  await check('Passes','Park List carries the pass summary',async()=>{await p.click('.tab.grp[data-group=parks]');await p.click('.tabitem[data-tab=list]');await p.click('#dataset [data-ds=ca]');await p.click('#clear');await p.fill('#q','D.L. Bliss');await p.waitForTimeout(250);
+    return /Accepted: Explorer, Golden Poppy, Tahoe/.test(await p.$eval('#lbody td.k-pass',e=>e.textContent))});
+  await check('Passes','no page errors',async()=>!p.errs.length);
+  await p.context().close();
   // ---- settings, theme, drawer
   p=await open();
   await check('Settings','drawer opens, Esc closes',async()=>{await p.click('.tab[data-tab=about]');const o=await p.isVisible('#tab-about');await p.keyboard.press('Escape');return o&&!(await p.isVisible('#tab-about'))});

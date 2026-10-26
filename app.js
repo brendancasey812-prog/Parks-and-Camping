@@ -19,7 +19,15 @@ parks.forEach(p=>{p.np63=NP_DESIG.has(p.d)&&p.code!=="WOTR"});   // Wolf Trap is
 const NPN=parks.filter(p=>p.np63).length;   // 64 now that Chiricahua is a national park
 parks.forEach(p=>{const dt=(window.NAT_DETAILS||{})[p.code]||["",""];p.kind="nps";p.pass="";const cs=splitCity(dt[0],p.states);p.city=cs.city;p.state=cs.state;p.hl=dt[1]});
 const caParks=(window.CA_PARKS||[]).map(r=>({id:"CA:"+r[0]+"|"+r[1],name:r[0],title:r[0],
-  d:r[1],states:["California"],code:"",lat:r[3],lng:r[4],url:"",approx:!!r[7],blurb:"",kind:"ca",city:r[2],state:"California",hl:r[5],pass:r[6]||""}));
+  d:r[1],states:["California"],code:"",lat:r[3],lng:r[4],url:"",approx:!!r[6],blurb:"",kind:"ca",city:r[2],state:"California",hl:r[5]}));
+// state park passes (data/passes.js): p.passes[passId]={s:"yes"|"limited"|"no",note}; p.pass is the one-line summary shown in the list and popups
+const PASSES=window.PASSES||[];
+const PASS_LBL={yes:"Accepted",limited:"Limited",no:"Not accepted"};
+caParks.forEach(p=>{p.passes={}});
+PASSES.forEach(ps=>{for(const k in ps.parks){const p=caParks.find(x=>x.id==="CA:"+k),m=/^(yes|limited|no)\s*(?::\s*(.*))?$/i.exec(ps.parks[k]);
+  if(!p||!m){console.warn(`passes.js: ${ps.id}: "${k}" ${p?"has an unknown status":"is not in CA_PARKS"}`);continue}
+  p.passes[ps.id]={s:m[1].toLowerCase(),note:m[2]||""}}});
+caParks.forEach(p=>{p.pass=["yes","limited","no"].map(s=>{const l=PASSES.filter(ps=>p.passes[ps.id]?.s===s).map(ps=>ps.short+(p.passes[ps.id].note?` (${p.passes[ps.id].note})`:""));return l.length?PASS_LBL[s]+": "+l.join(", "):""}).filter(Boolean).join(" · ")});
 caParks.forEach(p=>{p.title=p.name.endsWith(p.d.replace("State ","").split(" ")[0])?p.name:p.name+" "+p.d});
 const esc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
 const byId=new Map([...parks,...caParks].map(p=>[p.id,p]));
@@ -83,7 +91,7 @@ $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
 $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-const TAB_SECTION={dashboard:"dashboard",trips:"trips",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
+const TAB_SECTION={dashboard:"dashboard",trips:"trips",passes:"passes",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
 const TAB_GROUP={dashboard:"",trips:"explore",explore:"explore",grid:"parks",list:"parks",map:"parks"};
 let currentTab="grid";
 function showTab(t){
@@ -94,9 +102,10 @@ function showTab(t){
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
   $$(".panel").forEach(p=>p.classList.toggle("active",sec==="explore"?(p.id==="tab-list"||p.id==="tab-map"):p.id==="tab-"+sec));
-  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");
+  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");document.body.classList.toggle("passes",t==="passes");
   if(window.TripsApp)t==="trips"?TripsApp.show():TripsApp.hide();
   if(window.Dashboard)t==="dashboard"?Dashboard.show():Dashboard.hide();
+  if(window.PassesApp)t==="passes"?PassesApp.show():PassesApp.hide();
   document.body.classList.toggle("map-mode",t==="map"||t==="explore");
   document.body.dataset.group=grp||"";
   if(sec==="list")setDataset(store.get("dataset","nps")==="ca"?"ca":"nps");
@@ -200,7 +209,7 @@ const style=p=>({...(checked.has(p.id)?{fillColor:"#e5383b",color:"#ffffff",fill
                                 :{fillColor:"#6b7780",color:"#ffffff",fillOpacity:.92,weight:1.6}),dashArray:p.approx?"2 2":null,...(p.kind==="ca"?{color:"#1b6d73",weight:2.4}:{})});
 const infoUrl=p=>p.url||("https://www.google.com/search?q="+encodeURIComponent(p.name+" "+(p.kind==="ca"?"California State Parks":"")));
 const typeLine=p=>`<div class="tt">${esc(fld(p,"d")||"Unit")} · ${esc(p.states.slice(0,2).join(", ")||"")}${p.states.length>2?" +"+(p.states.length-2)+" more":""}</div>`+(isEdited(p,"name")?`<div class="tt ed2">Official name: ${esc(p.title)}</div>`:"");
-const passTxt=p=>{const v=fld(p,"pass");return v?"Explorer Pass: "+(/^accepted$/i.test(v)?"accepted":v):""};
+const passTxt=p=>{const v=fld(p,"pass");return v?"Passes – "+v:""};
 const nearLine=p=>(fld(p,"city")?`<div class="tt">Near ${esc(fld(p,"city"))}${fld(p,"state")?", "+esc(fld(p,"state")):""}${fld(p,"year")?" · visited "+esc(fld(p,"year")):""}</div>`:"")+(passTxt(p)?`<div class="tt">${esc(passTxt(p))}</div>`:"");
 const tipName=p=>`<a class="lnk" href="${esc(infoUrl(p))}" target="_blank" rel="noopener" title="Open info page">${esc(disp(p))}</a>`+(p.kind==="ca"?" <small>(CA State Parks)</small>":"")+(p.approx?" <small>(approx.)</small>":"");
 const tipFull=p=>tipName(p)+typeLine(p);
@@ -420,7 +429,7 @@ function focusOnMap(id){
 function syncCAChecks(){mapViews.forEach(v=>{v.cfg&&$(v.cfg.ctl.ca)&&($(v.cfg.ctl.ca).checked=showCA)});document.body.classList.toggle("show-ca",showCA)}
 
 // ---------- list format (Google-Sheets-style grid) ----------
-const COLS=[{k:"name",t:"Name"},{k:"d",t:"Designation"},{k:"city",t:"Nearest City / Community"},{k:"state",t:"State"},{k:"visited",t:"Visited"},{k:"year",t:"Year Last Visited"},{k:"hl",t:"Highlights"},{k:"pass",t:"CA Explorer Pass"}];
+const COLS=[{k:"name",t:"Name"},{k:"d",t:"Designation"},{k:"city",t:"Nearest City / Community"},{k:"state",t:"State"},{k:"visited",t:"Visited"},{k:"year",t:"Year Last Visited"},{k:"hl",t:"Highlights"},{k:"pass",t:"State Park Passes"}];
 let dataset=store.get("dataset","nps"), sortKey="name", sortDir=1;
 let customRows=store.get("customRows",[]);
 const saveCustom=()=>store.set("customRows",customRows);
@@ -550,7 +559,7 @@ function renderCards(){
     return `<article class="rc${open?" open":""}${ed?" edited":""}" data-r="${r}">
     <div class="rc-h"><label class="rc-v"><input type="checkbox" ${checked.has(p.id)?"checked":""} aria-label="Visited: ${esc(disp(p))}"></label>
     <button type="button" class="rc-t" aria-expanded="${open}"><b>${esc(cellVal(p,"name")||"(unnamed)")}</b><span>${esc([cellVal(p,"d"),cellVal(p,"city"),cellVal(p,"state")].filter(Boolean).join(" · "))}</span></button>${ed?`<span class="ed" title="Edited from the official value">edited</span>`:""}</div>
-    ${open?`<div class="rc-b"><p><b>Year Last Visited:</b> ${esc(cellVal(p,"year"))||"—"}</p><p><b>Highlights:</b> ${esc(cellVal(p,"hl"))||"—"}</p>${cellVal(p,"pass")?`<p><b>CA Explorer Pass:</b> ${esc(cellVal(p,"pass"))}</p>`:""}
+    ${open?`<div class="rc-b"><p><b>Year Last Visited:</b> ${esc(cellVal(p,"year"))||"—"}</p><p><b>Highlights:</b> ${esc(cellVal(p,"hl"))||"—"}</p>${cellVal(p,"pass")?`<p><b>State Park Passes:</b> ${esc(cellVal(p,"pass"))}</p>`:""}
     <div class="rc-a"><button type="button" data-a="edit" class="pri">Edit</button>${p.lat?`<button type="button" data-a="map">Show on map</button>`:""}</div></div>`:""}</article>`}).join("")||`<p class="gridmsg">No rows match.</p>`;
 }
 $("#cardlist").addEventListener("click",e=>{
@@ -718,7 +727,7 @@ document.addEventListener("pointerup",()=>{
 }
 
 // ----- toolbar
-const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights",pass:"CA Explorer Pass"}};
+const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights",pass:"State Park Passes"}};
 function setDataset(d){
   const was=dataset;dataset=d;store.set("dataset",d);
   $$("#dataset button").forEach(b=>b.classList.toggle("on",b.dataset.ds===d));
@@ -727,6 +736,10 @@ function setDataset(d){
   if(was!==d){colFilt={};hist=[];redoS=[]}
   renderList()}
 $$("#dataset button").forEach(b=>b.onclick=()=>setDataset(b.dataset.ds));
+function showOnMap(ids){const sel=ids.map(id=>byId.get(id)).filter(p=>p&&p.lat);if(!sel.length)return;
+  if(sel.some(p=>p.kind==="ca")&&!showCA){showCA=true;store.set("showCA",true);syncCAChecks();refresh()}
+  if(sel.length===1){focusOnMap(sel[0].id);return}
+  showTab("map");setTimeout(()=>mainView.fitPoints(sel.map(p=>[p.lat,p.lng])),150)}
 $("#mapSel").onclick=()=>{const {r0,r1}=rect(),sel=rows.slice(r0,r1+1).filter(p=>p&&p.lat);if(!sel.length)return;
   if(sel.length===1){focusOnMap(sel[0].id);return}
   if(currentTab==="explore")setPane("map");else showTab("map");setTimeout(()=>mainView.fitPoints(sel.map(p=>[p.lat,p.lng])),150)};
@@ -755,7 +768,7 @@ $("#onlyEdited").onchange=e=>{onlyEdited=e.target.checked;renderList(false)};
 $("#revert").onclick=()=>{const {r0,r1,c0,c1}=rect(),b=[];
   for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){const p=rows[r],k=COLS[c].k;if(p&&k!=="visited"&&isEdited(p,k))setCell(r,c,official(p,k),b)}
   finish(b)};
-const FIELD={name:"Name",d:"Designation",city:"Nearest city",state:"State",hl:"Highlights",year:"Year visited",pass:"CA Explorer Pass"};
+const FIELD={name:"Name",d:"Designation",city:"Nearest city",state:"State",hl:"Highlights",year:"Year visited",pass:"State Park Passes"};
 function editedList(){const out=[];for(const id in edits){const p=byId.get(id);if(!p)continue;
   for(const k in FIELD)if(edits[id][k]!==undefined&&isEdited(p,k))out.push({p,id,k,off:official(p,k),mine:edits[id][k]})}
   return out.sort((x,y)=>disp(x.p).localeCompare(disp(y.p)))}
@@ -774,7 +787,7 @@ $("#editsCsv")?.addEventListener("click",()=>{
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="edits-vs-official.csv";a.click()});
 // backup / move to another device (a JSON file you can AirDrop, email or keep in iCloud / Drive)
 $("#backupOut")?.addEventListener("click",()=>{
-  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system"),dash:store.get("dash",null),favorites:store.get("favorites",[]),countdown:store.get("countdown",null),trips:store.get("trips",[])}};
+  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system"),dash:store.get("dash",null),favorites:store.get("favorites",[]),countdown:store.get("countdown",null),trips:store.get("trips",[]),myPasses:store.get("myPasses",{})}};
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="parks-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();store.set("lastBackup",{at:new Date().toISOString(),n:changeCount()});store.set("backupSnooze",0);renderSaveState();toast("Backup file saved")});
 $("#backupIn")?.addEventListener("change",async e=>{
   const f=e.target.files[0];if(!f)return;
@@ -782,7 +795,7 @@ $("#backupIn")?.addEventListener("change",async e=>{
     if(!confirm(`Replace this browser's data with the backup from ${d.savedAt?.slice(0,10)||"unknown date"}?\nBackup: ${(d.checked||[]).length} visited, ${Object.keys(d.edits||{}).length} edited units.\nHere now: ${checked.size} visited, ${Object.keys(edits).length} edited units (kept so you can undo).`))return;
     store.set("undoRestore",{...snap(),dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system")});
     store.set("checked",d.checked||[]);store.set("edits",d.edits||{});store.set("customRows",d.customRows||[]);
-    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);if(s.dash)store.set("dash",s.dash);if(s.favorites)store.set("favorites",s.favorites);if(s.countdown!==undefined)store.set("countdown",s.countdown);if(s.trips)store.set("trips",s.trips);
+    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);if(s.dash)store.set("dash",s.dash);if(s.favorites)store.set("favorites",s.favorites);if(s.countdown!==undefined)store.set("countdown",s.countdown);if(s.trips)store.set("trips",s.trips);if(s.myPasses)store.set("myPasses",s.myPasses);
     location.reload()}catch(err){alert("That file is not a Parks & Camping backup (.json saved from this site). Nothing was changed.")}finally{e.target.value=""}});
 
 // ---------- data safety: autosave indicator, backup reminder, undo for bulk actions ----------
@@ -914,7 +927,7 @@ const dashSubs=[];
 window.DashAPI={parks,caParks,byId,disp,fld,infoUrl,store,toast,
   isChecked:id=>checked.has(id),
   visited:()=>[...checked].map(id=>byId.get(id)).filter(Boolean),
-  showTab,focusOnMap:id=>focusOnMap(id),subscribe:f=>dashSubs.push(f),backup:()=>$("#backupOut").click()};
+  showTab,focusOnMap:id=>focusOnMap(id),showOnMap,toggle:id=>toggle(id),passes:PASSES,passLbl:PASS_LBL,esc,subscribe:f=>dashSubs.push(f),backup:()=>$("#backupOut").click()};
 
 // ---------- refresh ----------
 function refresh(){refreshOthers();renderList(true)}

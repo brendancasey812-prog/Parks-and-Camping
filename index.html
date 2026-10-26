@@ -35,6 +35,7 @@
         <button class="tabitem" data-tab="map"><b>◉</b>Park Map</button>
       </div>
     </div>
+    <button class="tab" data-tab="passes" type="button">Passes</button>
     <button class="tab" data-tab="visited">Visited</button>
     <button class="tab" data-tab="about" type="button" aria-controls="tab-about" aria-expanded="false">Settings</button>
   </nav>
@@ -136,7 +137,7 @@
       <th data-k="visited"><span class="ht">Visited</span><button class="fbtn" type="button" aria-label="Filter Visited">▾</button></th>
       <th data-k="year"><span class="ht">Year Last Visited</span><button class="fbtn" type="button" aria-label="Filter Year">▾</button></th>
       <th data-k="hl"><span class="ht">Highlights</span><button class="fbtn" type="button" aria-label="Filter Highlights">▾</button></th>
-      <th data-k="pass"><span class="ht">CA Explorer Pass</span><button class="fbtn" type="button" aria-label="Filter Explorer Pass">▾</button></th></tr></thead>
+      <th data-k="pass"><span class="ht">State Park Passes</span><button class="fbtn" type="button" aria-label="Filter State Park Passes">▾</button></th></tr></thead>
       <tbody id="lbody"></tbody></table></div>
     <div id="cardlist" class="cardlist" aria-label="Rows"></div>
     <div id="colmenu" class="colmenu" hidden></div>
@@ -160,6 +161,26 @@
     <div id="map"></div>
   </section>
 
+
+  <section id="tab-passes" class="panel" aria-labelledby="passTitle">
+    <div class="passwrap">
+      <div class="pass-head"><h2 id="passTitle">State park passes</h2>
+        <p class="hint">Where each California State Parks annual pass is honored. Tick the passes you hold and when they run out; tap a pass to list its parks.</p></div>
+      <div id="passCards" class="pass-cards"></div>
+      <div class="pass-filters" role="search" aria-label="Filter parks by pass">
+        <input id="pq" type="search" placeholder="Search parks or cities" aria-label="Search parks or cities">
+        <label>Pass <select id="pPass"></select></label>
+        <label>Status <select id="pStatus"><option value="">Any status</option><option value="yes">Accepted</option><option value="limited">Limited</option><option value="no">Not accepted</option><option value="none">Not on the list</option></select></label>
+        <label>Visited <select id="pVis"><option value="">All</option><option value="1">Visited</option><option value="0">Not visited</option></select></label>
+        <label class="pchk"><input type="checkbox" id="pMine"> Only passes I hold</label>
+        <button id="pClear" type="button" class="ghost">Clear</button>
+        <button id="pMap" type="button" class="ghost">Show on map</button>
+        <button id="pCsv" type="button" class="ghost">Export CSV</button>
+        <span id="pCount" class="count" role="status" aria-live="polite"></span>
+      </div>
+      <div class="tablewrap passtable"><table class="lt pt"><thead id="pHead"></thead><tbody id="pBody"></tbody></table></div>
+    </div>
+  </section>
 
   <section id="tab-visited" class="panel">
     <div class="toolbar"><strong id="vcount"></strong></div>
@@ -243,9 +264,11 @@
 <script defer src="vendor/topojson-client.min.js"></script>
 <script defer src="data/parks.js"></script>
 <script defer src="data/details.js"></script>
+<script defer src="data/passes.js"></script>
 <script defer src="data/geo.js"></script>
 <script defer src="app.js"></script>
 <script defer src="trips.js"></script>
 <script defer src="dashboard.js"></script>
+<script defer src="passes.js"></script>
 </body>
 </html>
