@@ -20,7 +20,13 @@
   <span id="saveState" class="savestate" role="status"></span>
   <nav class="tabs" aria-label="Main">
     <button class="tab" data-tab="dashboard" type="button">Dashboard</button>
-    <button class="tab" data-tab="explore" type="button">Explore</button>
+    <div class="tabgroup" data-group="explore">
+      <button class="tab grp" type="button" data-group="explore" aria-expanded="false">Explore <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <div class="tabmenu" hidden>
+        <button class="tabitem" data-tab="explore"><b>◫</b>Table + Map</button>
+        <button class="tabitem" data-tab="trips"><b>▣</b>Trip Planner</button>
+      </div>
+    </div>
     <div class="tabgroup" data-group="parks">
       <button class="tab grp" type="button" data-group="parks" aria-expanded="false">National Parks <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
       <div class="tabmenu" hidden>
@@ -63,6 +69,26 @@
       </div>
       <div id="dashGrid" class="dash-grid"></div>
     </div>
+  </section>
+
+  <section id="tab-trips" class="panel">
+    <div class="tp-top"><div class="seg panesw" id="tpPane" role="group" aria-label="Show"><button type="button" data-p="list" class="on" aria-pressed="true">Plans</button><button type="button" data-p="cal" aria-pressed="false">Calendar</button></div></div>
+    <div class="tp" data-pane="list">
+      <aside class="tp-list" aria-label="Camping and hiking plans">
+        <div class="tp-lh"><h2>Plans</h2><div class="tp-lb"><button id="tpNewCamp" type="button" class="pri">⛺ Camping</button><button id="tpNewHike" type="button" class="pri">🥾 Hike</button>
+          <details class="tp-more"><summary aria-label="More">⋯</summary><div><button id="tpImportBtn" type="button">Import a booking confirmation</button><button id="tpConnBtn" type="button">Booking sites &amp; connections</button><button id="tpIcs" type="button">Export calendar (.ics)</button></div></details></div></div>
+        <div class="tp-fl"><div class="seg" id="tpScope" role="group" aria-label="Which plans"><button type="button" data-s="upcoming">Upcoming</button><button type="button" data-s="past">Past</button><button type="button" data-s="all">All</button></div>
+          <span id="tpTypes" class="tp-types"><label><input type="checkbox" data-t="camp" checked> ⛺ Camping</label><label><input type="checkbox" data-t="hike" checked> 🥾 Hiking</label></span><span id="tpListCount" class="tp-n" role="status" aria-live="polite"></span></div>
+        <ul id="tpList" class="tp-ul"></ul>
+      </aside>
+      <section class="tp-cal" aria-label="Calendar">
+        <div class="tp-ch"><div class="tp-nav"><button id="tpToday" type="button">Today</button><button id="tpPrev" type="button" aria-label="Previous">‹</button><button id="tpNext" type="button" aria-label="Next">›</button><h2 id="tpTitle" aria-live="polite"></h2></div>
+          <div class="tp-search"><input id="tpQ" type="search" placeholder="Search plans, or type a date: June 2027, jun 14, next week" aria-label="Search plans or jump to a day, week or month" autocomplete="off"><button id="tpQClear" type="button" aria-label="Clear search" hidden>✕</button><ul id="tpSug" class="tp-sug" hidden></ul></div>
+          <div class="tp-vw"><label class="tp-goto">Go to <input id="tpGoto" type="date" aria-label="Go to a date"></label><div class="seg" id="tpView" role="group" aria-label="Calendar view"><button type="button" data-v="day">Day</button><button type="button" data-v="week">Week</button><button type="button" data-v="month">Month</button></div></div></div>
+        <div id="tpCal" class="tp-calbody"></div><div id="tpCalCount" class="tp-n" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+    <div id="tpPop" class="tp-pop" hidden></div>
   </section>
 
   <section id="tab-grid" class="panel active">
@@ -188,6 +214,13 @@
 <dialog id="dashPick" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Favorite parks</h2><input id="dashPickQ" type="search" placeholder="Search parks…" aria-label="Search parks"><ul id="dashPickList" class="dash-picklist"></ul><div class="act"><button type="button" id="dashPickDone" class="pri">Done</button></div></div></dialog>
 <dialog id="dashTrip" class="tdlg sheet"><form method="dialog" id="tripForm"><div class="in"><h2>Trip countdown</h2><label>What is the trip?<input id="tripTitle" placeholder="e.g. Yosemite with Sam"></label><label>Date<input id="tripDate" type="date"></label>
 <div class="act"><button type="submit" id="tripSave" class="pri">Save</button><button type="button" id="tripClear">Remove trip</button><button type="button" id="tripCancel">Cancel</button></div></div></form></dialog>
+<dialog id="tpImport" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Import a booking confirmation</h2>
+<p class="hint">Paste the text of a confirmation email, or just the booking link. We read dates, confirmation number and campground right here in your browser; nothing is sent anywhere.</p>
+<textarea id="tpImportText" rows="7" placeholder="Reservation confirmation… Check-in: Oct 24, 2026 … Check-out: Oct 27, 2026 … Confirmation #: 7200000000"></textarea>
+<div id="tpImportOut" hidden><h3>We found</h3><ul id="tpImportFound"></ul></div>
+<div class="act"><button type="button" id="tpImportRead">Read it</button><button type="button" id="tpImportMake" class="pri" disabled>Create plan</button><button type="button" id="tpImportCancel">Cancel</button></div></div></dialog>
+<dialog id="tpConn" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Booking sites &amp; connections</h2>
+<p class="hint">Today each plan links out to these sites, and you can export a calendar file. Automatic two-way syncing (availability, reservations) is being prepared; the places to add keys are ready.</p><ul id="tpConnList" class="cn-list"></ul></div></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="keysDlg" class="tdlg"><form method="dialog"><button class="tdlg-x" aria-label="Close">✕</button></form><div class="in"><h2>Keyboard shortcuts</h2><table class="keys">
 <tr><td>Arrows / Tab / Enter</td><td>Move between cells (Tab leaves the table at its edges)</td></tr>
@@ -211,6 +244,7 @@
 <script defer src="data/details.js"></script>
 <script defer src="data/geo.js"></script>
 <script defer src="app.js"></script>
+<script defer src="trips.js"></script>
 <script defer src="dashboard.js"></script>
 </body>
 </html>

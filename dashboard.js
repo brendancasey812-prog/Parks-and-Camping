@@ -8,7 +8,7 @@ const root=$("#dashGrid");if(!root)return;
 const reduce=matchMedia("(prefers-reduced-motion: reduce)");
 
 // ---------- widget catalogue ----------
-const APPS=[["explore","▦","Explore","Table and map together"],["grid","▤","Park Info","Park cards"],["list","☰","Park List","Editable list"],["map","◉","Park Map","Full-screen map"],["visited","✓","Visited","Everything you've checked"],["about","⚙","Settings","Settings, backup, about"],["backup","⇩","Backup","Save a backup file"]];
+const APPS=[["explore","▦","Explore","Table and map together"],["trips","▣","Trip Planner","Camping & hiking calendar"],["grid","▤","Park Info","Park cards"],["list","☰","Park List","Editable list"],["map","◉","Park Map","Full-screen map"],["visited","✓","Visited","Everything you've checked"],["about","⚙","Settings","Settings, backup, about"],["backup","⇩","Backup","Save a backup file"]];
 const T={
   clock:{name:"Clock & date",desc:"Time and today's date",sizes:[[2,1],[4,1],[2,2]],def:[2,1]},
   calendar:{name:"Calendar",desc:"This month",sizes:[[2,2],[4,2]],def:[2,2]},
@@ -18,6 +18,7 @@ const T={
   statStates:{name:"States visited",desc:"States with a visited place",sizes:[[1,1],[2,1]],def:[1,1]},
   favorites:{name:"Favorite parks",desc:"Your favorites; add as many as you like",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
   potd:{name:"Park of the day",desc:"A new national park every day",sizes:[[2,2],[4,2]],def:[2,2]},
+  camping:{name:"Camping plan",desc:"Your next camping and hiking plans; opens the Trip Planner",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
   countdown:{name:"Trip countdown",desc:"Days until your next trip",sizes:[[2,1],[1,1],[4,1]],def:[2,1]},
   recent:{name:"Recently visited",desc:"Latest years from your list",sizes:[[2,2],[4,2]],def:[2,2]},
   topStates:{name:"Top states",desc:"Where you've visited most",sizes:[[2,2],[4,2]],def:[2,2]},
@@ -25,9 +26,10 @@ const T={
 };
 const uid=()=>Math.random().toString(36).slice(2,8);
 const mk=(type,cfg)=>({id:type+"-"+uid(),type,w:T[type].def[0],h:T[type].def[1],cfg:cfg||{}});
-const DEFAULT=()=>({v:1,cols:4,items:[mk("clock"),mk("statVisited"),mk("statStates"),mk("progress"),mk("favorites"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
+const DEFAULT=()=>({v:3,cols:4,items:[mk("clock"),mk("statVisited"),mk("statStates"),mk("camping"),mk("progress"),mk("favorites"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
   ...APPS.map(a=>{const it=mk("app",{target:a[0]});if(a[0]==="backup")it.w=1;return it})]});   // the main apps are large, Backup is the small one
 let st=A.store.get("dash",null);if(!st||!Array.isArray(st.items)||![1,2,3,4].includes(st.cols))st=DEFAULT();
+if((st.v||1)<3){st.v=3;if(!st.items.some(i=>i.type==="camping"))st.items.splice(Math.min(3,st.items.length),0,mk("camping"));if(!st.items.some(i=>i.type==="app"&&i.cfg.target==="trips"))st.items.push(mk("app",{target:"trips"}));A.store.set("dash",st)}
 if((st.v||1)<2){st.v=2;st.items.forEach(it=>{if(it.type==="app"&&it.cfg&&it.cfg.target!=="backup"){it.w=2;it.h=1}});A.store.set("dash",st)}   // v2: main app shortcuts became large tiles
 const save=()=>A.store.set("dash",st);
 let editing=false,visible=false,timer=0;
@@ -59,6 +61,7 @@ const body={
   potd(){const np=nps63(),d=new Date(),i=(d.getFullYear()*372+d.getMonth()*31+d.getDate())%np.length,p=np[i];
     return `<div class="w-potd"><div class="w-h">Park of the day</div><b>${esc(A.disp(p))}</b><span>${esc(p.states.slice(0,2).join(", "))}</span><p>${esc((A.fld(p,"hl")||p.blurb||"").slice(0,140))}</p><div class="w-row"><button type="button" class="w-btn" data-open="${esc(p.id)}">Show on map</button><button type="button" class="w-btn" data-fav="${esc(p.id)}">${favs().includes(p.id)?"★ Favorite":"☆ Favorite"}</button></div></div>`},
   countdown(tile){const c=A.store.get("countdown",null);let main='<p class="w-empty">No trip planned yet.</p>';
+    const nx=!(c&&c.date)&&window.Trips&&Trips.upcoming(1)[0];if(nx){const days=Trips.daysUntil(nx);main=`<div class="w-cd"><b>${Math.max(0,days)}</b><span>${days===1?"day":"days"} until</span></div><div class="w-cd-t">${esc(Trips.label.titleOf(nx))}</div>`}
     if(c&&c.date){const days=Math.round((new Date(c.date+"T00:00:00")-new Date(new Date().toDateString()))/864e5);
       main=days>=0?`<div class="w-cd"><b>${days}</b><span>${days===1?"day":"days"} until</span></div><div class="w-cd-t">${esc(c.title||"Your trip")}</div>`:`<div class="w-cd-t">${esc(c.title||"Your trip")} was ${-days} day${days===-1?"":"s"} ago</div>`}
     return `<div class="w-count"><div class="w-h">Trip countdown</div>${main}<button type="button" class="w-btn" data-act="trip">${c&&c.date?"Change trip":"Set a trip"}</button></div>`},
@@ -66,6 +69,12 @@ const body={
     return `<div class="w-rec"><div class="w-h">Recently visited</div>${l.length?`<ul>${l.map(x=>`<li><button type="button" data-open="${esc(x.p.id)}">${esc(A.disp(x.p))}</button><span>${x.y}</span></li>`).join("")}</ul>`:`<p class="w-empty">Add a year in the list's "Year Last Visited" column to see your latest trips here.</p>`}</div>`},
   topStates(){const m=new Map();visitedAll().forEach(p=>{const s=p.states[0];if(s)m.set(s,(m.get(s)||0)+1)});const l=[...m].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,5),mx=l[0]?l[0][1]:1;
     return `<div class="w-top"><div class="w-h">Top states</div>${l.length?`<ul>${l.map(([s,n])=>`<li><span>${esc(s)}</span><i style="--w:${Math.round(n/mx*100)}%"></i><b>${n}</b></li>`).join("")}</ul>`:`<p class="w-empty">Mark places as visited to see your top states.</p>`}</div>`},
+  camping(tile){const Tr=window.Trips;if(!Tr)return `<div class="w-camp"><p class="w-empty">Trip Planner is loading…</p></div>`;
+    const up=Tr.upcoming(3),L=Tr.label;
+    const row=t=>{const d=Tr.daysUntil(t);return `<li><button type="button" data-trip="${esc(t.id)}"><span>${L.TYPES[t.type].icon}</span><b>${esc(L.titleOf(t))}</b><i>${esc(L.fmtRange(t.start,t.end))}</i><em>${d<=0?"now":d===1?"tomorrow":"in "+d+" days"}</em></button></li>`};
+    const big=up[0];
+    return `<div class="w-camp"><div class="w-h">⛺ Camping plan</div>${big?`<div class="w-camp-top"><button type="button" class="w-camp-name" data-trip="${esc(big.id)}">${L.TYPES[big.type].icon} ${esc(L.titleOf(big))}</button><span>${esc(L.fmtRange(big.start,big.end))}${big.type==="camp"&&L.nights(big)?` · ${L.nights(big)} night${L.nights(big)>1?"s":""}`:""}</span><span>${esc(L.parkName(big)||big.place||"")}</span><em class="pill st-${big.status}">${L.STATUS[big.status]}</em><b class="w-camp-d">${Tr.daysUntil(big)<=0?"Happening now":Tr.daysUntil(big)===1?"Tomorrow":"In "+Tr.daysUntil(big)+" days"}</b></div>${up.length>1?`<ul class="w-camp-l">${up.slice(1).map(row).join("")}</ul>`:""}`:`<p class="w-empty">No upcoming plans. Start one and it shows up here and on the calendar.</p>`}
+      <div class="w-row"><button type="button" class="w-btn" data-act="openplanner">Open planner</button><button type="button" class="w-btn" data-act="newcamp">+ Camping</button><button type="button" class="w-btn" data-act="newhike">+ Hike</button></div></div>`},
   app(tile){const a=APPS.find(x=>x[0]===tile.cfg.target)||APPS[0],lg=tile.w>=2;return `<button type="button" class="w-app${lg?" lg":""}" data-go="${a[0]}"><span class="ico">${a[1]}</span><span class="alb">${esc(a[2])}${lg?`<small>${esc(a[3])}</small>`:""}</span></button>`}
 };
 function tileHtml(it,i,n){
@@ -112,7 +121,8 @@ root.addEventListener("click",e=>{
   const op=e.target.closest("[data-open]");if(op){openPark(op.dataset.open);return}
   const uf=e.target.closest("[data-unfav]");if(uf){A.store.set("favorites",favs().filter(x=>x!==uf.dataset.unfav));render();return}
   const fv=e.target.closest("[data-fav]");if(fv){const id=fv.dataset.fav,f=favs();A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);render();return}
-  const ac=e.target.closest("[data-act]");if(ac){if(ac.dataset.act==="addfav")openPicker();else if(ac.dataset.act==="trip")openTrip()}
+  const tr=e.target.closest("[data-trip]");if(tr){window.Trips&&Trips.open(tr.dataset.trip);return}
+  const ac=e.target.closest("[data-act]");if(ac){const k=ac.dataset.act;if(k==="addfav")openPicker();else if(k==="trip")openTrip();else if(k==="openplanner")window.Trips&&Trips.open();else if(k==="newcamp")window.Trips&&Trips.create("camp");else if(k==="newhike")window.Trips&&Trips.create("hike")}
 });
 
 // drag to reorder (edit mode): grab a tile and move it over another
@@ -160,6 +170,7 @@ window.Dashboard={
   hide(){visible=false;clearInterval(timer);if(editing)setEditing(false)}
 };
 A.subscribe(()=>{if(visible&&!editing)render()});
+setTimeout(()=>{window.Trips&&Trips.subscribe(()=>{if(visible&&!editing)render()});if(visible&&!editing)render()},0);
 if(document.body.classList.contains("dash"))window.Dashboard.show();   // app.js may have opened this tab before this file loaded
 window.addEventListener("resize",()=>{if(visible)layout()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing&&visible&&!document.querySelector("dialog[open]"))setEditing(false)});

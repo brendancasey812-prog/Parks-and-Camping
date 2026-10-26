@@ -82,8 +82,8 @@ $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
 $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-const TAB_SECTION={dashboard:"dashboard",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
-const TAB_GROUP={dashboard:"",explore:"parks",grid:"parks",list:"parks",map:"parks"};
+const TAB_SECTION={dashboard:"dashboard",trips:"trips",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
+const TAB_GROUP={dashboard:"",trips:"explore",explore:"explore",grid:"parks",list:"parks",map:"parks"};
 let currentTab="grid";
 function showTab(t){
   if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
@@ -91,9 +91,10 @@ function showTab(t){
   toggleDrawer(false);
   $$(".tabitem").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
-  $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp&&t!=="explore"));
+  $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
   $$(".panel").forEach(p=>p.classList.toggle("active",sec==="explore"?(p.id==="tab-list"||p.id==="tab-map"):p.id==="tab-"+sec));
-  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");
+  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");
+  if(window.TripsApp)t==="trips"?TripsApp.show():TripsApp.hide();
   if(window.Dashboard)t==="dashboard"?Dashboard.show():Dashboard.hide();
   document.body.classList.toggle("map-mode",t==="map"||t==="explore");
   document.body.dataset.group=grp||"";
@@ -771,7 +772,7 @@ $("#editsCsv")?.addEventListener("click",()=>{
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="edits-vs-official.csv";a.click()});
 // backup / move to another device (a JSON file you can AirDrop, email or keep in iCloud / Drive)
 $("#backupOut")?.addEventListener("click",()=>{
-  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system"),dash:store.get("dash",null),favorites:store.get("favorites",[]),countdown:store.get("countdown",null)}};
+  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system"),dash:store.get("dash",null),favorites:store.get("favorites",[]),countdown:store.get("countdown",null),trips:store.get("trips",[])}};
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="parks-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();store.set("lastBackup",{at:new Date().toISOString(),n:changeCount()});store.set("backupSnooze",0);renderSaveState();toast("Backup file saved")});
 $("#backupIn")?.addEventListener("change",async e=>{
   const f=e.target.files[0];if(!f)return;
@@ -779,12 +780,12 @@ $("#backupIn")?.addEventListener("change",async e=>{
     if(!confirm(`Replace this browser's data with the backup from ${d.savedAt?.slice(0,10)||"unknown date"}?\nBackup: ${(d.checked||[]).length} visited, ${Object.keys(d.edits||{}).length} edited units.\nHere now: ${checked.size} visited, ${Object.keys(edits).length} edited units (kept so you can undo).`))return;
     store.set("undoRestore",{...snap(),dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system")});
     store.set("checked",d.checked||[]);store.set("edits",d.edits||{});store.set("customRows",d.customRows||[]);
-    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);if(s.dash)store.set("dash",s.dash);if(s.favorites)store.set("favorites",s.favorites);if(s.countdown!==undefined)store.set("countdown",s.countdown);
+    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);if(s.dash)store.set("dash",s.dash);if(s.favorites)store.set("favorites",s.favorites);if(s.countdown!==undefined)store.set("countdown",s.countdown);if(s.trips)store.set("trips",s.trips);
     location.reload()}catch(err){alert("That file is not a Parks & Camping backup (.json saved from this site). Nothing was changed.")}finally{e.target.value=""}});
 
 // ---------- data safety: autosave indicator, backup reminder, undo for bulk actions ----------
 const fmtTime=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
-const changeCount=()=>Object.keys(edits).length+checked.size+customRows.length;
+const changeCount=()=>Object.keys(edits).length+checked.size+customRows.length+(store.get("trips",[])||[]).length;
 function renderSaveState(){
   const el=$("#saveState");if(!el)return;
   el.classList.toggle("bad",!saveOK);el.setAttribute("aria-live",saveOK?"off":"assertive");
@@ -908,7 +909,7 @@ mainView.onReady(map=>map.on("click",()=>{const b=document.body;if(!mmOn()||b.cl
 
 // ---------- small API for the dashboard module ----------
 const dashSubs=[];
-window.DashAPI={parks,caParks,byId,disp,fld,infoUrl,store,
+window.DashAPI={parks,caParks,byId,disp,fld,infoUrl,store,toast,
   isChecked:id=>checked.has(id),
   visited:()=>[...checked].map(id=>byId.get(id)).filter(Boolean),
   showTab,focusOnMap:id=>focusOnMap(id),subscribe:f=>dashSubs.push(f),backup:()=>$("#backupOut").click()};
