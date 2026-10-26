@@ -11,7 +11,7 @@ const ptParts = d => { const p = {}; new Intl.DateTimeFormat("en-US", { timeZone
 const todayPT = () => { const p = ptParts(new Date()); return E.iso(p.year, p.month, p.day); };
 const defaultTarget = () => { let d = E.addDays(todayPT(), 215); const p = E.parseISO(d), dow = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay(); return E.addDays(d, (5 - dow + 7) % 7); };
 const saved = store.get("cc-state", {});
-const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", sort: "opens", dir: 1 }, saved);
+const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", unk: true, sort: "opens", dir: 1 }, saved);
 if (st.target < todayPT()) st.target = defaultTarget();
 const persist = () => store.set("cc-state", st);
 const open = new Set();
@@ -60,16 +60,25 @@ function matches(s, c) {
     if (a === "later" && c.status !== "later") return false;
     if (a === "walk" && !["walk", "fcfs"].includes(c.status)) return false;
   }
-  if (st.season === "on" && !(s.open && s.open.includes(m))) return false;
-  if (st.season === "year" && !(s.open && s.open.length === 12)) return false;
-  if (st.season === "seasonal" && !(s.open && s.open.length > 0 && s.open.length < 12)) return false;
-  if (st.month && !(s.open && s.open.includes(+st.month))) return false;
-  if (st.peak === "on" && !(s.peak && s.peak.includes(m))) return false;
-  if (st.peak === "off" && !(s.peak && !s.peak.includes(m))) return false;
-  if (st.peak === "has" && !s.peak) return false;
-  if (st.walk === "any" && !["some", "only"].includes(s.walkup)) return false;
-  if (st.walk === "none" && s.walkup !== "none") return false;
-  if (st.walk === "only" && s.walkup !== "only") return false;
+  const seasonOn = st.season || st.month, unkSeason = !s.open, unkPeak = !s.peak, unkWalk = !s.walkup;
+  if (seasonOn && unkSeason) { if (!st.unk) return false; }
+  else {
+    if (st.season === "on" && !s.open.includes(m)) return false;
+    if (st.season === "year" && s.open.length !== 12) return false;
+    if (st.season === "seasonal" && !(s.open.length > 0 && s.open.length < 12)) return false;
+    if (st.month && !s.open.includes(+st.month)) return false;
+  }
+  if (st.peak && unkPeak) { if (!st.unk) return false; }
+  else {
+    if (st.peak === "on" && !s.peak.includes(m)) return false;
+    if (st.peak === "off" && s.peak.includes(m)) return false;
+  }
+  if (st.walk && unkWalk) { if (!st.unk) return false; }
+  else {
+    if (st.walk === "any" && !["some", "only"].includes(s.walkup)) return false;
+    if (st.walk === "none" && s.walkup !== "none") return false;
+    if (st.walk === "only" && s.walkup !== "only") return false;
+  }
   if (st.conf && s.conf !== st.conf) return false;
   return true;
 }
@@ -91,18 +100,21 @@ function openCell(s, c) {
   }
   return '<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>";
 }
+const NV = '<span class="nv">Not verified yet</span>';
 function seasonCell(s) {
+  if (!s.open && !s.openNote) return NV;
   const t = s.open ? E.monthsLabel(s.open) : "Not verified";
   return "<b>" + esc(t) + "</b>" + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") + (s.check.includes("season") ? '<span class="warn" title="Season still to verify">⚠ verify</span>' : "");
 }
 function peakCell(s) {
+  if (!s.peak && !s.peakNote) return NV;
   const t = s.peak ? E.monthsLabel(s.peak) : "Varies";
   const on = s.peak && s.peak.includes(monthOf(st.target));
   return "<b>" + esc(t) + "</b>" + (on ? '<span class="tag peak">Peak on your date</span>' : "") + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") + (s.check.includes("peak") ? '<span class="warn" title="Peak season still to verify">⚠ verify</span>' : "");
 }
 const WALK = { none: ["Reservation only", "no"], some: ["Some walk-up", "some"], only: ["Walk-up only", "only"] };
-function walkCell(s) { const w = WALK[s.walkup]; return '<span class="tag walk-' + w[1] + '">' + w[0] + "</span>" + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") + (s.check.includes("walkup") ? '<span class="warn" title="Walk-up rules still to verify">⚠ verify</span>' : ""); }
-const CONF = { good: ["Confirmed", "good"], check: ["Needs checking", "check"], assumed: ["Assumed", "check"] };
+function walkCell(s) { if (!s.walkup) return s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" + NV : NV; const w = WALK[s.walkup]; return '<span class="tag walk-' + w[1] + '">' + w[0] + "</span>" + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") + (s.check.includes("walkup") ? '<span class="warn" title="Walk-up rules still to verify">⚠ verify</span>' : ""); }
+const CONF = { good: ["Confirmed", "good"], check: ["Needs checking", "check"], assumed: ["Default rule", "assumed"] };
 function rowHtml(x) {
   const { s, c } = x, sys = SYSTEMS[s.system], isOpen = open.has(s.id), badge = CONF[s.conf];
   const book = sys.url ? '<a class="btn" href="' + esc(sys.url) + '" target="_blank" rel="noopener">Book ↗</a>' : "";
@@ -112,7 +124,7 @@ function rowHtml(x) {
   return '<tr class="row' + (isOpen ? " open" : "") + '" data-id="' + esc(s.id) + '">' +
     '<th scope="row" data-l="Location"><button type="button" class="xp" data-xp="' + esc(s.id) + '" aria-expanded="' + isOpen + '" aria-label="Details for ' + esc(s.name) + '"><i aria-hidden="true">' + (isOpen ? "▾" : "▸") + "</i><span><b>" + esc(s.name) + "</b><small>" + esc(s.park) + " · " + esc(s.region) + "</small></span></button></th>" +
     '<td data-l="Booking site"><b>' + esc(sys.name) + "</b><small>" + esc(s.agency) + "</small></td>" +
-    '<td data-l="How it opens">' + esc(E.ruleText(s.rule)) + "</td>" +
+    '<td data-l="How it opens">' + esc(E.ruleText(s.rule)) + (s.check.includes("rule") && s.rule.kind !== "none" ? ' <span class="warn" title="Release rule assumed from the booking system default">assumed</span>' : "") + "</td>" +
     '<td data-l="Date available" class="av">' + openCell(s, c) + "</td>" +
     '<td data-l="Season">' + seasonCell(s) + "</td>" +
     '<td data-l="Peak season">' + peakCell(s) + "</td>" +
@@ -129,7 +141,11 @@ function render() {
   $("#tbody").innerHTML = rows.map(rowHtml).join("") || '<tr><td colspan="9" class="empty">Nothing matches these filters. Try clearing one.</td></tr>';
   $("#count").textContent = rows.length + " of " + SITES.length + " listings";
   $$("thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; th.setAttribute("aria-sort", on ? (st.dir > 0 ? "ascending" : "descending") : "none"); th.classList.toggle("on", on); });
-  renderChips(); renderPlanNote(); renderSoon();
+  renderChips(); renderPlanNote(); renderSoon(); renderSummary();
+}
+function renderSummary() {
+  const by = k => SITES.filter(s => s.system === k).length, ok = SITES.filter(s => s.conf !== "assumed").length;
+  $("#summary").textContent = SITES.length + " listings: " + by("rec") + " on Recreation.gov, " + by("rc") + " on ReserveCalifornia, " + by("fcfs") + " first-come only. " + ok + " have researched details; " + (SITES.length - ok) + " use their booking site's default release rule until the daily check fills in season, peak season and walk-up.";
 }
 function renderPlanNote() {
   const m = monthOf(st.target), peakN = SITES.filter(s => s.peak && s.peak.includes(m)).length;
@@ -137,7 +153,7 @@ function renderPlanNote() {
   $("#planNote").innerHTML = "For <b>" + esc(fmtDate(st.target)) + "</b>: Recreation.gov usually opens <b>" + esc(fmtAt(rec.at)) + "</b>; ReserveCalifornia opens <b>" + esc(fmtAt(rc.at)) + "</b>. " + peakN + " listed campgrounds are in peak season that month.";
 }
 const LABELS = { sys: v => SYSTEMS[v].name, avail: v => ({ open: "Already open", "7d": "Opens within 7 days", "30d": "Opens within 30 days", later: "Opens later", walk: "No advance booking" })[v], season: v => ({ on: "Open on my date", year: "Year-round", seasonal: "Seasonal only" })[v],
-  month: v => "Open in " + MONTHS[v - 1], peak: v => ({ on: "Peak on my date", off: "Not peak on my date", has: "Has a peak season" })[v], walk: v => ({ any: "Walk-up available", none: "Reservation only", only: "Walk-up only" })[v], conf: v => v === "good" ? "Confirmed" : "Needs checking", region: v => v, q: v => "Search: " + v };
+  month: v => "Open in " + MONTHS[v - 1], peak: v => ({ on: "Peak on my date", off: "Not peak on my date", has: "Has a peak season" })[v], walk: v => ({ any: "Walk-up available", none: "Reservation only", only: "Walk-up only" })[v], conf: v => ({ good: "Confirmed", check: "Needs checking", assumed: "Default rule" })[v], region: v => v, q: v => "Search: " + v };
 function renderChips() {
   const out = Object.keys(LABELS).filter(k => st[k] && String(st[k]).trim()).map(k => '<button type="button" class="chip" data-k="' + k + '" aria-label="Remove filter: ' + esc(LABELS[k](st[k])) + '">' + esc(LABELS[k](st[k])) + ' <span aria-hidden="true">✕</span></button>');
   $("#chips").innerHTML = out.join(""); $("#chips").hidden = !out.length;
@@ -182,6 +198,7 @@ $("#soonList").addEventListener("click", e => {
 });
 $$("thead th[data-k] button").forEach(b => b.onclick = () => { const k = b.closest("th").dataset.k; if (st.sort === k) st.dir = -st.dir; else { st.sort = k; st.dir = 1; } persist(); render(); });
 const FIELD = { fSys: "sys", fAvail: "avail", fSeason: "season", fMonth: "month", fPeak: "peak", fWalk: "walk", fConf: "conf", fRegion: "region" };
+$("#fUnk").onchange = e => { st.unk = e.target.checked; persist(); render(); };
 Object.keys(FIELD).forEach(id => { $("#" + id).onchange = e => { st[FIELD[id]] = e.target.value; persist(); render(); }; });
 $("#q").addEventListener("input", e => { st.q = e.target.value; persist(); render(); });
 $("#chips").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; st[c.dataset.k] = ""; syncFields(); persist(); render(); });
@@ -194,13 +211,13 @@ $$(".quick button").forEach(b => b.onclick = () => {
 $$("#tz button").forEach(b => b.onclick = () => { st.tz = b.dataset.tz; syncTz(); persist(); render(); });
 $("#csv").onclick = () => {
   const head = ["Location", "Park", "Booking site", "How it opens", "Date available (" + (st.tz === "pt" ? "Pacific" : "local") + ")", "Season", "Peak season", "Walk-up", "Data check", "Notes"];
-  const rows = shown.map(({ s, c }) => [s.name, s.park, SYSTEMS[s.system].name, E.ruleText(s.rule), c.at ? fmtAt(c.at) : STATUS_TEXT[c.status], s.open ? E.monthsLabel(s.open) : "Not verified", s.peak ? E.monthsLabel(s.peak) : "Varies", WALK[s.walkup][0], CONF[s.conf][0], s.notes]);
+  const rows = shown.map(({ s, c }) => [s.name, s.park, SYSTEMS[s.system].name, E.ruleText(s.rule), c.at ? fmtAt(c.at) : STATUS_TEXT[c.status], s.open ? E.monthsLabel(s.open) : "Not verified yet", s.peak ? E.monthsLabel(s.peak) : "Not verified yet", s.walkup ? WALK[s.walkup][0] : "Not verified yet", CONF[s.conf][0], s.notes]);
   download("california-campsite-releases.csv", [head].concat(rows).map(r => r.map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\r\n"), "text/csv");
 };
 $("#themeBtn").onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"), nx = cur === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = nx; store.set("cc-theme", nx); };
 
 // ---------- setup ----------
-function syncFields() { Object.keys(FIELD).forEach(id => $("#" + id).value = st[FIELD[id]] || ""); $("#q").value = st.q; }
+function syncFields() { Object.keys(FIELD).forEach(id => $("#" + id).value = st[FIELD[id]] || ""); $("#q").value = st.q; $("#fUnk").checked = st.unk !== false; }
 function syncTz() { $$("#tz button").forEach(b => { const on = b.dataset.tz === st.tz; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); }); }
 $("#fMonth").insertAdjacentHTML("beforeend", MONTHS.map((m, i) => '<option value="' + (i + 1) + '">' + m + "</option>").join(""));
 $("#fRegion").insertAdjacentHTML("beforeend", [...new Set(SITES.map(s => s.region))].sort().map(r => '<option value="' + esc(r) + '">' + esc(r) + "</option>").join(""));

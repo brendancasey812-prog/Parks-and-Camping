@@ -82,3 +82,8 @@ input[type=date],input[type=search],select{min-height:var(--tap);padding:.45rem 
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .t thead small{color:inherit!important}
 .dt li a{display:inline-block;min-height:24px;padding:3px 0}
+
+.chk{display:flex;gap:.5rem;align-items:center;flex-basis:100%;font-size:.84rem;color:var(--muted)}.chk input{width:20px;height:20px;accent-color:var(--pine)}
+.nv{display:inline-block;color:var(--muted);font-size:.8rem;font-style:italic}
+.badge.assumed{background:var(--mist);color:var(--ink);border:1px dashed var(--muted)}
+.summary{margin:0;padding:.6rem .9rem;border-radius:12px;background:var(--mist);font-size:.88rem}

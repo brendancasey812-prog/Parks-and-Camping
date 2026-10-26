@@ -42,11 +42,14 @@
     <label class="field">Open in month<select id="fMonth"><option value="">Any</option></select></label>
     <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak on my date</option><option value="off">Not peak on my date</option><option value="has">Has a peak season</option></select></label>
     <label class="field">Walk-up<select id="fWalk"><option value="">Any</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></label>
-    <label class="field">Data check<select id="fConf"><option value="">Any</option><option value="good">Confirmed</option><option value="check">Needs checking</option></select></label>
+    <label class="field">Data check<select id="fConf"><option value="">Any</option><option value="good">Confirmed</option><option value="check">Needs checking</option><option value="assumed">Default rule (not checked yet)</option></select></label>
     <label class="field">Region<select id="fRegion"><option value="">Any</option></select></label>
+    <label class="chk"><input type="checkbox" id="fUnk" checked> Include listings whose season, peak or walk-up is not verified yet</label>
     <div class="f-actions"><button id="clear" type="button" class="ghost">Clear filters</button><button id="csv" type="button" class="ghost">Export CSV</button></div>
     <div id="chips" class="chips" aria-label="Active filters"></div>
   </section>
+
+  <p id="summary" class="summary" role="note"></p>
 
   <section class="results" aria-labelledby="resH">
     <div class="res-h"><h2 id="resH">Campgrounds</h2><span id="count" class="muted" role="status" aria-live="polite"></span></div>
@@ -75,12 +78,13 @@
       <li><b>Recreation.gov</b> usually opens each new date 6 months ahead at 7:00 AM Pacific (10:00 AM Eastern). Some campgrounds use monthly blocks (Yosemite's Pines, Wawona and Hodgdon Meadow open one month at a time on the 15th), shorter windows or lotteries.</li>
       <li><b>ReserveCalifornia</b> opens each new date 6 months to the day at 8:00 AM Pacific.</li>
       <li>"Date available" is computed in Pacific time from your arrival date and shown in the time zone you pick. If the 6-month date does not exist (for example Aug 31), the last day of that month is used.</li>
-      <li><b>Data check:</b> <span class="badge good">Confirmed</span> official page or several agreeing sources. <span class="badge check">Needs checking</span> a secondary source or conflicting sources; the fields to verify are listed in each row. Built from a web search on <span id="aboutDate"></span>; the daily check (see <code>docs/DAILY-SEARCH.md</code>) will confirm and refresh it.</li>
+      <li><b>Data check:</b> <span class="badge good">Confirmed</span> official page or several agreeing sources. <span class="badge check">Needs checking</span> a secondary source or conflicting sources; the fields to verify are listed in each row. <span class="badge assumed">Default rule</span> the campground uses its booking site's standard release rule; season, peak season and walk-up are not verified yet. Built from a web search on <span id="aboutDate"></span>; the daily check (see <code>docs/DAILY-SEARCH.md</code>) will confirm and refresh it.</li>
     </ul>
   </section>
 </main>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="data/sites.js"></script>
+<script src="data/roster.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

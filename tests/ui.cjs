@@ -15,6 +15,8 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('arrival 2 months out: those rows say "Open now"',async()=>/Open now/.test((await rows(p)).find(x=>x.id==='jotr-black-rock').t));
  await check('plan note names both booking systems',async()=>/Recreation\.gov usually opens/.test(await p.textContent('#planNote'))&&/ReserveCalifornia opens/.test(await p.textContent('#planNote')));
  await p.fill('#target',plus(240));await p.dispatchEvent('#target','change');
+ await check('every California state park, national park and national forest is listed (150+ rows)',async()=>{const r=await rows(p);return r.length>=150&&r.some(x=>x.id.startsWith('usfs-'))&&r.some(x=>x.id.startsWith('sp-'))&&r.some(x=>x.id.startsWith('nps-'))});
+ await p.uncheck('#fUnk');
  await check('Booking site filter: ReserveCalifornia only',async()=>{await p.selectOption('#fSys','rc');const r=await rows(p);return r.length>=5&&r.every(x=>/ReserveCalifornia/.test(x.t))});
  await p.selectOption('#fSys','');
  await check('Walk-up filter: walk-up only',async()=>{await p.selectOption('#fWalk','only');const r=await rows(p);return r.length>=4&&r.every(x=>/Walk-up only/.test(x.t))});
@@ -22,6 +24,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await p.selectOption('#fWalk','');
  await check('Season filter: year-round',async()=>{await p.selectOption('#fSeason','year');const r=await rows(p);return r.length>=5&&r.every(x=>/Year-round/.test(x.t))});
  await p.selectOption('#fSeason','');
+ await check('Include-unverified box keeps default-rule rows in a filtered view, unchecking drops them',async()=>{await p.selectOption('#fWalk','only');const off=(await rows(p)).length;await p.check('#fUnk');const on=(await rows(p)).length;await p.uncheck('#fUnk');await p.selectOption('#fWalk','');return on>off+50});
  await check('Open-in-month filter: July keeps Tuolumne, drops winter-only Death Valley FCFS',async()=>{await p.selectOption('#fMonth','7');const r=(await rows(p)).map(x=>x.id);return r.includes('yose-tuolumne')&&!r.includes('deva-fcfs')});
  await p.selectOption('#fMonth','');
  await p.fill('#target','2027-07-17');await p.dispatchEvent('#target','change');
@@ -30,6 +33,8 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await p.selectOption('#fPeak','');
  await check('Yosemite monthly block: Jul 17 2027 opens Feb 15 2027 7:00 AM PST',async()=>{const r=(await rows(p)).find(x=>x.id==='yose-upper-pines');return /Feb 15, 2027, 7:00 AM PST/.test(r.t)&&/Jul 15, 2027 – Aug 14, 2027/.test(r.t)});
  await check('ReserveCalifornia rolling: Jul 17 2027 opens Jan 17 2027 8:00 AM PST',async()=>/Jan 17, 2027, 8:00 AM PST/.test((await rows(p)).find(x=>x.id==='sp-pfeiffer').t));
+ await check('Default-rule state park rows show the 8:00 AM release and "Not verified yet"',async()=>{await p.check('#fUnk');const r=(await rows(p)).find(x=>x.id==='sp-san-elijo-state-beach-san-elijo');await p.uncheck('#fUnk');return r&&/Jan 17, 2027, 8:00 AM PST/.test(r.t)&&/Not verified yet/.test(r.t)&&/Default rule/.test(r.t)});
+ await check('Data check filter: default rule',async()=>{await p.selectOption('#fConf','assumed');const r=await rows(p);await p.selectOption('#fConf','');return r.length>=100&&r.every(x=>/Default rule/.test(x.t))});
  await check('Month with no reservations (Borrego in July) says walk-up only',async()=>/No reservations that month/.test((await rows(p)).find(x=>x.id==='sp-borrego-palm').t));
  await check('Date available filter: no advance booking',async()=>{await p.selectOption('#fAvail','walk');const r=await rows(p);return r.length>=4&&r.every(x=>/No reservations that month|First-come/.test(x.t))});
  await p.selectOption('#fAvail','');
