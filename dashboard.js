@@ -10,6 +10,7 @@ const reduce=matchMedia("(prefers-reduced-motion: reduce)");
 // ---------- widget catalogue ----------
 const APPS=[["explore","▦","Explore","Table and map together"],["trips","▣","Trip Planner","Camping & hiking calendar"],["grid","▤","Park Info","Park cards"],["list","☰","Park List","Editable list"],["map","◉","Park Map","Full-screen map"],["visited","✓","Visited","Everything you've checked"],["about","⚙","Settings","Settings, backup, about"],["backup","⇩","Backup","Save a backup file"]];
 const T={
+  list:{name:"My list",desc:"A small list you can edit; syncs to the cloud when you sign in",sizes:[[4,2],[2,2],[4,3],[2,3]],def:[4,2]},
   clock:{name:"Clock & date",desc:"Time and today's date",sizes:[[2,1],[4,1],[2,2]],def:[2,1]},
   calendar:{name:"Calendar",desc:"This month",sizes:[[2,2],[4,2]],def:[2,2]},
   progress:{name:"National parks progress",desc:"Visited of the national parks",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
@@ -26,9 +27,10 @@ const T={
 };
 const uid=()=>Math.random().toString(36).slice(2,8);
 const mk=(type,cfg)=>({id:type+"-"+uid(),type,w:T[type].def[0],h:T[type].def[1],cfg:cfg||{}});
-const DEFAULT=()=>({v:3,cols:4,items:[mk("clock"),mk("statVisited"),mk("statStates"),mk("camping"),mk("progress"),mk("favorites"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
+const DEFAULT=()=>({v:4,cols:4,items:[mk("clock"),mk("list"),mk("statVisited"),mk("statStates"),mk("camping"),mk("progress"),mk("favorites"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
   ...APPS.map(a=>{const it=mk("app",{target:a[0]});if(a[0]==="backup")it.w=1;return it})]});   // the main apps are large, Backup is the small one
 let st=A.store.get("dash",null);if(!st||!Array.isArray(st.items)||![1,2,3,4].includes(st.cols))st=DEFAULT();
+if((st.v||1)<4){st.v=4;if(!st.items.some(i=>i.type==="list"))st.items.splice(Math.min(1,st.items.length),0,mk("list"));A.store.set("dash",st)}
 if((st.v||1)<3){st.v=3;if(!st.items.some(i=>i.type==="camping"))st.items.splice(Math.min(3,st.items.length),0,mk("camping"));if(!st.items.some(i=>i.type==="app"&&i.cfg.target==="trips"))st.items.push(mk("app",{target:"trips"}));A.store.set("dash",st)}
 if((st.v||1)<2){st.v=2;st.items.forEach(it=>{if(it.type==="app"&&it.cfg&&it.cfg.target!=="backup"){it.w=2;it.h=1}});A.store.set("dash",st)}   // v2: main app shortcuts became large tiles
 const save=()=>A.store.set("dash",st);
@@ -42,8 +44,30 @@ const favs=()=>A.store.get("favorites",[]).filter(id=>A.byId.has(id));
 function openPark(id){A.focusOnMap(id)}
 const pad=n=>String(n).padStart(2,"0");
 
+// ---------- my list: saved in this browser, and in the cloud when signed in (cloud.js); newest copy wins ----------
+const C=window.Cloud;
+let myList=A.store.get("dashList",null);if(!myList||!Array.isArray(myList.items))myList={items:[],at:0};
+let cloudSt=C?C.state():"off",pushT=0,listStale=false;
+function saveList(){myList.at=Date.now();A.store.set("dashList",myList);updateList();
+  if(C&&cloudSt==="in"){clearTimeout(pushT);pushT=setTimeout(()=>C.put("list",myList),400)}}
+function updateList(){                     // patch list tiles in place; wait while someone is typing in one
+  $$(".dw-list").forEach(t=>{if(t.contains(document.activeElement)&&document.activeElement.matches("[data-ltext]")){listStale=true;const s=t.querySelector("[data-sync]");if(s)s.outerHTML=syncHtml();return}
+    const w=t.querySelector(".w-list");if(w)w.outerHTML=body.list()})}
+const syncHtml=()=>({off:`<span class="w-sync" data-sync>This browser</span>`,loading:`<span class="w-sync" data-sync>Connecting…</span>`,
+  out:`<button type="button" class="w-sync on" data-sync data-act="signin">Sign in to sync</button>`,in:`<span class="w-sync ok" data-sync title="Saved to your account">☁ Synced</span>`,
+  error:`<span class="w-sync bad" data-sync title="Saved in this browser; see Settings">Sync problem</span>`}[cloudSt]||"");
+if(C){C.on(s=>{cloudSt=s;updateList()});
+  C.watch("list",r=>{if(!r||!Array.isArray(r.items)){if(myList.at)C.put("list",myList);return}       // nothing in the cloud yet: upload this browser's list
+    if(r.at>myList.at){myList=r;A.store.set("dashList",myList);updateList()}else if(r.at<myList.at)C.put("list",myList)})}
+document.addEventListener("focusout",()=>{if(listStale)setTimeout(()=>{if(!document.activeElement||!document.activeElement.closest(".dw-list")){listStale=false;updateList()}},0)});
+
 // ---------- rendering ----------
 const body={
+  list(){const n=myList.items.length,d=myList.items.filter(i=>i.done).length;
+    return `<div class="w-list"><div class="w-h w-list-h"><span>📝 My list${n?` <em>${d}/${n}</em>`:""}</span>${syncHtml()}</div>
+      <ul class="w-list-l">${myList.items.map(i=>`<li data-li="${esc(i.id)}"${i.done?' class="done"':""}><input type="checkbox" data-ldone ${i.done?"checked":""} aria-label="Done: ${esc(i.text)}"><input type="text" data-ltext value="${esc(i.text)}" maxlength="200" aria-label="Edit item"><button type="button" class="x" data-ldel aria-label="Delete ${esc(i.text)}">✕</button></li>`).join("")}</ul>
+      ${n?"":`<p class="w-empty">Nothing yet. Add campsites to book, gear to buy, parks to see…</p>`}
+      <form class="w-list-add" data-ladd><input type="text" maxlength="200" placeholder="Add an item…" aria-label="Add an item to my list"><button type="submit" class="w-btn">Add</button></form></div>`},
   clock(){return `<div class="w-clock"><div class="w-time" data-live="time"></div><div class="w-date" data-live="date"></div></div>`},
   calendar(){const d=new Date(),y=d.getFullYear(),m=d.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells="";for(let i=0;i<first;i++)cells+="<i></i>";for(let k=1;k<=n;k++)cells+=`<b${k===d.getDate()?' class="today" aria-current="date"':""}>${k}</b>`;
@@ -122,8 +146,19 @@ root.addEventListener("click",e=>{
   const uf=e.target.closest("[data-unfav]");if(uf){A.store.set("favorites",favs().filter(x=>x!==uf.dataset.unfav));render();return}
   const fv=e.target.closest("[data-fav]");if(fv){const id=fv.dataset.fav,f=favs();A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);render();return}
   const tr=e.target.closest("[data-trip]");if(tr){window.Trips&&Trips.open(tr.dataset.trip);return}
-  const ac=e.target.closest("[data-act]");if(ac){const k=ac.dataset.act;if(k==="addfav")openPicker();else if(k==="trip")openTrip();else if(k==="openplanner")window.Trips&&Trips.open();else if(k==="newcamp")window.Trips&&Trips.create("camp");else if(k==="newhike")window.Trips&&Trips.create("hike")}
+  const li=e.target.closest("[data-li]");if(li&&e.target.closest("[data-ldel]")){const i=myList.items.findIndex(x=>x.id===li.dataset.li),gone=myList.items[i];
+    myList.items.splice(i,1);saveList();const tt=$("#toast");tt.innerHTML='<span>Deleted</span><button type="button">Undo</button>';tt.querySelector("button").onclick=()=>{myList.items.splice(i,0,gone);saveList();tt.hidden=true};tt.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>tt.hidden=true,4000);return}
+  const ac=e.target.closest("[data-act]");if(ac&&ac.dataset.act==="signin"){C&&C.signIn();return}
+  if(ac){const k=ac.dataset.act;if(k==="addfav")openPicker();else if(k==="trip")openTrip();else if(k==="openplanner")window.Trips&&Trips.open();else if(k==="newcamp")window.Trips&&Trips.create("camp");else if(k==="newhike")window.Trips&&Trips.create("hike")}
 });
+
+root.addEventListener("change",e=>{const li=e.target.closest("[data-li]");if(!li)return;const it=myList.items.find(x=>x.id===li.dataset.li);if(!it)return;
+  if(e.target.matches("[data-ldone]"))it.done=e.target.checked;
+  else if(e.target.matches("[data-ltext]")){const v=e.target.value.trim();if(!v){e.target.value=it.text;return}it.text=v}
+  saveList()});
+root.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("[data-ltext]"))e.target.blur()});
+root.addEventListener("submit",e=>{const f=e.target.closest("[data-ladd]");if(!f)return;e.preventDefault();const inp=f.querySelector("input"),v=inp.value.trim();if(!v)return;
+  myList.items.push({id:uid()+uid(),text:v,done:false});saveList();setTimeout(()=>{const n=$(".dw-list [data-ladd] input");n&&n.focus()},0)});
 
 // drag to reorder (edit mode): grab a tile and move it over another
 {let drag=null;

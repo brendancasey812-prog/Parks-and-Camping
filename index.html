@@ -205,6 +205,7 @@
       <div class="tablewrap smallwrap"><table class="lt etab"><thead><tr><th>Unit</th><th>Field</th><th>Official</th><th>Yours</th><th><span class="sr">Revert</span></th></tr></thead><tbody id="editsBody"></tbody></table></div>
       <h2>Backup &amp; moving devices</h2>
       <p class="hint">Visited checks and edits live in this browser. Save a backup file and open it on your iPad or another computer to carry everything across.</p>
+      <div id="cloudBox" class="cloudbox"><h3>Cloud sync</h3><p class="hint"></p><button type="button" hidden>Sign in with Google</button></div>
       <p id="lastBackup" class="hint"></p>
       <p><button id="backupOut" type="button">Save backup (.json)</button> <label class="filebtn">Restore backup… <input id="backupIn" type="file" accept="application/json,.json" hidden></label></p>
       <h2>About</h2>
@@ -271,6 +272,8 @@
 <script defer src="data/geo.js"></script>
 <script defer src="app.js"></script>
 <script defer src="trips.js"></script>
+<script defer src="cloud-config.js"></script>
+<script defer src="cloud.js"></script>
 <script defer src="dashboard.js"></script>
 <script defer src="passes.js"></script>
 </body>

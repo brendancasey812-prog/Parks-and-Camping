@@ -5,7 +5,12 @@ const http=require('http'),fs=require('fs'),path=require('path');
 const {chromium}=require('playwright');
 const ROOT=path.join(__dirname,'..');
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
-const srv=http.createServer((q,r)=>{let f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));if(f.endsWith('/'))f+='index.html';
+// a stand-in for Firestore shared by every browser in the run (the fake Firebase modules below talk to it)
+const cloudDB={};
+const srv=http.createServer((q,r)=>{if(q.url.startsWith('/__cloud')){const k=new URL(q.url,'http://x').searchParams.get('p');
+    if(q.method==='POST'){let b='';q.on('data',c=>b+=c);q.on('end',()=>{cloudDB[k]={...(cloudDB[k]||{}),...JSON.parse(b)};r.end('{}')});return}
+    r.setHeader('content-type','application/json');return r.end(JSON.stringify(cloudDB[k]??null))}
+  let f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));if(f.endsWith('/'))f+='index.html';
   fs.readFile(f,(e,d)=>{if(e){r.statusCode=404;return r.end()}r.setHeader('content-type',MIME[path.extname(f)]||'application/octet-stream');r.end(d)})});
 const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await fn())}catch(e){err=e.message.split('\n')[0]}results.push({g,n,ok,err});console.log((ok?'PASS':'FAIL')+' | '+g.padEnd(9)+'| '+n+(err?' | '+err:''))};
 (async()=>{
@@ -42,6 +47,42 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Filter','adding National Parks shows both; removing the state chip goes back to NPS',async()=>{await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__NP63"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
     const both=/^64 of 475 NPS units \+ 258 of 258 CA state parks/.test(await txt(p,'#count'));await p.click('.chip[data-v="__CA"]');await p.waitForTimeout(300);return both&&/64 of 475 rows · National Park Service/.test(await txt(p,'#lcount'))});
   await p.context().close();
+  // ---- dashboard list + cloud sync (fake Firebase served locally)
+  const FAKE={app:`export function initializeApp(c){return {c}}`,
+    auth:`let cbs=[],user=JSON.parse(localStorage.getItem('fakeUser')||'null');export function getAuth(){return {}}export class GoogleAuthProvider{}
+      export function onAuthStateChanged(a,cb){cbs.push(cb);setTimeout(()=>cb(user),0);return()=>{}}
+      export async function signInWithPopup(){user={uid:'u1',email:'me@example.com'};localStorage.setItem('fakeUser',JSON.stringify(user));cbs.forEach(f=>f(user))}
+      export async function signInWithRedirect(){}export async function getRedirectResult(){return null}
+      export async function signOut(){user=null;localStorage.removeItem('fakeUser');cbs.forEach(f=>f(null))}`,
+    firestore:`export function getFirestore(){return {}}export function doc(db,c,id){return c+'/'+id}
+      export function onSnapshot(p,cb){let last=null;const t=setInterval(async()=>{const j=await (await fetch('/__cloud?p='+encodeURIComponent(p))).text();if(j!==last){last=j;const d=JSON.parse(j);cb({exists:()=>d!==null,data:()=>d})}},150);return()=>clearInterval(t)}
+      export async function setDoc(p,v){await fetch('/__cloud?p='+encodeURIComponent(p),{method:'POST',body:JSON.stringify(v)})}`};
+  const openCloud=async()=>{const ctx=await b.newContext({viewport:{width:1280,height:800}});
+    await ctx.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.CLOUD_CONFIG={apiKey:"k",projectId:"p",appId:"a"}'}));
+    await ctx.route('https://www.gstatic.com/firebasejs/**',r=>{const m=r.request().url().match(/firebase-(\w+)\.js/)[1];r.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body:FAKE[m]})});
+    const q=await ctx.newPage();q.errs=[];q.on('pageerror',e=>q.errs.push(e.message));await q.goto(URL_);await q.evaluate(()=>{localStorage.clear();localStorage.setItem('tab','"dashboard"')});await q.reload();await q.waitForTimeout(900);return q};
+  const addItem=async(q,t)=>{await q.fill('.dw-list [data-ladd] input',t);await q.press('.dw-list [data-ladd] input','Enter');await q.waitForTimeout(150)};
+  const items=q=>q.$$eval('.dw-list [data-ltext]',a=>a.map(x=>x.value));
+  p=await open();
+  await check('List','dashboard has an editable My list (this browser only without cloud)',async()=>{await p.click('.tab[data-tab=dashboard]');await p.waitForTimeout(200);return await p.isVisible('.dw-list')&&/This browser/.test(await txt(p,'.dw-list [data-sync]'))});
+  await check('List','add, check, edit and delete with undo; saved across reload',async()=>{await addItem(p,'Book Pinnacles');await addItem(p,'Buy stove fuel');
+    await p.check('.dw-list li:nth-child(1) [data-ldone]');await p.fill('.dw-list li:nth-child(2) [data-ltext]','Buy 2 fuel cans');await p.press('.dw-list li:nth-child(2) [data-ltext]','Enter');
+    await p.click('.dw-list li:nth-child(1) [data-ldel]');const gone=(await items(p)).length===1;await p.click('#toast button');await p.waitForTimeout(100);
+    await p.reload();await p.waitForTimeout(700);await p.click('.tab[data-tab=dashboard]');await p.waitForTimeout(200);
+    return gone&&JSON.stringify(await items(p))==='["Book Pinnacles","Buy 2 fuel cans"]'&&await p.isChecked('.dw-list li:nth-child(1) [data-ldone]')});
+  await check('List','the list is in the backup file',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),p.evaluate(()=>window.DashAPI.backup())]);return JSON.parse(fs.readFileSync(await d.path(),'utf8')).settings.dashList.items.length===2});
+  await p.context().close();
+  const A1=await openCloud(),B1=await openCloud();
+  await check('Cloud','signed out: list offers Sign in to sync; Settings explains',async()=>/Sign in to sync/.test(await txt(A1,'.dw-list [data-sync]'))&&/Sign in with Google/.test(await A1.$eval('#cloudBox p',e=>e.textContent)));
+  await check('Cloud','signing in uploads this browser\'s list',async()=>{await addItem(A1,'Reserve Big Sur');await A1.click('.dw-list [data-sync]');await A1.waitForTimeout(800);
+    return /Synced/.test(await txt(A1,'.dw-list [data-sync]'))&&(cloudDB['parks/u1']?.list?.items||[]).some(i=>i.text==='Reserve Big Sur')});
+  await check('Cloud','another browser signs in and gets the same list',async()=>{await B1.click('.dw-list [data-sync]');await B1.waitForTimeout(800);return JSON.stringify(await items(B1))==='["Reserve Big Sur"]'});
+  await check('Cloud','an edit in one browser shows up live in the other',async()=>{await addItem(B1,'Check Half Dome lottery');await B1.check('.dw-list li:nth-child(1) [data-ldone]');await A1.waitForTimeout(1200);
+    return JSON.stringify(await items(A1))==='["Reserve Big Sur","Check Half Dome lottery"]'&&await A1.isChecked('.dw-list li:nth-child(1) [data-ldone]')});
+  await check('Cloud','Settings shows the account and signs out',async()=>{await A1.click('.tab[data-tab=about]');const t=await A1.$eval('#cloudBox p',e=>e.textContent);await A1.click('#cloudBox button');await A1.waitForTimeout(200);
+    return /me@example.com/.test(t)&&/Sign in with Google/.test(await A1.$eval('#cloudBox button',e=>e.textContent))});
+  await check('Cloud','no page errors',async()=>!A1.errs.length&&!B1.errs.length);
+  await A1.context().close();await B1.context().close();
   // ---- editing + undo/redo
   p=await open();
   await check('Edit','typing into a cell edits it and marks it edited',async()=>{await p.click(cell(1,'city'));await p.keyboard.type('Testville');await p.keyboard.press('Enter');return await p.$eval(cell(1,'city'),e=>e.textContent==='Testville'&&e.classList.contains('edited')&&/Official/.test(e.title))});
@@ -95,13 +136,13 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
     await p.mouse.move(f.x,f.y);await p.mouse.down();await p.mouse.move(f.x+20,f.y+5,{steps:3});await p.mouse.move(t2.x,t2.y,{steps:8});await p.mouse.up();await p.waitForTimeout(200);const b=await tiles();await p.click('#dashEdit');if(!(b.join()!==a.join()&&b.indexOf(a[0])>0))throw new Error('before '+a.slice(0,4)+' after '+b.slice(0,4));return true});
   await check('Dashboard','remove a tile, undo brings it back',async()=>{await p.click('#dashEdit');const n=(await tiles()).length;await p.click('#dashGrid .dw:nth-child(2) [data-edit=rm]');const less=(await tiles()).length===n-1;await p.click('#toast button');const back=(await tiles()).length===n;await p.click('#dashEdit');return less&&back});
   await check('Dashboard','Add widget dialog adds a widget',async()=>{await p.click('#dashEdit');const n=(await tiles()).length;await p.click('#dashAddBtn');await p.click('#dashAddList [data-add=countdown]');const ok=(await tiles()).length===n+1;await p.click('#dashEdit');return ok});
-  await check('Dashboard','Reset layout restores the default',async()=>{await p.click('#dashEdit');p.once('dialog',d=>d.accept());await p.click('#dashReset');await p.waitForTimeout(200);const n=(await tiles()).length;await p.click('#dashEdit');return n===19});
+  await check('Dashboard','Reset layout restores the default',async()=>{await p.click('#dashEdit');p.once('dialog',d=>d.accept());await p.click('#dashReset');await p.waitForTimeout(200);const n=(await tiles()).length;await p.click('#dashEdit');return n===20});
   await check('Dashboard','add favorite parks; they show on the widget and persist',async()=>{await p.click('.w-fav [data-act=addfav]');await p.fill('#dashPickQ','zion');await p.click('#dashPickList [data-pick]');await p.fill('#dashPickQ','acadia');await p.click('#dashPickList [data-pick]');await p.click('#dashPickDone');await p.reload();await p.waitForTimeout(600);
     const tx=await txt(p,'.w-fav');return /Zion/.test(tx)&&/Acadia/.test(tx)});
   await check('Dashboard','trip countdown shows days left',async()=>{await p.click('.w-count [data-act=trip]');const d=new Date(Date.now()+10*864e5);const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');await p.fill('#tripTitle','Zion trip');await p.fill('#tripDate',iso);await p.click('#tripSave');return /^\s*(9|10)\b/.test(await txt(p,'.w-cd b'))&&/Zion trip/.test(await txt(p,'.w-count'))});
   await check('Dashboard','visited count updates the stats',async()=>{await p.hover('.tabgroup[data-group=explore]');await p.click('.tabitem[data-tab=explore]');await p.waitForTimeout(500);await p.click('#lbody tr:nth-child(1) td.k-visited input');await p.click('.tab[data-tab=dashboard]');await p.waitForTimeout(400);
     return /^1\b/.test(await txt(p,'.dw-statVisited b'))&&/1\s*\n?\s*of 64|^1/.test((await p.$eval('.w-prog svg',e=>e.getAttribute('aria-label'))).replace('1 of 64','1\nof 64'))});
-  await check('Dashboard','layout, favorites and trip travel in a backup',async()=>{await p.click('.tab[data-tab=about]');const [d]=await Promise.all([p.waitForEvent('download'),p.click('#backupOut')]);const j=JSON.parse(fs.readFileSync(await d.path(),'utf8'));return j.v===1&&j.settings.dash&&j.settings.dash.items.length===19&&j.settings.favorites.length===2&&j.settings.countdown&&j.settings.countdown.title==='Zion trip'});
+  await check('Dashboard','layout, favorites and trip travel in a backup',async()=>{await p.click('.tab[data-tab=about]');const [d]=await Promise.all([p.waitForEvent('download'),p.click('#backupOut')]);const j=JSON.parse(fs.readFileSync(await d.path(),'utf8'));return j.v===1&&j.settings.dash&&j.settings.dash.items.length===20&&j.settings.favorites.length===2&&j.settings.countdown&&j.settings.countdown.title==='Zion trip'});
   await p.context().close();
   // ---- trip planner
   {const iso=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');const da=n=>{const x=new Date();x.setHours(12);x.setDate(x.getDate()+n);return iso(x)};

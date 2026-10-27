@@ -811,7 +811,7 @@ $("#editsCsv")?.addEventListener("click",()=>{
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="edits-vs-official.csv";a.click()});
 // backup / move to another device (a JSON file you can AirDrop, email or keep in iCloud / Drive)
 $("#backupOut")?.addEventListener("click",()=>{
-  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system"),dash:store.get("dash",null),favorites:store.get("favorites",[]),countdown:store.get("countdown",null),trips:store.get("trips",[]),myPasses:store.get("myPasses",{})}};
+  const data={app:"parks-and-camping",v:1,savedAt:new Date().toISOString(),checked:[...checked],edits,customRows,settings:{dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system"),dash:store.get("dash",null),favorites:store.get("favorites",[]),countdown:store.get("countdown",null),trips:store.get("trips",[]),myPasses:store.get("myPasses",{}),dashList:store.get("dashList",null)}};
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="parks-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();store.set("lastBackup",{at:new Date().toISOString(),n:changeCount()});store.set("backupSnooze",0);renderSaveState();toast("Backup file saved")});
 $("#backupIn")?.addEventListener("change",async e=>{
   const f=e.target.files[0];if(!f)return;
@@ -819,7 +819,7 @@ $("#backupIn")?.addEventListener("change",async e=>{
     if(!confirm(`Replace this browser's data with the backup from ${d.savedAt?.slice(0,10)||"unknown date"}?\nBackup: ${(d.checked||[]).length} visited, ${Object.keys(d.edits||{}).length} edited units.\nHere now: ${checked.size} visited, ${Object.keys(edits).length} edited units (kept so you can undo).`))return;
     store.set("undoRestore",{...snap(),dot:dotScale,cols,showCA,dataset,theme:store.get("theme","system")});
     store.set("checked",d.checked||[]);store.set("edits",d.edits||{});store.set("customRows",d.customRows||[]);
-    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);if(s.dash)store.set("dash",s.dash);if(s.favorites)store.set("favorites",s.favorites);if(s.countdown!==undefined)store.set("countdown",s.countdown);if(s.trips)store.set("trips",s.trips);if(s.myPasses)store.set("myPasses",s.myPasses);
+    const s=d.settings||{};if(s.dot)store.set("dot",s.dot);if(s.cols)store.set("cols",s.cols);if(s.theme)store.set("theme",s.theme);store.set("showCA",!!s.showCA);if(s.dataset)store.set("dataset",s.dataset);if(s.dash)store.set("dash",s.dash);if(s.favorites)store.set("favorites",s.favorites);if(s.countdown!==undefined)store.set("countdown",s.countdown);if(s.trips)store.set("trips",s.trips);if(s.myPasses)store.set("myPasses",s.myPasses);if(s.dashList)store.set("dashList",{...s.dashList,at:Date.now()});
     location.reload()}catch(err){alert("That file is not a Parks & Camping backup (.json saved from this site). Nothing was changed.")}finally{e.target.value=""}});
 
 // ---------- data safety: autosave indicator, backup reminder, undo for bulk actions ----------
