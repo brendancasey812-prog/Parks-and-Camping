@@ -181,7 +181,7 @@ $$(".tabgroup").forEach(g=>{
   g.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")open()});
   g.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse"&&!pinned)close(350)});
   btn.addEventListener("click",()=>{if(menu.hidden){open();pinned=true}else if(!pinned)pinned=true;else close(0)});
-  menu.addEventListener("click",e=>{const b=e.target.closest(".tabitem");if(b){showTab(b.dataset.tab);close(0)}});
+  menu.addEventListener("click",e=>{const b=e.target.closest(".tabitem");if(b&&b.dataset.tab){showTab(b.dataset.tab);close(0)}});
   document.addEventListener("click",e=>{if(!g.contains(e.target)&&!menu.hidden)close(0)});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!menu.hidden)close(0)});
 });

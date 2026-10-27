@@ -83,6 +83,11 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
     return /me@example.com/.test(t)&&/Sign in with Google/.test(await A1.$eval('#cloudBox button',e=>e.textContent))});
   await check('Cloud','no page errors',async()=>!A1.errs.length&&!B1.errs.length);
   await A1.context().close();await B1.context().close();
+  p=await open();
+  await check('Availability','Explore menu opens the campsite availability tracker',async()=>{await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[href="availability/"]');await p.waitForLoadState();await p.waitForTimeout(600);
+    return /\/availability\/$/.test(p.url())&&(await p.$$('#parksBody tr')).length>=30&&!p.errs.length});
+  await check('Availability','its back link returns to Parks & Camping',async()=>{await p.click('a.nav-i[href="../"]');await p.waitForLoadState();await p.waitForTimeout(600);return await p.isVisible('.tabs')&&!/availability/.test(p.url())});
+  await p.context().close();
   // ---- editing + undo/redo
   p=await open();
   await check('Edit','typing into a cell edits it and marks it edited',async()=>{await p.click(cell(1,'city'));await p.keyboard.type('Testville');await p.keyboard.press('Enter');return await p.$eval(cell(1,'city'),e=>e.textContent==='Testville'&&e.classList.contains('edited')&&/Official/.test(e.title))});
