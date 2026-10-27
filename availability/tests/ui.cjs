@@ -39,6 +39,28 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await p.goto(URL_+'#/data');await p.waitForTimeout(200);
  await check('data page shows edit summary and export',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),p.click('#exportEdits')]);return /\.json$/.test(d.suggestedFilename())});
  await check('theme toggle switches',async()=>{await p.click('#themeBtn');return ['light','dark'].includes(await p.evaluate(()=>document.documentElement.dataset.theme))});
+ // ---- search finds campgrounds; Google Sheets-style column menus; in-cell editing
+ const g=await open({},{target:plus(240)});
+ await check('search "camp 4" shows Camp 4 under Yosemite and opens it',async()=>{await g.fill('#q','camp 4');await g.press('#q','Enter');await g.waitForTimeout(200);
+   const l=g.locator('#parksBody a.hit',{hasText:'Camp 4'});const ok=await l.count()===1;await l.click();await g.waitForTimeout(300);return ok&&/#\/park\/yosemite-national-park\/yose-camp4/.test(g.url())&&/Camp 4/.test(await g.textContent('#panel h2'))});
+ await g.goto(URL_+'#/');await g.fill('#q','');await g.evaluate(()=>{const c=document.querySelector('.chip[data-k=q]');c&&c.click()});await g.waitForTimeout(200);
+ const regions=()=>g.$$eval('#parksBody tr td[data-l=Region]',a=>[...new Set(a.map(x=>x.textContent))]);
+ await check('column menu: search values, tick one, OK filters the table',async()=>{await g.click('#parksTable th[data-k=region] .fb');await g.fill('.cmenu .cm-q','bay');const shown=await g.$$eval('.cmenu .cm-l li',a=>a.map(x=>x.textContent));
+   await g.fill('.cmenu .cm-q','');await g.click('.cmenu [data-cm=none]');await g.check('.cmenu .cm-l label:has-text("Bay Area") input');await g.click('.cmenu [data-cm=ok]');await g.waitForTimeout(200);
+   return shown.length===1&&/Bay Area/.test(shown[0])&&JSON.stringify(await regions())==='["Bay Area"]'&&await g.isVisible('#parksTable th.filtered[data-k=region]')&&/Region: Bay Area/.test(await g.textContent('#chips'))});
+ await check('column filter survives reload; chip removes it',async()=>{await g.reload();await g.waitForTimeout(400);const kept=JSON.stringify(await regions())==='["Bay Area"]';await g.click('.chip[data-k="cf:region"]');await g.waitForTimeout(200);return kept&&(await regions()).length>3});
+ await check('column menu: Sort Z → A',async()=>{await g.click('#parksTable th[data-k=name] .fb');await g.click('.cmenu [data-cm=desc]');await g.waitForTimeout(200);const n=await g.$$eval('#parksBody tr th a.nm',a=>a.map(x=>x.textContent));return n.length>5&&n[0].localeCompare(n[n.length-1])>0});
+ await check('Escape closes the menu',async()=>{await g.click('#parksTable th[data-k=sys] .fb');const o=await g.isVisible('.cmenu');await g.keyboard.press('Escape');return o&&!(await g.isVisible('.cmenu'))});
+ await g.goto(URL_+PARK);await g.waitForTimeout(300);
+ const cell=(id,k)=>`#campBody tr[data-id="${id}"] td[data-ed=${k}]`;
+ await check('campground table has column menus too (Walk-up)',async()=>{const all=(await camps(g)).length;await g.click('#campTable th[data-k=walk] .fb');await g.click('.cmenu [data-cm=none]');await g.check('.cmenu .cm-l label:has-text("Some walk-up") input');await g.click('.cmenu [data-cm=ok]');await g.waitForTimeout(200);
+   const n=(await camps(g)).length,ok=n>=1&&n<all&&await g.isVisible('#cClear');await g.click('#cClear');await g.waitForTimeout(200);return ok&&(await camps(g)).length===all});
+ await check('double-click a Season cell, change months, Save; Edited tag shows',async()=>{await g.dblclick(cell('yose-camp4','season'));await g.click('.ced [data-ea=none]');for(const m of ['Jun','Jul'])await g.check(`.ced .months label:has-text("${m}") input`);await g.fill('.ced input[name=note]','Test note');await g.click('.ced button[type=submit]');await g.waitForTimeout(250);
+   const t=await g.textContent(cell('yose-camp4','season'));return /Jun–Jul/.test(t)&&/Test note/.test(t)&&/Edited/.test(await g.textContent('#campBody tr[data-id=yose-camp4] th'))&&!!(await g.evaluate(()=>JSON.parse(localStorage.getItem('cc-edits'))['yose-camp4']))});
+ await check('Undo (Ctrl+Z) puts it back',async()=>{await g.click('#campTable thead th[data-k=name] button');await g.keyboard.press('Control+z');await g.waitForTimeout(250);return !/Jun–Jul/.test(await g.textContent(cell('yose-camp4','season')))&&!(await g.evaluate(()=>(JSON.parse(localStorage.getItem('cc-edits'))||{})['yose-camp4']))});
+ await check('Enter on a focused Walk-up cell opens its editor; Save changes it',async()=>{await g.focus(cell('yose-camp4','walk'));await g.keyboard.press('Enter');await g.selectOption('.ced select[name=walkup]','some');await g.click('.ced button[type=submit]');await g.waitForTimeout(250);return /Some walk-up/.test(await g.textContent(cell('yose-camp4','walk')))});
+ await check('the edit also shows in the details panel and Data page count',async()=>{await g.click('#campBody tr[data-id=yose-camp4] [data-pick]');await g.waitForTimeout(200);const pn=/Some walk-up/.test(await g.textContent('#panel'));await g.goto(URL_+'#/data');await g.waitForTimeout(200);return pn&&/1 campground edited/.test(await g.textContent('#editSummary'))});
+ await check('no errors in column menu / editing session',async()=>g.errs.length===0);
  await check('no runtime errors across session',async()=>p.errs.length===0);
  const m=await open({viewport:{width:390,height:800},isMobile:true,hasTouch:true},{target:plus(240)});
  await check('mobile: no horizontal scroll on overview',async()=>m.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));

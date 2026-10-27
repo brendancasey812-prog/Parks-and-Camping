@@ -13,7 +13,7 @@ const ptParts = d => { const p = {}; new Intl.DateTimeFormat("en-US", { timeZone
 const todayPT = () => { const p = ptParts(new Date()); return E.iso(p.year, p.month, p.day); };
 const defaultTarget = () => { const d = E.addDays(todayPT(), 215), p = E.parseISO(d), dow = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay(); return E.addDays(d, (5 - dow + 7) % 7); };
 const saved = store.get("cc-state", {});
-const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", kind: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", unk: true, sort: "name", dir: 1, csort: "name", cdir: 1, cq: "", cmode: "all" }, saved);
+const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", kind: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", unk: true, sort: "name", dir: 1, csort: "name", cdir: 1, cq: "", cmode: "all", cf: {}, ccf: { park: "", f: {} } }, saved);
 if (st.target < todayPT()) st.target = defaultTarget();
 const persist = () => store.set("cc-state", st);
 function fmtAt(date, withTime = true) {
@@ -33,6 +33,7 @@ function countdown(at) {
   if (h >= 1) return "in " + h + " h " + m + " min";
   return "in " + m + " min " + (s % 60) + " s";
 }
+function undoToast(m, canUndo) { toast(m); if (!canUndo) return; const t = $("#toast"); t.insertAdjacentHTML("beforeend", ' <button type="button" class="tbtn">Undo</button>'); t.querySelector(".tbtn").onclick = undoEdit; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 6000); }
 function toast(m) { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3500); }
 function download(name, text, type) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); }
 function ics(title, at, desc, url) {
@@ -113,6 +114,14 @@ function opensCell(s, c) {
   return '<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>";
 }
 const NV = '<span class="nv">Not researched</span>';
+// ---------- column filters (Google Sheets style): per column, the values you untick are hidden ----------
+function opensBucket(c) { if (c.at) { if (c.status === "open") return "Open now"; const h = hoursUntil(c.at); return h <= 168 ? "Opens within 7 days" : h <= 720 ? "Opens within 30 days" : "Opens later"; } return STATUS_TEXT[c.status] || ""; }
+const PCOL = { name: x => x.p.name, region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0], opens: x => opensBucket((x.first || x.calcs[0]).c),
+  walk: x => x.walk || "Not researched", n: x => String(x.n), conf: x => x.researched === x.n ? "Verified or checked" : x.researched ? "Partly researched" : "Not yet researched" };
+const CCOL = { name: x => x.s.name, opens: x => opensBucket(x.c), season: x => seasonText(x.s) || "Not researched", peak: x => peakText(x.s) || "Not researched", walk: x => x.s.walkup ? WALK[x.s.walkup] : "Not researched", conf: x => confLabel(x.s) };
+const passCF = (x, cols, cf, skip) => Object.keys(cf).every(k => k === skip || !cf[k] || !cf[k].length || !cf[k].includes(cols[k](x)));
+const campCF = () => { if (st.ccf.park !== R.key) st.ccf = { park: R.key, f: {} }; return st.ccf.f; };   // campground filters belong to one park
+let allParkSums = [], allCamps = [];
 
 // ---------- routing ----------
 function route() {
@@ -124,7 +133,7 @@ function route() {
 }
 let R = route();
 function show() {
-  R = route();
+  R = route(); closeMenu(); closeEditor();
   ["parks", "park", "permits", "data"].forEach(v => $("#v" + v[0].toUpperCase() + v.slice(1)).hidden = v !== R.v);
   $$(".nav-i").forEach(a => { const on = a.dataset.nav === (R.v === "park" ? "parks" : R.v); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); });
   $(".ask").style.visibility = R.v === "parks" ? "visible" : "hidden";
@@ -160,15 +169,18 @@ const SORTP = {
 let shownParks = [];
 function renderParks() {
   const list = rows().map(r => ({ r, c: calc(r) })).filter(x => matches(x.r, x.c)).map(x => x.r);
-  const sums = groupParks(list).map(parkSummary); const f = SORTP[st.sort] || SORTP.name; sums.sort((a, b) => f(a, b) * st.dir);
-  shownParks = sums;
+  let sums = groupParks(list).map(parkSummary); const f = SORTP[st.sort] || SORTP.name; sums.sort((a, b) => f(a, b) * st.dir);
+  allParkSums = sums; sums = sums.filter(x => passCF(x, PCOL, st.cf)); shownParks = sums;
+  const q = st.q.trim().toLowerCase(), hit = x => q ? x.p.rows.filter(r => r.name.toLowerCase().includes(q) && !x.p.name.toLowerCase().includes(q)) : [];
   $("#parksBody").innerHTML = sums.map(x => {
     const dc = x.researched === x.n ? "good" : x.researched ? "check" : "";
-    return '<tr class="link" data-park="' + esc(x.p.key) + '"><th scope="row" data-l="Park"><a class="nm link-cell" href="#/park/' + esc(x.p.key) + '">' + esc(x.p.name) + "</a><small>" + esc(x.p.agency) + "</small></th>" +
+    return '<tr class="link" data-park="' + esc(x.p.key) + '"><th scope="row" data-l="Park"><a class="nm link-cell" href="#/park/' + esc(x.p.key) + '">' + esc(x.p.name) + "</a><small>" + esc(x.p.agency) + "</small>" +
+      hit(x).map(r => '<a class="hit" href="#/park/' + esc(x.p.key) + "/" + esc(r.id) + '">Campground: ' + esc(r.name) + "</a>").join("") + "</th>" +
       '<td data-l="Region">' + esc(x.p.region) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
       '<td data-l="Opens for your date">' + opensParkCell(x) + '</td><td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td><td data-l="Campgrounds">' + x.n + (x.n !== x.all ? " of " + x.all : "") + '</td>' +
       '<td data-l="Data"><span class="dtl ' + dc + '">' + (x.researched === x.n ? "Verified or checked" : x.researched ? x.researched + " of " + x.n + " researched" : "Not yet researched") + "</span></td></tr>";
   }).join("") || '<tr><td colspan="8" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
+  markFiltered("#parksTable", st.cf);
   $("#parksTable").classList.add("stack");
   $$("#parksTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; if (on) th.setAttribute("aria-sort", st.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
   const camp = sums.reduce((t, x) => t + x.n, 0);
@@ -183,7 +195,11 @@ const LAB = {
   month: v => "Open in " + MONTHS[v - 1], peak: v => ({ on: "Peak on my date", off: "Not peak on my date", has: "Has a defined peak" })[v], walk: v => ({ any: "Walk-up available", none: "Reservation only", only: "Walk-up only" })[v],
   conf: v => ({ good: "Verified", check: "Needs checking", assumed: "Not yet researched" })[v]
 };
-function activeFilters() { const o = Object.keys(LAB).filter(k => st[k] && String(st[k]).trim()).map(k => ({ k, t: LAB[k](st[k]) })); if (st.q.trim()) o.unshift({ k: "q", t: "Search: " + st.q.trim() }); return o; }
+function activeFilters() { const o = Object.keys(LAB).filter(k => st[k] && String(st[k]).trim()).map(k => ({ k, t: LAB[k](st[k]) })); if (st.q.trim()) o.unshift({ k: "q", t: "Search: " + st.q.trim() });
+  Object.keys(st.cf).filter(k => st.cf[k] && st.cf[k].length).forEach(k => { const kept = [...new Set(allParkSums.filter(x => passCF(x, PCOL, st.cf, k)).map(PCOL[k]))].filter(v => !st.cf[k].includes(v));
+    o.push({ k: "cf:" + k, t: colName("#parksTable", k) + ": " + (kept.length <= 2 ? kept.join(", ") || "none" : kept.length + " selected") }); });
+  return o; }
+const colName = (tbl, k) => $(tbl + ' thead th[data-k="' + k + '"] button').textContent;
 function renderChips() {
   const a = activeFilters();
   $("#chips").innerHTML = a.map(x => '<button type="button" class="chip" data-k="' + x.k + '" aria-label="Remove filter: ' + esc(x.t) + '">' + esc(x.t) + " <i aria-hidden=\"true\">x</i></button>").join(""); $("#chips").hidden = !a.length;
@@ -215,16 +231,18 @@ function renderPark() {
   $("#parkMeta").textContent = p.agency + ", " + p.region + ". Booked through " + sys + ". " + all.length + " campground" + (all.length === 1 ? "" : "s") + " listed.";
   const q = st.cq.trim().toLowerCase();
   const list = all.map(s => ({ s, c: calc(s) })).filter(x => matches(x.s, x.c)).filter(x => (!q || x.s.name.toLowerCase().includes(q)) && cmodeOk(x));
-  const f = SORTC[st.csort] || SORTC.name; list.sort((a, b) => f(a, b) * st.cdir); shownCamps = list;
+  const f = SORTC[st.csort] || SORTC.name; list.sort((a, b) => f(a, b) * st.cdir); allCamps = list;
+  const cf = campCF(); shownCamps = list.filter(x => passCF(x, CCOL, cf)); markFiltered("#campTable", cf);
   if (R.id && all.some(r => r.id === R.id)) selId = R.id;
-  if (!list.some(x => x.s.id === selId)) selId = list.length ? list[0].s.id : "";
-  $("#campBody").innerHTML = list.map(x => campRow(x)).join("") || '<tr><td colspan="6" class="empty">No campgrounds match. Clear a filter or the search.</td></tr>';
+  if (!shownCamps.some(x => x.s.id === selId)) selId = shownCamps.length ? shownCamps[0].s.id : "";
+  $("#campBody").innerHTML = shownCamps.map(x => campRow(x)).join("") || '<tr><td colspan="6" class="empty">No campgrounds match. Clear a filter or the search.</td></tr>';
   $("#campTable").classList.add("stack");
   $$("#campTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.csort; if (on) th.setAttribute("aria-sort", st.cdir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
   $$("#cMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === st.cmode));
   $("#cq").value = st.cq;
-  $("#campCount").textContent = list.length + " of " + all.length + " campgrounds";
-  renderPanel(list.find(x => x.s.id === selId));
+  $("#campCount").textContent = shownCamps.length + " of " + all.length + " campgrounds";
+  $("#cClear").hidden = !Object.values(cf).some(v => v && v.length);
+  renderPanel(shownCamps.find(x => x.s.id === selId));
 }
 function cmodeOk(x) { const m = monthOf(st.target); if (st.cmode === "open") return x.s.open && x.s.open.includes(m); if (st.cmode === "peak") return x.s.peak && x.s.peak.includes(m); if (st.cmode === "walk") return ["some", "only"].includes(x.s.walkup); return true; }
 function campRow(x) {
@@ -233,8 +251,10 @@ function campRow(x) {
   const m = monthOf(st.target), peak = s.peak ? "<b>" + esc(peakText(s)) + "</b>" + (s.peak.includes(m) ? '<span class="tag">Peak on your date</span>' : "") + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : NV);
   const walk = s.walkup ? "<b>" + esc(WALK[s.walkup]) + "</b>" + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") : (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") + (s.walkup ? "" : NV);
   return '<tr class="link' + (s.id === selId ? " sel" : "") + '" data-id="' + esc(s.id) + '"><th scope="row" data-l="Campground"><button type="button" class="nm" data-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === selId) + '">' + esc(s.name) + "</button>" + (s.edited ? '<span class="tag edit">Edited</span>' : "") + "</th>" +
-    '<td data-l="Opens for your date">' + opensCell(s, c) + '</td><td data-l="Season">' + season + '</td><td data-l="Peak season">' + peak + '</td><td data-l="Walk-up">' + walk + '</td><td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(s)) + "</span></td></tr>";
+    '<td data-l="Opens for your date">' + opensCell(s, c) + "</td>" + edCell("season", "Season", season, s) + edCell("peak", "Peak season", peak, s) + edCell("walk", "Walk-up", walk, s) + '<td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(s)) + "</span></td></tr>";
 }
+const edCell = (k, label, html, s) => '<td data-l="' + label + '" class="edc" tabindex="0" data-ed="' + k + '" title="Double-click to edit">' + html +
+  '<button type="button" class="pen" data-cedit="' + k + '" aria-label="Edit ' + label.toLowerCase() + " for " + esc(s.name) + '"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-2.6.6L4 10z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button></td>';
 
 // ---------- detail panel with photo and editing ----------
 let editing = false;
@@ -272,15 +292,21 @@ function editHtml(s) {
     '<label>Block starts on day (monthly only)<input type="number" name="rblock" min="1" max="28" value="' + (r.blockStart || 15) + '"></label></fieldset>' +
     '<label>Notes<textarea name="notes" rows="3">' + esc(s.notes) + '</textarea></label><div class="pn-act"><button type="submit" class="btn primary">Save</button><button type="button" class="btn" data-act="cancel">Cancel</button><button type="button" class="btn danger" data-act="reset">Reset to source</button></div></form>';
 }
+let lastEdit = null;
+function commitEdit(id, next) {
+  const base = BASE.find(b => b.id === id); lastEdit = { id, prev: edits[id] ? JSON.parse(JSON.stringify(edits[id])) : null };
+  const diff = {}; Object.keys(next).forEach(k => { if (JSON.stringify(next[k] ?? null) !== JSON.stringify(base[k] ?? null)) diff[k] = next[k]; });
+  if (Object.keys(diff).length) { diff.conf = base.conf === "assumed" ? "check" : base.conf; diff.updated = todayPT(); diff.check = base.check.filter(c => !["season", "peak", "walkup", "rule"].includes(c) || !(c === "season" && next.open) ); edits[id] = diff; } else delete edits[id];
+  store.set("cc-edits", edits); return Object.keys(diff).length > 0;
+}
+function undoEdit() { if (!lastEdit) return; const { id, prev } = lastEdit; lastEdit = null; if (prev) edits[id] = prev; else delete edits[id]; store.set("cc-edits", edits); toast("Undone."); render(); }
 function saveEdit(form) {
-  const id = form.dataset.id, base = BASE.find(b => b.id === id), fd = new FormData(form), g = n => fd.get(n);
+  const id = form.dataset.id, fd = new FormData(form), g = n => fd.get(n);
   const months = n => { const a = fd.getAll(n).map(Number).sort((x, y) => x - y); return a.length ? a : null; };
   const kind = g("rkind"), rn = +g("rn") || 0, time = /^\d{1,2}:\d{2}$/.test(g("rtime")) ? g("rtime").padStart(5, "0") : "07:00";
   const rule = kind === "rolling" ? { kind, months: rn || 6, time } : kind === "days" ? { kind, days: rn || 7, time } : kind === "monthly" ? { kind, blockStart: +g("rblock") || 15, monthsAhead: rn || 5, time } : { kind: "none" };
   const next = { open: months("open"), openNote: g("openNote").trim(), peak: months("peak"), peakNote: g("peakNote").trim(), walkup: g("walkup") || null, walkupNote: g("walkupNote").trim(), rule, notes: g("notes").trim() };
-  const diff = {}; Object.keys(next).forEach(k => { if (JSON.stringify(next[k] ?? null) !== JSON.stringify(base[k] ?? null)) diff[k] = next[k]; });
-  if (Object.keys(diff).length) { diff.conf = base.conf === "assumed" ? "check" : base.conf; diff.updated = todayPT(); diff.check = base.check.filter(c => !["season", "peak", "walkup", "rule"].includes(c) || !(c === "season" && next.open) ); edits[id] = diff; } else delete edits[id];
-  store.set("cc-edits", edits); editing = false; toast(Object.keys(diff).length ? "Saved. Marked as edited on this device." : "No changes."); render();
+  const changed = commitEdit(id, next); editing = false; undoToast(changed ? "Saved. Marked as edited on this device." : "No changes.", changed); render();
 }
 
 // ---------- photos (IndexedDB, this browser only) ----------
@@ -331,18 +357,20 @@ function applyAsk(text) {
 $("#ask").addEventListener("submit", e => { e.preventDefault(); applyAsk($("#q").value); });
 $("#q").addEventListener("input", e => { if (!e.target.value.trim() && st.q) { st.q = ""; persist(); render(); } });
 $("#sugg").addEventListener("click", e => { const b = e.target.closest(".sg"); if (!b) return; const k = b.dataset.f; st[k] = st[k] === b.dataset.v ? "" : b.dataset.v; persist(); syncFields(); render(); });
-$("#chips").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; st[c.dataset.k] = ""; if (c.dataset.k === "q") $("#q").value = ""; syncFields(); persist(); render(); });
+$("#chips").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; if (c.dataset.k.startsWith("cf:")) { delete st.cf[c.dataset.k.slice(3)]; persist(); render(); return; } st[c.dataset.k] = ""; if (c.dataset.k === "q") $("#q").value = ""; syncFields(); persist(); render(); });
 $("#sideGroups").addEventListener("click", e => { const a = e.target.closest("[data-side]"); if (!a) return; e.preventDefault(); const [k, v] = a.dataset.side.split(":"); st.kind = k === "kind" ? (st.kind === v ? "" : v) : st.kind; st.region = k === "region" ? (st.region === v ? "" : v) : st.region; syncFields(); persist(); nav("#/"); });
 const FIELD = { fKind: "kind", fSys: "sys", fRegion: "region", fAvail: "avail", fSeason: "season", fMonth: "month", fPeak: "peak", fWalk: "walk", fConf: "conf" };
 Object.keys(FIELD).forEach(id => { $("#" + id).onchange = e => { st[FIELD[id]] = e.target.value; persist(); render(); }; });
 $("#fUnk").onchange = e => { st.unk = e.target.checked; persist(); render(); };
-$("#clear").onclick = () => { Object.values(FIELD).concat("q").forEach(k => st[k] = ""); $("#q").value = ""; syncFields(); persist(); render(); };
+$("#clear").onclick = () => { Object.values(FIELD).concat("q").forEach(k => st[k] = ""); st.cf = {}; $("#q").value = ""; syncFields(); persist(); render(); };
 $("#target").onchange = e => { if (e.target.value) { st.target = e.target.value; persist(); render(); } };
 $("#tz").onchange = e => { st.tz = e.target.value; persist(); render(); };
 $$("#parksTable thead th[data-k] button").forEach(b => b.onclick = () => { const k = b.closest("th").dataset.k; if (st.sort === k) st.dir = -st.dir; else { st.sort = k; st.dir = 1; } persist(); render(); });
 $$("#campTable thead th[data-k] button").forEach(b => b.onclick = () => { const k = b.closest("th").dataset.k; if (st.csort === k) st.cdir = -st.cdir; else { st.csort = k; st.cdir = 1; } persist(); render(); });
 $("#parksBody").addEventListener("click", e => { const tr = e.target.closest("tr[data-park]"); if (tr && !e.target.closest("a")) nav("#/park/" + tr.dataset.park); });
-$("#campBody").addEventListener("click", e => { const b = e.target.closest("[data-pick]"); const tr = e.target.closest("tr[data-id]"); const id = b ? b.dataset.pick : tr && tr.dataset.id; if (!id) return; selId = id; editing = false; render(); });
+$("#campBody").addEventListener("click", e => { const pen = e.target.closest("[data-cedit]"); if (pen) { openEditor(pen.closest("tr").dataset.id, pen.dataset.cedit, pen.closest("td")); return; } const b = e.target.closest("[data-pick]"); const tr = e.target.closest("tr[data-id]"); const id = b ? b.dataset.pick : tr && tr.dataset.id; if (!id) return; selId = id; editing = false;
+  $$("#campBody tr[data-id]").forEach(r => { const on = r.dataset.id === id; r.classList.toggle("sel", on); const p = r.querySelector("[data-pick]"); p && p.setAttribute("aria-pressed", on); });   // no redraw, so a double-click can land on the same cell
+  renderPanel(shownCamps.find(x => x.s.id === id)); });
 $("#cq").addEventListener("input", e => { st.cq = e.target.value; persist(); const pos = e.target.selectionStart; render(); const i = $("#cq"); i.focus(); i.setSelectionRange(pos, pos); });
 $("#cMode").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; st.cmode = b.dataset.m; persist(); render(); });
 $("#panel").addEventListener("click", e => {
@@ -373,6 +401,87 @@ function renderData() {
 $("#exportEdits").onclick = () => { download("campsite-edits.json", JSON.stringify({ app: "california-camping", v: 1, savedAt: new Date().toISOString(), edits }, null, 1), "application/json"); };
 $("#importEdits").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const d = JSON.parse(await f.text()); if (d.app !== "california-camping" || typeof d.edits !== "object") throw 0; if (!confirm("Replace your current edits with the " + Object.keys(d.edits).length + " in this file?")) return; edits = d.edits; store.set("cc-edits", edits); toast("Edits imported."); render(); } catch (err) { alert("That file is not an edits export from this site. Nothing changed."); } finally { e.target.value = ""; } };
 $("#resetEdits").onclick = () => { if (!Object.keys(edits).length) return; if (confirm("Remove all " + Object.keys(edits).length + " edits and go back to the original data?")) { edits = {}; store.set("cc-edits", edits); toast("All edits removed."); render(); } };
+
+// ---------- column menus: sort, search the values, tick which ones to show ----------
+function markFiltered(tbl, cf) { $$(tbl + " thead th[data-k]").forEach(th => th.classList.toggle("filtered", !!(cf[th.dataset.k] && cf[th.dataset.k].length))); }
+let M = null;
+const menu = document.createElement("div"); menu.className = "cmenu"; menu.hidden = true; menu.setAttribute("role", "dialog"); document.body.appendChild(menu);
+function place(el, anchor, maxW = 300) {
+  const r = anchor.getBoundingClientRect(), w = Math.min(maxW, innerWidth - 16); el.style.width = w + "px";
+  el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+  const h = el.offsetHeight, below = r.bottom + 4, above = r.top - 4 - h;   // under the cell if it fits, else above it, else as low as fits
+  el.style.top = (below + h <= innerHeight - 8 ? below : above >= 8 ? above : Math.max(8, innerHeight - 8 - h)) + "px";
+}
+function openMenu(tbl, k, btn) {
+  const park = tbl === "p", cols = park ? PCOL : CCOL, cf = park ? st.cf : campCF(), src = park ? allParkSums : allCamps, cnt = new Map();
+  src.filter(x => passCF(x, cols, cf, k)).forEach(x => { const v = cols[k](x); cnt.set(v, (cnt.get(v) || 0) + 1); });
+  (cf[k] || []).forEach(v => { if (!cnt.has(v)) cnt.set(v, 0); });
+  M = { park, k, btn, cf, hidden: new Set(cf[k] || []), vals: [...cnt].sort((a, b) => String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true })) };
+  menu.setAttribute("aria-label", "Sort and filter " + colName(park ? "#parksTable" : "#campTable", k));
+  menu.innerHTML = '<div class="cm-sort"><button type="button" data-cm="asc">Sort A → Z</button><button type="button" data-cm="desc">Sort Z → A</button></div>' +
+    '<div class="cm-h">Filter by values</div><div class="cm-sa"><button type="button" data-cm="all">Select all</button><button type="button" data-cm="none">Clear</button><span class="cm-n"></span></div>' +
+    '<input type="search" class="cm-q" placeholder="Search" aria-label="Search values"><ul class="cm-l"></ul>' +
+    '<div class="cm-f"><button type="button" class="btn" data-cm="cancel">Cancel</button><button type="button" class="btn primary" data-cm="ok">OK</button></div>';
+  drawMenu(); menu.hidden = false; place(menu, btn); menu.querySelector(".cm-q").focus();
+}
+const menuShown = () => { const q = menu.querySelector(".cm-q").value.trim().toLowerCase(); return M.vals.map((v, i) => [v, i]).filter(([v]) => !q || String(v[0]).toLowerCase().includes(q)); };
+function drawMenu() {
+  const sh = menuShown();
+  menu.querySelector(".cm-l").innerHTML = sh.map(([[v, n], i]) => '<li><label><input type="checkbox" value="' + i + '"' + (M.hidden.has(v) ? "" : " checked") + "><span>" + esc(v || "(blank)") + "</span><em>" + n + "</em></label></li>").join("") || '<li class="cm-none">No matches</li>';
+  menu.querySelector(".cm-n").textContent = M.vals.filter(([v]) => !M.hidden.has(v)).length + " of " + M.vals.length;
+}
+function closeMenu(focus) { if (menu.hidden) return; menu.hidden = true; if (focus && M) M.btn.focus(); M = null; }
+menu.addEventListener("input", e => { if (e.target.matches(".cm-q")) drawMenu(); });
+menu.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".cm-q")) { e.preventDefault(); menu.querySelector('[data-cm="ok"]').click(); } });
+menu.addEventListener("change", e => { const c = e.target; if (c.type !== "checkbox") return; const v = M.vals[+c.value][0]; c.checked ? M.hidden.delete(v) : M.hidden.add(v); drawMenu(); });
+menu.addEventListener("click", e => {
+  const b = e.target.closest("[data-cm]"); if (!b) return; const a = b.dataset.cm;
+  if (a === "all" || a === "none") { menuShown().forEach(([[v]]) => a === "all" ? M.hidden.delete(v) : M.hidden.add(v)); drawMenu(); return; }
+  if (a === "asc" || a === "desc") { if (M.park) { st.sort = M.k; st.dir = a === "asc" ? 1 : -1; } else { st.csort = M.k; st.cdir = a === "asc" ? 1 : -1; } }
+  if (a === "ok") { if (M.hidden.size) M.cf[M.k] = [...M.hidden]; else delete M.cf[M.k]; }
+  const btn = M.btn; closeMenu(); if (a !== "cancel") { persist(); render(); }
+  const again = $((btn.closest("table").id ? "#" + btn.closest("table").id : "") + ' thead th[data-k="' + btn.closest("th").dataset.k + '"] .fb'); (again || btn).focus();
+});
+document.addEventListener("mousedown", e => { if (!menu.hidden && !menu.contains(e.target) && !e.target.closest(".fb")) closeMenu(); if (!ed.hidden && !ed.contains(e.target) && !e.target.closest("[data-cedit]")) closeEditor(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { if (!menu.hidden) closeMenu(true); if (!ed.hidden) closeEditor(true); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z" && lastEdit && !e.target.closest("input,textarea,select")) { e.preventDefault(); undoEdit(); }
+});
+["#parksTable", "#campTable"].forEach(t => $$(t + " thead th[data-k]").forEach(th => {
+  th.insertAdjacentHTML("beforeend", '<button type="button" class="fb" aria-haspopup="dialog" aria-label="Sort and filter ' + esc(th.textContent.trim()) + '">▾</button>');
+  th.querySelector(".fb").onclick = e => { e.stopPropagation(); const open = !menu.hidden && M && M.btn === e.currentTarget; closeMenu(); if (!open) openMenu(t === "#parksTable" ? "p" : "c", th.dataset.k, e.currentTarget); };
+}));
+$("#cClear").onclick = () => { st.ccf = { park: R.key, f: {} }; persist(); render(); };
+
+// ---------- edit a campground cell in place (double-click, Enter or the pencil): Season, Peak season, Walk-up ----------
+const ed = document.createElement("div"); ed.className = "cmenu ced"; ed.hidden = true; ed.setAttribute("role", "dialog"); document.body.appendChild(ed);
+let ET = null;
+function openEditor(id, k, td) {
+  closeMenu(); const s = eff(BASE.find(b => b.id === id)); ET = { id, k, td };
+  const mo = arr => '<div class="months">' + MON3.map((m, i) => '<label><input type="checkbox" name="m" value="' + (i + 1) + '"' + (arr && arr.includes(i + 1) ? " checked" : "") + "> " + m + "</label>").join("") + "</div>";
+  const title = { season: "Season (open months)", peak: "Peak season", walk: "Walk-up" }[k];
+  ed.setAttribute("aria-label", title + ", " + s.name);
+  ed.innerHTML = '<form class="ed-f"><div class="cm-h">' + esc(title) + " · " + esc(s.name) + "</div>" +
+    (k === "walk" ? '<label class="field">Walk-up sites<select name="walkup"><option value="">Not known</option>' + Object.keys(WALK).map(w => '<option value="' + w + '"' + (s.walkup === w ? " selected" : "") + ">" + WALK[w] + "</option>").join("") + "</select></label>" +
+      '<label class="field">Note<input type="text" name="note" value="' + esc(s.walkupNote) + '"></label>'
+    : mo(k === "season" ? s.open : s.peak) + '<div class="cm-sa"><button type="button" data-ea="all">All year</button><button type="button" data-ea="none">Not known</button></div>' +
+      '<label class="field">Note<input type="text" name="note" value="' + esc(k === "season" ? s.openNote : s.peakNote) + '"></label>') +
+    '<div class="cm-f"><button type="button" class="btn" data-ea="cancel">Cancel</button><button type="submit" class="btn primary">Save</button></div></form>';
+  ed.hidden = false; place(ed, td, 360); (ed.querySelector("select,input")).focus();
+}
+function closeEditor(focus) { if (ed.hidden) return; ed.hidden = true; const t = ET; ET = null; if (focus && t) { const c = $('#campBody tr[data-id="' + CSS.escape(t.id) + '"] [data-ed="' + t.k + '"]'); c && c.focus(); } }
+ed.addEventListener("click", e => { const b = e.target.closest("[data-ea]"); if (!b) return; const a = b.dataset.ea;
+  if (a === "cancel") closeEditor(true); else ed.querySelectorAll('input[name="m"]').forEach(c => c.checked = a === "all"); });
+ed.addEventListener("submit", e => {
+  e.preventDefault(); const fd = new FormData(e.target), { id, k } = ET, s = eff(BASE.find(b => b.id === id)), note = String(fd.get("note") || "").trim();
+  const ms = fd.getAll("m").map(Number).sort((a, b) => a - b), cur = { open: s.open, openNote: s.openNote, peak: s.peak, peakNote: s.peakNote, walkup: s.walkup, walkupNote: s.walkupNote, rule: s.rule, notes: s.notes };
+  if (k === "season") Object.assign(cur, { open: ms.length ? ms : null, openNote: note }); else if (k === "peak") Object.assign(cur, { peak: ms.length ? ms : null, peakNote: note }); else Object.assign(cur, { walkup: fd.get("walkup") || null, walkupNote: note });
+  const before = JSON.stringify(edits[id] || null), changed = commitEdit(id, cur) || before !== JSON.stringify(edits[id] || null);
+  closeEditor(); undoToast(changed ? "Saved. Marked as edited on this device." : "No changes.", changed); render();
+  const c = $('#campBody tr[data-id="' + CSS.escape(id) + '"] [data-ed="' + k + '"]'); c && c.focus();
+});
+$("#campBody").addEventListener("dblclick", e => { const td = e.target.closest("td[data-ed]"); if (td) openEditor(td.closest("tr").dataset.id, td.dataset.ed, td); });
+$("#campBody").addEventListener("keydown", e => { const td = e.target.closest("td[data-ed]"); if (td && e.target === td && (e.key === "Enter" || e.key === "F2")) { e.preventDefault(); openEditor(td.closest("tr").dataset.id, td.dataset.ed, td); } });
 
 // ---------- setup and render ----------
 function syncFields() { Object.keys(FIELD).forEach(id => $("#" + id).value = st[FIELD[id]] || ""); $("#fUnk").checked = st.unk !== false; $("#q").value = st.q; }

@@ -4,7 +4,10 @@ A static site (no build step) showing when California state and national campgro
 
 ## Use
 - **Parks**: one table of parks. Filter by park type, booking site, region, date available, season, peak season, walk-up and data status. Ask in plain words, for example "walk-up sites in July".
+- **Column menus** (▾ on every column, like Google Sheets): sort A→Z / Z→A, search the column's values and tick which ones to show. Filters on the Parks table show as chips and are remembered.
+- **Search** also finds campgrounds: a match shows under its park and opens it (e.g. "camp 4" → Camp 4 under Yosemite).
 - **Park page**: a table of that park's campgrounds with a campground filter, plus a details panel with a photo slot, edit form and reminder.
+- **Edit in the table**: double-click (or Enter, or the pencil) a Season, Peak season or Walk-up cell. Saved like the edit form; Undo or Ctrl+Z puts it back.
 - **Permits and lotteries**: Half Dome preseason and daily lotteries, Yosemite wilderness weekly lottery and 7-day release, in tables.
 - **Data and edits**: how dates are computed; export, import or reset your edits.
 
