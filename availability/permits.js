@@ -43,6 +43,17 @@ function status(r, now) {
   return { k: "closed", t: "Closed" };
 }
 
+// ---------- search and filters (saved in this browser) ----------
+const F = Object.assign({ q: "", loc: "", stat: "", type: "" }, (() => { try { return JSON.parse(localStorage.getItem("cc-pm")) || {}; } catch (e) { return {}; } })());
+const saveF = () => { try { localStorage.setItem("cc-pm", JSON.stringify(F)); } catch (e) {} };
+const loc = perm => { const n = CC.splitName(perm.park); return n.name + (n.des ? " " + n.des : ""); };
+const typeOf = p => p.kind === "days" ? "release" : /lottery/i.test(p.label) || ["weekly", "daily", "oneTime"].includes(p.kind) ? "lottery" : "window";
+const TYPE = { lottery: "Lottery", release: "Rolling release", window: "Application window" };
+const textOk = (perm, p) => { const q = F.q.trim().toLowerCase(); return !q || [perm.name, perm.park, loc(perm), perm.summary, perm.system, p && p.label, p && p.what].join(" ").toLowerCase().includes(q); };
+const permOk = perm => (!F.loc || loc(perm) === F.loc) && (textOk(perm) || perm.phases.some(p => textOk(perm, p)));
+const EV_PERM = { "hd-pre": "half-dome", "yw-weekly": "yose-wilderness" };
+const dayT = d => CC.fmtDay(d), timeT = d => CC.fmtTime(d);
+
 // ---------- render ----------
 function phaseRow(perm, p, D, now) {
   const r = compute(p, D, now), st = status(r, now);
@@ -60,7 +71,7 @@ function phaseRow(perm, p, D, now) {
 }
 function cardHtml(perm, D, now) {
   const b = conf[perm.conf] || conf.check;
-  return '<article class="card flush pm-card" id="' + esc(perm.id) + '"><div class="card-h"><div><h2>' + esc(perm.name) + '</h2><p class="sub">' + esc(perm.park) + " &middot; " + esc(perm.system) + '</p></div><span class="badge ' + b[1] + '">' + b[0] + "</span></div>" +
+  return '<article class="card flush pm-card" tabindex="-1" id="' + esc(perm.id) + '"><div class="card-h"><div><h2>' + esc(perm.name) + '</h2><p class="sub">' + esc(perm.park) + " &middot; " + esc(perm.system) + '</p></div><span class="badge ' + b[1] + '">' + b[0] + "</span></div>" +
     '<div class="pm-body"><p>' + esc(perm.summary) + '</p><table class="tbl simple"><tbody><tr><th scope="row">Fees</th><td>' + esc(perm.fees) + "</td></tr>" + (perm.group ? '<tr><th scope="row">Group</th><td>' + esc(perm.group) + "</td></tr>" : "") + (perm.check.length ? '<tr><th scope="row">To verify</th><td>' + perm.check.map(esc).join("; ") + "</td></tr>" : "") + "</tbody></table></div>" +
     '<div class="tw" tabindex="-1"><table class="tbl stack"><thead><tr><th scope="col">Step</th><th scope="col">Status</th><th scope="col">Opens</th><th scope="col">Closes</th><th scope="col">Results and notes</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody>' + perm.phases.map(p => phaseRow(perm, p, D, now)).join("") + "</tbody></table></div>" +
     '<div class="pm-foot"><a class="btn" href="' + esc(perm.url) + '" target="_blank" rel="noopener">Open on the booking site</a><details><summary>Sources</summary><ul>' + perm.sources.map(s => '<li><a href="' + esc(s.u) + '" target="_blank" rel="noopener">' + esc(s.t) + "</a></li>").join("") + "</ul></details></div></article>";
@@ -82,12 +93,27 @@ function nextEvents(now) {
   return out.sort((a, b) => a.open - b.open);
 }
 let events = [];
+function allRows(D, now) {          // one row per step of every permit that passes the search and filters
+  const out = [];
+  PERMITS.filter(permOk).forEach(perm => perm.phases.forEach(p => {
+    if (!textOk(perm) && !textOk(perm, p)) return;
+    const r = compute(p, D, now), s = status(r, now);
+    if (F.stat && s.k !== F.stat) return; if (F.type && typeOf(p) !== F.type) return;
+    const stat = '<span class="st ' + (s.k === "open" ? "open" : s.k === "soon" ? "later" : "none") + '"' + (s.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(s.t) + "</span>";
+    out.push('<tr><th scope="row" data-l="Permit"><button type="button" class="nm" data-goperm="' + esc(perm.id) + '">' + esc(perm.name) + '</button></th><td data-l="Location">' + esc(loc(perm)) + '</td><td data-l="Step">' + esc(p.label) + '<span class="when-t">' + esc(p.what) + '</span></td><td data-l="Type">' + TYPE[typeOf(p)] +
+      '</td><td data-l="Status">' + stat + '</td><td data-l="Opens date">' + (r.open ? esc(dayT(r.open)) + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + '</td><td data-l="Opens time">' + (r.open ? esc(r.approx && p.kind === "annual" ? "Not published" : timeT(r.open)) : '<span class="nv">—</span>') +
+      '</td><td data-l="Closes">' + (r.close ? esc(dayT(r.close)) + '<span class="when-t">' + esc(timeT(r.close)) + "</span>" : r.na ? '<span class="nv">' + esc(r.na) + "</span>" : "None") + '</td><td data-l="Results">' + esc(p.results || "") + "</td></tr>");
+  }));
+  return out;
+}
 function render() {
   if ($("#vPermits").hidden) return;
-  const D = CC.st.target, now = new Date();
-  events = nextEvents(now);
-  $("#pmSoon tbody").innerHTML = events.map((e, i) => '<tr><th scope="row" data-l="Permit">' + esc(e.title) + '<span class="when-t">' + esc(e.sub) + '</span></th><td data-l="Opens"><b>' + esc(when(e.open)) + '</b><span class="when-t">' + esc(e.rule) + '</span></td><td data-l="Closes">' + esc(when(e.close)) + '</td><td data-l="Starts in"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + '</span></td><td data-l=""><button type="button" class="btn sm" data-ev="' + i + '">Add reminder</button></td></tr>').join("");
-  $("#pmList").innerHTML = PERMITS.map(p => cardHtml(p, D, now)).join("");
+  const D = CC.st.target, now = new Date(), rows = allRows(D, now), steps = PERMITS.reduce((t, x) => t + x.phases.length, 0);
+  $("#pmAll tbody").innerHTML = rows.join("") || '<tr><td colspan="9" class="empty">No permits match. Clear the search or a filter.</td></tr>';
+  $("#pmCount").textContent = rows.length + " of " + steps + " steps";
+  events = nextEvents(now).filter(e => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return !perm || permOk(perm); });
+  $("#pmSoon tbody").innerHTML = events.map((e, i) => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return '<tr><th scope="row" data-l="Permit">' + esc(e.title) + '<span class="when-t">' + esc(e.sub) + '</span></th><td data-l="Location">' + (perm ? esc(loc(perm)) : "") + '</td><td data-l="Opens date"><b>' + esc(dayT(e.open)) + '</b><span class="when-t">' + esc(e.rule) + '</span></td><td data-l="Opens time">' + esc(timeT(e.open)) + '</td><td data-l="Closes">' + esc(when(e.close)) + '</td><td data-l="Starts in"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + '</span></td><td data-l=""><button type="button" class="btn sm" data-ev="' + i + '">Add reminder</button></td></tr>'; }).join("") || '<tr><td colspan="7" class="empty">Nothing coming up for this search.</td></tr>';
+  $("#pmList").innerHTML = PERMITS.filter(permOk).map(p => cardHtml(p, D, now)).join("");
 }
 document.addEventListener("click", e => {
   const ev = e.target.closest("[data-ev]"); if (ev) { const x = events[+ev.dataset.ev]; CC.download("remind-" + x.id + ".ics", CC.ics(x.title + " opens", x.open, x.rule + " " + x.sub, x.url), "text/calendar"); CC.toast("Reminder saved. It rings 15 minutes before."); return; }
@@ -96,6 +122,13 @@ document.addEventListener("click", e => {
     if (r.open) { CC.download("remind-" + phid + ".ics", CC.ics(perm.name + ": " + ph.label + " opens", r.open, perm.park + ". " + ph.what + ". " + (ph.results || ""), perm.url), "text/calendar"); CC.toast("Reminder saved. It rings 15 minutes before."); }
   }
 });
+$("#pmLoc").insertAdjacentHTML("beforeend", [...new Set(PERMITS.map(loc))].sort().map(l => '<option value="' + esc(l) + '">' + esc(l) + "</option>").join(""));
+const sync = () => { $("#pmQ").value = F.q; $("#pmLoc").value = F.loc; $("#pmStat").value = F.stat; $("#pmType").value = F.type; };
+$("#pmQ").addEventListener("input", e => { F.q = e.target.value; saveF(); render(); });
+[["#pmLoc", "loc"], ["#pmStat", "stat"], ["#pmType", "type"]].forEach(([id, k]) => { $(id).onchange = e => { F[k] = e.target.value; saveF(); render(); }; });
+$("#pmClear").onclick = () => { Object.assign(F, { q: "", loc: "", stat: "", type: "" }); saveF(); sync(); render(); };
+$("#pmAll").addEventListener("click", e => { const b = e.target.closest("[data-goperm]"); if (!b) return; const c = document.getElementById(b.dataset.goperm); if (c) { c.scrollIntoView({ behavior: "smooth", block: "start" }); c.focus({ preventScroll: true }); } });
+sync();
 CC.subs.push(render);
 window.addEventListener("hashchange", render);
 render();

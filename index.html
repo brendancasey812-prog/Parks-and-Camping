@@ -25,7 +25,7 @@
       <div class="tabmenu" hidden>
         <button class="tabitem" data-tab="explore"><b>◫</b>Table + Map</button>
         <button class="tabitem" data-tab="trips"><b>▣</b>Trip Planner</button>
-        <a class="tabitem" href="availability/"><b>⛺</b>Campsite availability</a>
+        <button class="tabitem" data-tab="camping"><b>⛺</b>Campsite availability</button>
       </div>
     </div>
     <div class="tabgroup" data-group="parks">
@@ -36,6 +36,7 @@
         <button class="tabitem" data-tab="map"><b>◉</b>Park Map</button>
       </div>
     </div>
+    <button class="tab" data-tab="camping" type="button">Camping</button>
     <button class="tab" data-tab="passes" type="button">Passes</button>
     <button class="tab" data-tab="visited">Visited</button>
     <button class="tab" data-tab="about" type="button" aria-controls="tab-about" aria-expanded="false">Settings</button>
@@ -164,6 +165,10 @@
     <div id="map"></div>
   </section>
 
+
+  <section id="tab-camping" class="panel" aria-label="California camping">
+    <iframe id="campFrame" title="California camping: campsite release dates, permits and lotteries" data-src="availability/?embed=1"></iframe>
+  </section>
 
   <section id="tab-passes" class="panel" aria-labelledby="passTitle">
     <div class="passwrap">

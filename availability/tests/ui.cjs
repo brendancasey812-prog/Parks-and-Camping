@@ -61,6 +61,29 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('Enter on a focused Walk-up cell opens its editor; Save changes it',async()=>{await g.focus(cell('yose-camp4','walk'));await g.keyboard.press('Enter');await g.selectOption('.ced select[name=walkup]','some');await g.click('.ced button[type=submit]');await g.waitForTimeout(250);return /Some walk-up/.test(await g.textContent(cell('yose-camp4','walk')))});
  await check('the edit also shows in the details panel and Data page count',async()=>{await g.click('#campBody tr[data-id=yose-camp4] [data-pick]');await g.waitForTimeout(200);const pn=/Some walk-up/.test(await g.textContent('#panel'));await g.goto(URL_+'#/data');await g.waitForTimeout(200);return pn&&/1 campground edited/.test(await g.textContent('#editSummary'))});
  await check('no errors in column menu / editing session',async()=>g.errs.length===0);
+ // ---- parks table layout: name / type split, opening in three columns, type tabs, filters in the header row
+ const h=await open({},{target:plus(240)});
+ const prow=(q,name)=>q.$eval(`#parksBody tr[data-park="${name}"]`,r=>[...r.children].map(c=>c.textContent.trim()));
+ await check('name and designation are separate columns (Yosemite | NP)',async()=>{const r=await prow(h,'yosemite-national-park');return /^Yosemite/.test(r[0])&&!/National Park/.test(r[0])&&r[1]==='NP'});
+ await check('opening is split into days out, date and time',async()=>{const r=await prow(h,'yosemite-national-park');return /^\d+ (day|month)|Open now/.test(r[5])&&/\b20\d\d\b/.test(r[6])&&/\d:\d\d\s?[AP]M/.test(r[7])&&!/[AP]M/.test(r[6])});
+ await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);
+   const ok=t.length>0&&t.every(x=>/^S/.test(x)||x==='NP & SP');await h.click('#kindTabs [data-kind=""]');return ok&&await h.getAttribute('#kindTabs [data-kind=""]','aria-pressed')==='true'});
+ await check('header filter row: Region select narrows rows',async()=>{await h.selectOption('#fRegion','Bay Area');await h.waitForTimeout(150);const r=await h.$$eval('#parksBody td[data-l=Region]',a=>[...new Set(a.map(x=>x.textContent))]);await h.selectOption('#fRegion','');return JSON.stringify(r)==='["Bay Area"]'});
+ await check('header filter row: Type select (NF) and park text filter',async()=>{await h.selectOption('#fDes','NF');await h.waitForTimeout(150);const n=(await parks(h)).length;await h.selectOption('#fDes','');
+   await h.fill('#fName','pinnacles');await h.waitForTimeout(150);const m=await parks(h);await h.fill('#fName','');await h.waitForTimeout(100);return n>=1&&m.length===1&&/Pinnacles/.test(m[0])});
+ await check('More filters opens Season / month / peak',async()=>{await h.click('#filters summary');return await h.isVisible('#fSeason')&&await h.isVisible('#fMonth')});
+ // ---- permits: search, location, status
+ await h.goto(URL_+'#/permits');await h.waitForTimeout(300);
+ const pm=()=>h.$$eval('#pmAll tbody tr',a=>a.map(r=>r.textContent));
+ await check('permits: every step is listed with location, type and split open date / time',async()=>{const r=await pm();return r.length===5&&r.every(t=>/Yosemite NP/.test(t))&&await h.isVisible('#pmAll th:has-text("Opens time")')});
+ await check('permits: search narrows to Half Dome',async()=>{await h.fill('#pmQ','half dome');await h.waitForTimeout(150);const r=await pm();return r.length===2&&r.every(t=>/Half Dome/.test(t))&&(await h.$$('#pmList .pm-card')).length===1});
+ await check('permits: location and status filters; Clear restores',async()=>{await h.fill('#pmQ','');await h.selectOption('#pmLoc','Yosemite NP');await h.selectOption('#pmStat','closed');await h.waitForTimeout(150);const n=(await pm()).length;
+   await h.click('#pmClear');await h.waitForTimeout(150);return n===1&&(await pm()).length===5&&await h.inputValue('#pmLoc')===''});
+ await check('permits: clicking a permit jumps to its card',async()=>{await h.click('#pmAll [data-goperm=yose-wilderness]');await h.waitForTimeout(500);return await h.evaluate(()=>document.activeElement.id)==='yose-wilderness'});
+ // ---- embedded (inside the Parks & Camping site)
+ await h.goto(URL_+'?embed=1#/');await h.waitForTimeout(400);
+ await check('embedded: no sidebar, section tabs on top that switch views',async()=>{const side=await h.isVisible('#side');await h.click('.vtabs [data-nav=permits]');await h.waitForTimeout(250);return !side&&await h.isVisible('.vtabs')&&await h.isVisible('#vPermits')&&await h.getAttribute('.vtabs [data-nav=permits]','aria-current')==='page'});
+ await check('no errors in layout / permits / embed session',async()=>h.errs.length===0);
  await check('no runtime errors across session',async()=>p.errs.length===0);
  const m=await open({viewport:{width:390,height:800},isMobile:true,hasTouch:true},{target:plus(240)});
  await check('mobile: no horizontal scroll on overview',async()=>m.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));

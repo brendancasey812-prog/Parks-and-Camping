@@ -100,8 +100,8 @@ $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
 $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-const TAB_SECTION={dashboard:"dashboard",trips:"trips",passes:"passes",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
-const TAB_GROUP={dashboard:"",trips:"explore",explore:"explore",grid:"parks",list:"parks",map:"parks"};
+const TAB_SECTION={dashboard:"dashboard",trips:"trips",camping:"camping",passes:"passes",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
+const TAB_GROUP={dashboard:"",trips:"explore",camping:"",explore:"explore",grid:"parks",list:"parks",map:"parks"};
 let currentTab="grid";
 function showTab(t){
   if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
@@ -111,7 +111,7 @@ function showTab(t){
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
   $$(".panel").forEach(p=>p.classList.toggle("active",sec==="explore"?(p.id==="tab-list"||p.id==="tab-map"):p.id==="tab-"+sec));
-  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");document.body.classList.toggle("passes",t==="passes");
+  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");document.body.classList.toggle("passes",t==="passes");document.body.classList.toggle("camping",t==="camping");if(t==="camping")showCamping();
   if(window.TripsApp)t==="trips"?TripsApp.show():TripsApp.hide();
   if(window.Dashboard)t==="dashboard"?Dashboard.show():Dashboard.hide();
   if(window.PassesApp)t==="passes"?PassesApp.show():PassesApp.hide();
@@ -123,6 +123,10 @@ function showTab(t){
   if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   store.set("tab",t);updateMM();
 }
+// Camping tab: the campsite tracker (availability/) shown inside the page, sized to the space under the header
+function showCamping(){const f=$("#campFrame");if(!f.src)f.src=f.dataset.src;requestAnimationFrame(sizeCamping)}
+function sizeCamping(){const f=$("#campFrame");if(!document.body.classList.contains("camping"))return;f.style.height=Math.max(320,innerHeight-f.getBoundingClientRect().top)+"px"}
+window.addEventListener("resize",sizeCamping);
 // Settings / backup / edits / about live in a side drawer so the table + map stay on screen
 function toggleDrawer(open){
   const b=document.body,was=b.classList.contains("drawer-open");b.classList.toggle("drawer-open",open);

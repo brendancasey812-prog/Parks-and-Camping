@@ -147,3 +147,37 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 @media(pointer:coarse){.tbl .pen{opacity:1}}
 .hit{display:block;margin-top:.25rem;font-size:.82rem;font-weight:600;color:var(--accent)}
 .tbtn{margin-left:.6rem;padding:.15rem .6rem;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;font:600 .82rem var(--font);cursor:pointer}
+/* Parks table: type tabs, actions and the filter row in the header */
+.tbl-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+.ktabs{display:flex;flex-wrap:wrap;gap:.3rem}.ktabs button{min-height:34px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink-2);font:500 .84rem var(--font);cursor:pointer}
+.ktabs button small{color:var(--muted);margin-left:.2rem}.ktabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}.ktabs button[aria-pressed=true] small{color:#ffffffcc}
+.tbl-act{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;position:relative}
+.more>summary{display:flex;align-items:center;gap:.4rem;min-height:34px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:999px;cursor:pointer;font:500 .84rem var(--font);list-style:none}.more>summary::-webkit-details-marker{display:none}
+.more[open]>summary{background:var(--hover)}
+.more-b{position:absolute;right:0;top:calc(100% + 6px);z-index:20;display:grid;gap:.6rem;width:min(340px,90vw);padding:.8rem;border:1px solid var(--line-2);border-radius:12px;background:var(--panel);box-shadow:0 18px 40px -12px rgba(0,0,0,.4)}
+.more-b .chk{padding:0}
+.tbl thead tr.frow td{padding:.35rem .4rem;background:var(--panel);border-bottom:1px solid var(--line-2);position:sticky;top:var(--tap);z-index:1}
+.frow input,.frow select{width:100%;min-width:7rem;min-height:32px;padding:0 .45rem;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:.8rem var(--font)}
+abbr.des{text-decoration:none;font-weight:700;font-size:.8rem;padding:.1rem .45rem;border-radius:6px;background:var(--hover);color:var(--ink-2);cursor:help;white-space:nowrap}
+#parksTable td[data-l="Open date"],#parksTable td[data-l="Open time"]{white-space:nowrap}
+@media(max-width:860px){
+  .tbl.stack thead{position:static;width:auto;height:auto;overflow:visible;clip:auto;display:block}
+  .tbl.stack thead tr:first-child{display:none}
+  .tbl.stack thead tr.frow{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;padding:.6rem .7rem;border-bottom:1px solid var(--line)}
+  .tbl.stack thead tr.frow td{display:block;position:static;padding:0;border:0}.tbl.stack thead tr.frow td:empty{display:none}.tbl.stack thead tr.frow td:first-child{grid-column:1/-1}
+  .more-b{right:auto;left:0}
+}
+/* embedded in the Parks & Camping site */
+.vtabs{display:none}
+.embed .shell{grid-template-columns:minmax(0,1fr)}.embed .side,.embed .scrim,.embed .icon-btn{display:none}
+.embed .vtabs{display:flex;gap:.3rem;padding:.6rem 1.5rem 0;max-width:1180px;margin:0 auto;border-bottom:1px solid var(--line)}
+.embed .vtabs .nav-i{min-height:40px;padding:.5rem .9rem;border-radius:10px 10px 0 0;margin-bottom:-1px;border:1px solid transparent;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.9rem;background:none}
+.embed .vtabs .nav-i[aria-current=page]{background:var(--panel);border-color:var(--line);border-bottom-color:var(--panel);color:var(--ink)}
+@media(max-width:860px){.embed .ask{flex-basis:100%}.embed .vtabs{padding:.5rem .7rem 0;overflow-x:auto}}
+/* Permits: search and filters above a table of every step */
+.pm-tools{justify-content:flex-start}.pm-tools input{flex:1 1 220px;min-height:36px;padding:0 .7rem;border:1px solid var(--line-2);border-radius:999px;background:var(--bg);color:var(--ink);font:inherit}
+.pm-tools select{min-height:36px;padding:0 .5rem;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:.86rem var(--font)}
+.pm-count{margin-left:auto;color:var(--muted);font-size:.84rem}
+#pmAll td[data-l="Opens date"],#pmAll td[data-l="Opens time"],#pmSoon td[data-l="Opens time"]{white-space:nowrap}
+#vPermits>.card+.card,#vPermits>.card+.pm-list{margin-top:1rem}
+.embed #content,.embed .vtabs{max-width:none}.embed .vtabs .nav-i{white-space:nowrap}

@@ -84,9 +84,13 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Cloud','no page errors',async()=>!A1.errs.length&&!B1.errs.length);
   await A1.context().close();await B1.context().close();
   p=await open();
-  await check('Availability','Explore menu opens the campsite availability tracker',async()=>{await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[href="availability/"]');await p.waitForLoadState();await p.waitForTimeout(600);
-    return /\/availability\/$/.test(p.url())&&(await p.$$('#parksBody tr')).length>=30&&!p.errs.length});
-  await check('Availability','its back link returns to Parks & Camping',async()=>{await p.click('a.nav-i[href="../"]');await p.waitForLoadState();await p.waitForTimeout(600);return await p.isVisible('.tabs')&&!/availability/.test(p.url())});
+  await check('Camping','Camping tab shows the tracker inside the site, header kept',async()=>{await p.click('.tab[data-tab=camping]');await p.waitForTimeout(1200);const f=p.frame({url:/availability/});
+    return await p.isVisible('#campFrame')&&await p.isVisible('.tabs')&&!!f&&(await f.$$('#parksBody tr')).length>=30&&!(await f.isVisible('#side'))&&await f.isVisible('.vtabs')});
+  await check('Camping','the tracker fills the space under the header',async()=>{const b=await p.$eval('#campFrame',e=>e.getBoundingClientRect());return Math.abs(b.bottom-800)<=2&&b.top>50});
+  await check('Camping','Explore → Campsite availability opens the same tab',async()=>{await p.click('.tab[data-tab=dashboard]');await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[data-tab=camping]');await p.waitForTimeout(300);return await p.isVisible('#campFrame')});
+  await check('Camping','the site theme carries into the tracker',async()=>{await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=dark]');await p.click('.tab[data-tab=camping]');await p.waitForTimeout(300);const f=p.frame({url:/availability/});
+    const t=await f.evaluate(()=>document.documentElement.dataset.theme);await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=system]');return t==='dark'});
+  await check('Camping','the tracker page also works on its own',async()=>{await p.goto(p.url().replace(/[^/]*$/,'')+'availability/');await p.waitForTimeout(600);return (await p.$$('#parksBody tr')).length>=30&&await p.isVisible('#side')&&!p.errs.length});
   await p.context().close();
   // ---- editing + undo/redo
   p=await open();

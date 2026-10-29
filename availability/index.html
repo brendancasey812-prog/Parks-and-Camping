@@ -7,7 +7,9 @@
 <title>Campsite release dates, California</title>
 <meta name="description" content="When California campgrounds open for booking, with season, peak season and walk-up information for each park.">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<script>try{var t=JSON.parse(localStorage.getItem("cc-theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>/* inside the Parks & Camping site (Camping tab) the page is "embedded": no sidebar, section tabs on top, and the site's theme */
+var EMBED=window.self!==window.top||/[?&]embed\b/.test(location.search);if(EMBED)document.documentElement.classList.add("embed");
+try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -40,40 +42,53 @@
         <label class="mini">Times in<select id="tz"><option value="pt">Pacific</option><option value="local">My time zone</option></select></label>
       </div>
     </header>
+    <nav class="vtabs" aria-label="Sections"><a href="#/" class="nav-i" data-nav="parks">Parks</a><a href="#/permits" class="nav-i" data-nav="permits">Permits and lotteries</a><a href="#/data" class="nav-i" data-nav="data">Data and edits</a></nav>
 
     <main id="content" tabindex="-1">
       <!-- Parks overview -->
       <section id="vParks" class="view">
         <div class="page-h"><h1>Parks</h1><p id="parksSub" class="sub"></p></div>
         <div class="sugg" id="sugg" role="group" aria-label="Quick filters"></div>
-        <details class="filters" id="filters">
-          <summary>Filters <span id="fCount" class="count-pill" hidden></span></summary>
-          <div class="f-grid">
-            <label class="field">Park type<select id="fKind"><option value="">All</option><option value="nps">National parks and monuments</option><option value="state">State parks</option><option value="forest">National forests</option></select></label>
-            <label class="field">Booking site<select id="fSys"><option value="">All</option><option value="rec">Recreation.gov</option><option value="rc">ReserveCalifornia</option><option value="fcfs">First-come only</option></select></label>
-            <label class="field">Region<select id="fRegion"><option value="">All</option></select></label>
-            <label class="field">Date available<select id="fAvail"><option value="">Any</option><option value="open">Already open for my date</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking on my date</option></select></label>
-            <label class="field">Season<select id="fSeason"><option value="">Any</option><option value="on">Open on my date</option><option value="year">Year-round</option><option value="seasonal">Seasonal only</option></select></label>
-            <label class="field">Open in month<select id="fMonth"><option value="">Any</option></select></label>
-            <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak on my date</option><option value="off">Not peak on my date</option><option value="has">Has a defined peak</option></select></label>
-            <label class="field">Walk-up<select id="fWalk"><option value="">Any</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></label>
-            <label class="field">Data status<select id="fConf"><option value="">Any</option><option value="good">Verified</option><option value="check">Needs checking</option><option value="assumed">Not yet researched</option></select></label>
-          </div>
-          <label class="chk"><input type="checkbox" id="fUnk" checked> Keep campgrounds with unknown season, peak or walk-up when those filters are on</label>
-          <div class="f-act"><button id="clear" type="button" class="btn">Clear filters</button><button id="csv" type="button" class="btn">Export CSV</button></div>
-        </details>
         <div id="chips" class="chips" aria-label="Active filters"></div>
         <div class="card flush">
+          <div class="tbl-top">
+            <div class="ktabs" id="kindTabs" role="group" aria-label="Park type"></div>
+            <div class="tbl-act">
+              <details class="more" id="filters"><summary>More filters <span id="fCount" class="count-pill" hidden></span></summary>
+                <div class="more-b">
+                  <label class="field">Season<select id="fSeason"><option value="">Any</option><option value="on">Open on my date</option><option value="year">Year-round</option><option value="seasonal">Seasonal only</option></select></label>
+                  <label class="field">Open in month<select id="fMonth"><option value="">Any</option></select></label>
+                  <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak on my date</option><option value="off">Not peak on my date</option><option value="has">Has a defined peak</option></select></label>
+                  <label class="chk"><input type="checkbox" id="fUnk" checked> Keep campgrounds with unknown season, peak or walk-up when those filters are on</label>
+                </div></details>
+              <button id="clear" type="button" class="btn sm">Clear filters</button><button id="csv" type="button" class="btn sm">Export CSV</button>
+            </div>
+          </div>
           <div class="tw" tabindex="-1"><table class="tbl" id="parksTable">
             <thead><tr>
               <th scope="col" data-k="name"><button type="button">Park</button></th>
+              <th scope="col" data-k="des"><button type="button">Type</button></th>
               <th scope="col" data-k="region"><button type="button">Region</button></th>
               <th scope="col" data-k="sys"><button type="button">Booking site</button></th>
               <th scope="col" data-k="rule"><button type="button">How it opens</button></th>
-              <th scope="col" data-k="opens"><button type="button">Opens for your date</button></th>
+              <th scope="col" data-k="days"><button type="button">Opens in</button></th>
+              <th scope="col" data-k="date"><button type="button">Open date</button></th>
+              <th scope="col" data-k="time"><button type="button">Open time</button></th>
               <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
               <th scope="col" data-k="n"><button type="button">Campgrounds</button></th>
               <th scope="col" data-k="conf"><button type="button">Data</button></th>
+            </tr>
+            <tr class="frow">
+              <td><input id="fName" type="search" placeholder="Filter parks" aria-label="Filter parks and campgrounds"></td>
+              <td><select id="fDes" aria-label="Type"><option value="">All types</option></select></td>
+              <td><select aria-label="Region" id="fRegion"><option value="">All regions</option></select></td>
+              <td><select aria-label="Booking site" id="fSys"><option value="">All sites</option><option value="rec">Recreation.gov</option><option value="rc">ReserveCalifornia</option><option value="fcfs">First-come only</option></select></td>
+              <td></td>
+              <td><select aria-label="Opens in" id="fAvail"><option value="">Any time</option><option value="open">Already open for my date</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking on my date</option></select></td>
+              <td></td><td></td>
+              <td><select aria-label="Walk-up" id="fWalk"><option value="">Any walk-up</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></td>
+              <td></td>
+              <td><select aria-label="Data" id="fConf"><option value="">Any data status</option><option value="good">Verified</option><option value="check">Needs checking</option><option value="assumed">Not yet researched</option></select></td>
             </tr></thead>
             <tbody id="parksBody"></tbody>
           </table></div>
@@ -112,8 +127,19 @@
 
       <!-- Permits -->
       <section id="vPermits" class="view" hidden>
-        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">Application windows, results and release times. Yosemite first. Dates follow the trip date above.</p></div>
-        <div class="card flush"><div class="card-h"><h2>Coming up</h2></div><div class="tw" tabindex="-1"><table class="tbl" id="pmSoon"><thead><tr><th scope="col">Permit</th><th scope="col">Opens</th><th scope="col">Closes</th><th scope="col">Starts in</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody></tbody></table></div></div>
+        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">Application windows, results and release times. Dates follow the trip date above.</p></div>
+        <div class="card flush">
+          <div class="tbl-top pm-tools" role="search" aria-label="Filter permits">
+            <input id="pmQ" type="search" placeholder="Search permits, places or steps" aria-label="Search permits and lotteries">
+            <select id="pmLoc" aria-label="Location"><option value="">All locations</option></select>
+            <select id="pmStat" aria-label="Status"><option value="">Any status</option><option value="open">Open now</option><option value="soon">Opens later</option><option value="closed">Closed</option><option value="na">Not for my date</option></select>
+            <select id="pmType" aria-label="Type"><option value="">All types</option><option value="lottery">Lottery</option><option value="release">Rolling release</option><option value="window">Application window</option></select>
+            <button id="pmClear" type="button" class="btn sm">Clear</button>
+            <span id="pmCount" class="pm-count" role="status" aria-live="polite"></span>
+          </div>
+          <div class="tw" tabindex="-1"><table class="tbl stack" id="pmAll"><thead><tr><th scope="col">Permit</th><th scope="col">Location</th><th scope="col">Step</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Opens date</th><th scope="col">Opens time</th><th scope="col">Closes</th><th scope="col">Results</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="card flush"><div class="card-h"><h2>Coming up</h2></div><div class="tw" tabindex="-1"><table class="tbl stack" id="pmSoon"><thead><tr><th scope="col">Permit</th><th scope="col">Location</th><th scope="col">Opens date</th><th scope="col">Opens time</th><th scope="col">Closes</th><th scope="col">Starts in</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody></tbody></table></div></div>
         <div id="pmList" class="pm-list"></div>
       </section>
 
