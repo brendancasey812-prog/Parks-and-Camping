@@ -42,7 +42,7 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Filter','State Park designation shows state parks in cards, list and map',async()=>{await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[data-tab=explore]');await p.click('#clear');
     await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="State Park"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
     return /^96 of 258 CA state parks/.test(await txt(p,'#count'))&&/96 of 258 rows · California State Parks/.test(await txt(p,'#lcount'))});
-  await check('Filter','★ California State Parks option lists all of them',async()=>{await p.click('#clear');await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__CA"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
+  await check('Filter','California State Parks option lists all of them',async()=>{await p.click('#clear');await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__CA"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
     return /^258 of 258 CA state parks/.test(await txt(p,'#count'))&&await p.isVisible('.chip[data-v="__CA"]')});
   await check('Filter','adding National Parks shows both; removing the state chip goes back to NPS',async()=>{await p.click('#fDesig .ms-btn');await p.click('#fDesig input[value="__NP63"]');await p.keyboard.press('Escape');await p.waitForTimeout(300);
     const both=/^64 of 475 NPS units \+ 258 of 258 CA state parks/.test(await txt(p,'#count'));await p.click('.chip[data-v="__CA"]');await p.waitForTimeout(300);return both&&/64 of 475 rows · National Park Service/.test(await txt(p,'#lcount'))});
@@ -91,6 +91,12 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Camping','the site theme carries into the tracker',async()=>{await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=dark]');await p.click('.tab[data-tab=camping]');await p.waitForTimeout(300);const f=p.frame({url:/availability/});
     const t=await f.evaluate(()=>document.documentElement.dataset.theme);await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=system]');return t==='dark'});
   await check('Camping','the tracker page also works on its own',async()=>{await p.goto(p.url().replace(/[^/]*$/,'')+'availability/');await p.waitForTimeout(600);return (await p.$$('#parksBody tr')).length>=30&&await p.isVisible('#side')&&!p.errs.length});
+  await p.context().close();
+  p=await open({},{dashList:{at:1,items:[{id:'a',text:'x',done:false}]},favorites:['YOSE']});
+  await check('Filter','switching the list to California State Parks drops the national-parks filter (no empty list)',async()=>{await p.evaluate(()=>window.DashAPI.showTab('list'));await p.click('#dataset [data-ds=ca]');await p.waitForTimeout(250);
+    const ok=/^258 of 258 rows/.test(await txt(p,'#lcount'));await p.click('#dataset [data-ds=nps]');return ok});
+  await check('Text','no emoji on any tab',async()=>{let bad='';for(const t of ['dashboard','explore','trips','grid','list','map','camping','passes','visited','about']){await p.evaluate(x=>window.DashAPI.showTab(x),t);await p.waitForTimeout(250);
+    const m=(await p.evaluate(()=>document.body.innerText)).match(/\p{Extended_Pictographic}|\p{Emoji_Presentation}/u);if(m)bad+=t+':'+m[0]+' '}if(bad)throw new Error(bad);return true});
   await p.context().close();
   // ---- editing + undo/redo
   p=await open();

@@ -24,7 +24,7 @@ const fmtTime=t=>{if(!t)return"";const [h,m]=t.split(":").map(Number);return new
 const mins=t=>{const [h,m]=t.split(":").map(Number);return h*60+(m||0)};
 
 // ---------- data ----------
-const TYPES={camp:{label:"Camping",icon:"⛺"},hike:{label:"Hiking",icon:"🥾"}};
+const TYPES={camp:{label:"Camping",icon:"△"},hike:{label:"Hiking",icon:"∧"}};
 const STATUS={idea:"Idea",planned:"Planned",booked:"Booked",done:"Done",cancelled:"Cancelled"};
 const PROVIDERS={"":"Not booked / none","recreation.gov":"Recreation.gov",reserveamerica:"ReserveAmerica",reservecalifornia:"ReserveCalifornia",hipcamp:"Hipcamp",alltrails:"AllTrails",other:"Other"};
 const load=()=>{const t=A.store.get("trips",[]);return Array.isArray(t)?t.filter(x=>x&&x.id&&x.start):[]};
@@ -147,7 +147,7 @@ function renderList(){
   const l=listItems();
   $$("#tpScope button").forEach(b=>{const on=b.dataset.s===scope;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
   $("#tpListCount").textContent=`${l.length} plan${l.length===1?"":"s"}`;
-  if(!l.length){listEl.innerHTML=`<li class="tp-empty"><p>${trips.length?"No plans match this filter.":"No camping or hiking plans yet."}</p><div class="tp-emptyb"><button type="button" data-new="camp">⛺ Plan a camping trip</button><button type="button" data-new="hike">🥾 Plan a hike</button><button type="button" data-import>Import a booking confirmation</button></div></li>`;return}
+  if(!l.length){listEl.innerHTML=`<li class="tp-empty"><p>${trips.length?"No plans match this filter.":"No camping or hiking plans yet."}</p><div class="tp-emptyb"><button type="button" data-new="camp">Plan a camping trip</button><button type="button" data-new="hike">Plan a hike</button><button type="button" data-import>Import a booking confirmation</button></div></li>`;return}
   let h="",cur="";
   l.forEach(t=>{const m=parse(t.start).toLocaleDateString([],{month:"long",year:"numeric"});if(m!==cur){cur=m;h+=`<li class="tp-month">${esc(m)}</li>`}
     h+=`<li class="tpi${selected===t.id?" sel":""} ${t.type} st-${t.status}" data-id="${esc(t.id)}"><button type="button" class="tpi-main" data-sel="${esc(t.id)}" aria-expanded="${selected===t.id}">${rowSummary(t)}</button>${selected===t.id?editorHtml(t):""}</li>`});
@@ -171,7 +171,7 @@ function editorHtml(t){
    ${t.type==="hike"?`<fieldset><legend>Hike details</legend><div class="g3"><label>Trail<input name="h_trail" value="${esc(t.hike.trail)}"></label><label>Miles<input type="number" step="0.1" name="h_miles" value="${esc(t.hike.miles)}"></label><label>Elevation gain (ft)<input type="number" name="h_gain" value="${esc(t.hike.gain)}"></label></div><label>Party size<input type="number" name="party" min="1" max="99" value="${esc(t.party)}"></label></fieldset>`:""}
    <fieldset><legend>Booking</legend><div class="g2"><label>Booked through<select name="r_provider">${opts(PROVIDERS,prov)}</select></label><label>Confirmation #<input name="r_confirmation" value="${esc(t.res.confirmation)}"></label></div>
    <div class="g3"><label>Site / loop<input name="r_site" value="${esc(t.res.site)}"></label><label>Facility ID<input name="r_facility" value="${esc(t.res.facility)}" placeholder="Recreation.gov ID"></label><label>Reservation link<input type="url" name="r_url" value="${esc(t.res.url)}" placeholder="https://"></label></div>
-   <div class="links">${link.map(x=>`<a href="${esc(x.href)}" target="_blank" rel="noopener">${esc(x.label)} ↗</a>`).join("")}<button type="button" data-conn>Booking sites…</button></div></fieldset>
+   <div class="links">${link.map(x=>`<a href="${esc(x.href)}" target="_blank" rel="noopener">${esc(x.label)}</a>`).join("")}<button type="button" data-conn>Booking sites…</button></div></fieldset>
    <label>Notes<textarea name="notes" rows="3" placeholder="Gear, permits, who's driving, reminders…">${esc(t.notes)}</textarea></label>
    <div class="acts"><button type="button" class="pri" data-done>Done</button>${t.parkId?`<button type="button" data-map>Show on map</button>`:""}<button type="button" data-dup>Duplicate</button><button type="button" class="danger" data-del>Delete</button></div>
    <datalist id="tpParks">${pk.map(p=>`<option value="${esc(A.disp(p))}">`).join("")}</datalist><datalist id="tpGroups">${groups.map(g=>`<option value="${esc(g)}">`).join("")}</datalist></form>`}
@@ -247,7 +247,7 @@ document.addEventListener("keydown",e=>{if(!$("#tab-trips").classList.contains("
 const sug=$("#tpSug");
 function renderSug(){
   const q=$("#tpQ").value.trim();query=q;let h="";const dq=parseDateQuery(q);
-  if(dq)h+=`<li><button type="button" data-jump="${iso(dq.date)}" data-v="${dq.view}">📅 Go to <b>${esc(dq.label)}</b> <small>${dq.view} view</small></button></li>`;
+  if(dq)h+=`<li><button type="button" data-jump="${iso(dq.date)}" data-v="${dq.view}">Go to <b>${esc(dq.label)}</b> <small>${dq.view} view</small></button></li>`;
   if(q){const l=sorted(visibleTrips()).slice(0,8);h+=l.map(t=>`<li><button type="button" data-hit="${esc(t.id)}">${TYPES[t.type].icon} <b>${esc(titleOf(t))}</b> <small>${esc(fmtRange(t.start,t.end))}${parkName(t)?" · "+esc(parkName(t)):""}</small></button></li>`).join("");
     if(!l.length&&!dq)h+=`<li class="none">No plans match "${esc(q)}". Try a date like "June 2027", "jun 14" or "next week".</li>`}
   sug.innerHTML=h;sug.hidden=!h;$("#tpQClear").hidden=!q;renderList();renderCal()}
@@ -264,7 +264,7 @@ cal.addEventListener("click",e=>{
   const d=e.target.closest("[data-day]");if(!d)return;const day=d.dataset.day;
   if(d.classList.contains("th")){go(parse(day),"day");return}
   cursor=parse(day);$$("#tpCal .md").forEach(x=>x.classList.toggle("cur",x.dataset.day===day));
-  const r=d.getBoundingClientRect();pop.hidden=false;pop.dataset.day=day;pop.innerHTML=`<b>${esc(parse(day).toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"}))}</b><button type="button" data-padd="camp">⛺ Camping plan</button><button type="button" data-padd="hike">🥾 Hike plan</button><button type="button" data-pday>Open day</button>`;
+  const r=d.getBoundingClientRect();pop.hidden=false;pop.dataset.day=day;pop.innerHTML=`<b>${esc(parse(day).toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"}))}</b><button type="button" data-padd="camp">Camping plan</button><button type="button" data-padd="hike">Hike plan</button><button type="button" data-pday>Open day</button>`;
   const x=Math.min(r.left,innerWidth-230),y=Math.min(r.bottom+4,innerHeight-170);pop.style.left=Math.max(8,x)+"px";pop.style.top=Math.max(8,y)+"px";pop.querySelector("button").focus()});
 cal.addEventListener("dblclick",e=>{const d=e.target.closest(".md");if(d)go(parse(d.dataset.day),"day")});
 cal.addEventListener("keydown",e=>{const d=e.target.closest(".md");if(!d)return;const k={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[e.key];if(!k)return;e.preventDefault();
@@ -330,7 +330,7 @@ const SITES=[
  {id:"gcal",name:"Google / Apple / Outlook Calendar",what:"Put your plans on your phone calendar.",open:"",tier:"Works now: export a calendar file",ics:true}
 ];
 const integ=()=>A.store.get("integrations",{})||{};
-function drawConn(){const s=integ();$("#tpConnList").innerHTML=SITES.map(x=>`<li class="cn"><div><b>${esc(x.name)}</b><span>${esc(x.what)}</span><em class="${x.ics?"ok":""}">${esc(x.tier)}</em></div><div class="cn-a">${x.open?`<a href="${esc(x.open)}" target="_blank" rel="noopener">Open ↗</a>`:`<button type="button" data-cics>Export .ics</button>`}
+function drawConn(){const s=integ();$("#tpConnList").innerHTML=SITES.map(x=>`<li class="cn"><div><b>${esc(x.name)}</b><span>${esc(x.what)}</span><em class="${x.ics?"ok":""}">${esc(x.tier)}</em></div><div class="cn-a">${x.open?`<a href="${esc(x.open)}" target="_blank" rel="noopener">Open</a>`:`<button type="button" data-cics>Export .ics</button>`}
    ${x.api?`<label>${esc(x.api)} <input type="password" data-key="${x.id}" value="${esc(s[x.id]&&s[x.id].key||"")}" placeholder="optional, saved only in this browser" autocomplete="off"></label>`:""}</div></li>`).join("")}
 $("#tpConnList").addEventListener("input",e=>{const k=e.target.dataset.key;if(!k)return;const s=integ();s[k]={...(s[k]||{}),key:e.target.value};A.store.set("integrations",s)});
 $("#tpConnList").addEventListener("click",e=>{if(e.target.closest("[data-cics]")){conn.close();$("#tpIcs").click()}});

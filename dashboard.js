@@ -8,7 +8,7 @@ const root=$("#dashGrid");if(!root)return;
 const reduce=matchMedia("(prefers-reduced-motion: reduce)");
 
 // ---------- widget catalogue ----------
-const APPS=[["explore","▦","Explore","Table and map together"],["trips","▣","Trip Planner","Camping & hiking calendar"],["grid","▤","Park Info","Park cards"],["list","☰","Park List","Editable list"],["map","◉","Park Map","Full-screen map"],["visited","✓","Visited","Everything you've checked"],["about","⚙","Settings","Settings, backup, about"],["backup","⇩","Backup","Save a backup file"]];
+const APPS=[["explore","▦","Explore","Table and map together"],["trips","▣","Trip Planner","Camping & hiking calendar"],["grid","▤","Park Info","Park cards"],["list","≡","Park List","Editable list"],["map","◉","Park Map","Full-screen map"],["visited","✓","Visited","Everything you've checked"],["about","⋯","Settings","Settings, backup, about"],["backup","⇩","Backup","Save a backup file"]];
 const T={
   list:{name:"My list",desc:"A small list you can edit; syncs to the cloud when you sign in",sizes:[[4,2],[2,2],[4,3],[2,3]],def:[4,2]},
   clock:{name:"Clock & date",desc:"Time and today's date",sizes:[[2,1],[4,1],[2,2]],def:[2,1]},
@@ -54,7 +54,7 @@ function updateList(){                     // patch list tiles in place; wait wh
   $$(".dw-list").forEach(t=>{if(t.contains(document.activeElement)&&document.activeElement.matches("[data-ltext]")){listStale=true;const s=t.querySelector("[data-sync]");if(s)s.outerHTML=syncHtml();return}
     const w=t.querySelector(".w-list");if(w)w.outerHTML=body.list()})}
 const syncHtml=()=>({off:`<span class="w-sync" data-sync>This browser</span>`,loading:`<span class="w-sync" data-sync>Connecting…</span>`,
-  out:`<button type="button" class="w-sync on" data-sync data-act="signin">Sign in to sync</button>`,in:`<span class="w-sync ok" data-sync title="Saved to your account">☁ Synced</span>`,
+  out:`<button type="button" class="w-sync on" data-sync data-act="signin">Sign in to sync</button>`,in:`<span class="w-sync ok" data-sync title="Saved to your account">Synced</span>`,
   error:`<span class="w-sync bad" data-sync title="Saved in this browser; see Settings">Sync problem</span>`}[cloudSt]||"");
 if(C){C.on(s=>{cloudSt=s;updateList()});
   C.watch("list",r=>{if(!r||!Array.isArray(r.items)){if(myList.at)C.put("list",myList);return}       // nothing in the cloud yet: upload this browser's list
@@ -64,7 +64,7 @@ document.addEventListener("focusout",()=>{if(listStale)setTimeout(()=>{if(!docum
 // ---------- rendering ----------
 const body={
   list(){const n=myList.items.length,d=myList.items.filter(i=>i.done).length;
-    return `<div class="w-list"><div class="w-h w-list-h"><span>📝 My list${n?` <em>${d}/${n}</em>`:""}</span>${syncHtml()}</div>
+    return `<div class="w-list"><div class="w-h w-list-h"><span>My list${n?` <em>${d}/${n}</em>`:""}</span>${syncHtml()}</div>
       <ul class="w-list-l">${myList.items.map(i=>`<li data-li="${esc(i.id)}"${i.done?' class="done"':""}><input type="checkbox" data-ldone ${i.done?"checked":""} aria-label="Done: ${esc(i.text)}"><input type="text" data-ltext value="${esc(i.text)}" maxlength="200" aria-label="Edit item"><button type="button" class="x" data-ldel aria-label="Delete ${esc(i.text)}">✕</button></li>`).join("")}</ul>
       ${n?"":`<p class="w-empty">Nothing yet. Add campsites to book, gear to buy, parks to see…</p>`}
       <form class="w-list-add" data-ladd><input type="text" maxlength="200" placeholder="Add an item…" aria-label="Add an item to my list"><button type="submit" class="w-btn">Add</button></form></div>`},
@@ -80,10 +80,10 @@ const body={
   statStates(){const s=new Set();visitedAll().forEach(p=>p.states.forEach(x=>s.add(x)));return `<div class="w-stat"><b>${s.size}</b><span>States visited</span></div>`},
   favorites(tile){const f=favs().map(id=>A.byId.get(id)),big=f[0];
     const rows=f.slice(big?1:0).map(p=>`<li><button type="button" data-open="${esc(p.id)}">${esc(A.disp(p))}</button><button type="button" class="x" data-unfav="${esc(p.id)}" aria-label="Remove ${esc(A.disp(p))} from favorites">✕</button></li>`).join("");
-    return `<div class="w-fav"><div class="w-h">★ Favorite parks</div>${big?`<div class="w-fav-top"><button type="button" class="w-fav-name" data-open="${esc(big.id)}">${esc(A.disp(big))}</button><span>${esc(A.fld(big,"d"))} · ${esc(big.states.slice(0,2).join(", "))}</span>${A.isChecked(big.id)?'<em>✓ Visited</em>':'<em class="no">Not visited yet</em>'}<button type="button" class="x" data-unfav="${esc(big.id)}" aria-label="Remove ${esc(A.disp(big))} from favorites">✕</button></div>`:`<p class="w-empty">No favorites yet. Add the parks you love most.</p>`}
+    return `<div class="w-fav"><div class="w-h">Favorite parks</div>${big?`<div class="w-fav-top"><button type="button" class="w-fav-name" data-open="${esc(big.id)}">${esc(A.disp(big))}</button><span>${esc(A.fld(big,"d"))} · ${esc(big.states.slice(0,2).join(", "))}</span>${A.isChecked(big.id)?'<em>✓ Visited</em>':'<em class="no">Not visited yet</em>'}<button type="button" class="x" data-unfav="${esc(big.id)}" aria-label="Remove ${esc(A.disp(big))} from favorites">✕</button></div>`:`<p class="w-empty">No favorites yet. Add the parks you love most.</p>`}
       ${rows?`<ul class="w-fav-l">${rows}</ul>`:""}<button type="button" class="w-btn" data-act="addfav">+ Add favorite</button></div>`},
   potd(){const np=nps63(),d=new Date(),i=(d.getFullYear()*372+d.getMonth()*31+d.getDate())%np.length,p=np[i];
-    return `<div class="w-potd"><div class="w-h">Park of the day</div><b>${esc(A.disp(p))}</b><span>${esc(p.states.slice(0,2).join(", "))}</span><p>${esc((A.fld(p,"hl")||p.blurb||"").slice(0,140))}</p><div class="w-row"><button type="button" class="w-btn" data-open="${esc(p.id)}">Show on map</button><button type="button" class="w-btn" data-fav="${esc(p.id)}">${favs().includes(p.id)?"★ Favorite":"☆ Favorite"}</button></div></div>`},
+    return `<div class="w-potd"><div class="w-h">Park of the day</div><b>${esc(A.disp(p))}</b><span>${esc(p.states.slice(0,2).join(", "))}</span><p>${esc((A.fld(p,"hl")||p.blurb||"").slice(0,140))}</p><div class="w-row"><button type="button" class="w-btn" data-open="${esc(p.id)}">Show on map</button><button type="button" class="w-btn" data-fav="${esc(p.id)}">${favs().includes(p.id)?"✓ Favorite":"+ Favorite"}</button></div></div>`},
   countdown(tile){const c=A.store.get("countdown",null);let main='<p class="w-empty">No trip planned yet.</p>';
     const nx=!(c&&c.date)&&window.Trips&&Trips.upcoming(1)[0];if(nx){const days=Trips.daysUntil(nx);main=`<div class="w-cd"><b>${Math.max(0,days)}</b><span>${days===1?"day":"days"} until</span></div><div class="w-cd-t">${esc(Trips.label.titleOf(nx))}</div>`}
     if(c&&c.date){const days=Math.round((new Date(c.date+"T00:00:00")-new Date(new Date().toDateString()))/864e5);
@@ -97,7 +97,7 @@ const body={
     const up=Tr.upcoming(3),L=Tr.label;
     const row=t=>{const d=Tr.daysUntil(t);return `<li><button type="button" data-trip="${esc(t.id)}"><span>${L.TYPES[t.type].icon}</span><b>${esc(L.titleOf(t))}</b><i>${esc(L.fmtRange(t.start,t.end))}</i><em>${d<=0?"now":d===1?"tomorrow":"in "+d+" days"}</em></button></li>`};
     const big=up[0];
-    return `<div class="w-camp"><div class="w-h">⛺ Camping plan</div>${big?`<div class="w-camp-top"><button type="button" class="w-camp-name" data-trip="${esc(big.id)}">${L.TYPES[big.type].icon} ${esc(L.titleOf(big))}</button><span>${esc(L.fmtRange(big.start,big.end))}${big.type==="camp"&&L.nights(big)?` · ${L.nights(big)} night${L.nights(big)>1?"s":""}`:""}</span><span>${esc(L.parkName(big)||big.place||"")}</span><em class="pill st-${big.status}">${L.STATUS[big.status]}</em><b class="w-camp-d">${Tr.daysUntil(big)<=0?"Happening now":Tr.daysUntil(big)===1?"Tomorrow":"In "+Tr.daysUntil(big)+" days"}</b></div>${up.length>1?`<ul class="w-camp-l">${up.slice(1).map(row).join("")}</ul>`:""}`:`<p class="w-empty">No upcoming plans. Start one and it shows up here and on the calendar.</p>`}
+    return `<div class="w-camp"><div class="w-h">Camping plan</div>${big?`<div class="w-camp-top"><button type="button" class="w-camp-name" data-trip="${esc(big.id)}">${L.TYPES[big.type].icon} ${esc(L.titleOf(big))}</button><span>${esc(L.fmtRange(big.start,big.end))}${big.type==="camp"&&L.nights(big)?` · ${L.nights(big)} night${L.nights(big)>1?"s":""}`:""}</span><span>${esc(L.parkName(big)||big.place||"")}</span><em class="pill st-${big.status}">${L.STATUS[big.status]}</em><b class="w-camp-d">${Tr.daysUntil(big)<=0?"Happening now":Tr.daysUntil(big)===1?"Tomorrow":"In "+Tr.daysUntil(big)+" days"}</b></div>${up.length>1?`<ul class="w-camp-l">${up.slice(1).map(row).join("")}</ul>`:""}`:`<p class="w-empty">No upcoming plans. Start one and it shows up here and on the calendar.</p>`}
       <div class="w-row"><button type="button" class="w-btn" data-act="openplanner">Open planner</button><button type="button" class="w-btn" data-act="newcamp">+ Camping</button><button type="button" class="w-btn" data-act="newhike">+ Hike</button></div></div>`},
   app(tile){const a=APPS.find(x=>x[0]===tile.cfg.target)||APPS[0],lg=tile.w>=2;return `<button type="button" class="w-app${lg?" lg":""}" data-go="${a[0]}"><span class="ico">${a[1]}</span><span class="alb">${esc(a[2])}${lg?`<small>${esc(a[3])}</small>`:""}</span></button>`}
 };
@@ -108,7 +108,7 @@ function tileHtml(it,i,n){
     ${body[it.type](it)}
     <div class="dw-edit"><button type="button" class="dw-rm" data-edit="rm" aria-label="Remove ${esc(name)}">−</button>
       ${t.sizes.length>1?`<button type="button" class="dw-sz" data-edit="size" aria-label="Change size of ${esc(name)}">⤡</button>`:""}
-      <span class="dw-mv"><button type="button" data-edit="prev" aria-label="Move ${esc(name)} earlier"${i===0?" disabled":""}>◀</button><button type="button" data-edit="next" aria-label="Move ${esc(name)} later"${i===n-1?" disabled":""}>▶</button></span></div></section>`}
+      <span class="dw-mv"><button type="button" data-edit="prev" aria-label="Move ${esc(name)} earlier"${i===0?" disabled":""}>‹</button><button type="button" data-edit="next" aria-label="Move ${esc(name)} later"${i===n-1?" disabled":""}>›</button></span></div></section>`}
 function layout(){
   const wrap=$("#dashWrap"),W=wrap.clientWidth||360,gap=10,cols=st.cols;
   const cell=(W-gap*(cols-1))/cols,rowh=Math.min(cell,cols>=3?132:118);
@@ -189,7 +189,7 @@ const pick=$("#dashPick");
 function openPicker(){$("#dashPickQ").value="";drawPick();pick.showModal();setTimeout(()=>$("#dashPickQ").focus(),30)}
 function drawPick(){const q=$("#dashPickQ").value.toLowerCase().trim(),f=new Set(favs());
   const list=[...A.parks,...A.caParks].filter(p=>!q||(A.disp(p)+" "+A.fld(p,"state")).toLowerCase().includes(q)).sort((a,b)=>(b.np63-a.np63)||A.disp(a).localeCompare(A.disp(b))).slice(0,150);
-  $("#dashPickList").innerHTML=list.map(p=>`<li><button type="button" data-pick="${esc(p.id)}" aria-pressed="${f.has(p.id)}"><span>${f.has(p.id)?"★":"☆"}</span><b>${esc(A.disp(p))}</b><i>${esc(A.fld(p,"d"))} · ${esc(A.fld(p,"state")||p.states[0]||"")}</i></button></li>`).join("")||"<li class='w-empty'>No matches</li>"}
+  $("#dashPickList").innerHTML=list.map(p=>`<li><button type="button" data-pick="${esc(p.id)}" aria-pressed="${f.has(p.id)}"><span>${f.has(p.id)?"✓":"+"}</span><b>${esc(A.disp(p))}</b><i>${esc(A.fld(p,"d"))} · ${esc(A.fld(p,"state")||p.states[0]||"")}</i></button></li>`).join("")||"<li class='w-empty'>No matches</li>"}
 $("#dashPickQ").oninput=drawPick;
 $("#dashPickList").onclick=e=>{const b=e.target.closest("[data-pick]");if(!b)return;const id=b.dataset.pick,f=favs();A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);drawPick();render()};
 $("#dashPickDone").onclick=()=>pick.close();

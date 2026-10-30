@@ -48,7 +48,7 @@ function renderTable(){
   $("#pBody").innerHTML=list.map(p=>`<tr data-id="${esc(p.id)}"><td class="nm"><a href="${esc(A.infoUrl(p))}" target="_blank" rel="noopener">${esc(A.disp(p))}</a></td><td>${esc(A.fld(p,"d"))}</td><td>${esc(A.fld(p,"city"))}</td>`+
     cs.map(ps=>{const r=p.passes[ps.id],s=r?r.s:"none",t=s==="none"?"Not on this pass's list":L[s]+(r.note?" – "+r.note:"");
       return `<td class="c ps s-${s}" title="${esc(ps.short)}: ${esc(t)}"><span aria-hidden="true">${ICON[s]}</span><span class="sr">${esc(t)}</span>${r&&r.note?`<small>${esc(r.note)}</small>`:""}</td>`}).join("")+
-    `<td class="c"><input type="checkbox" data-vis ${A.isChecked(p.id)?"checked":""} aria-label="Visited: ${esc(A.disp(p))}"></td><td class="c">${p.lat?`<button type="button" class="pmap" data-map title="Show on map" aria-label="Show ${esc(A.disp(p))} on map">📍</button>`:""}</td></tr>`).join("")||
+    `<td class="c"><input type="checkbox" data-vis ${A.isChecked(p.id)?"checked":""} aria-label="Visited: ${esc(A.disp(p))}"></td><td class="c">${p.lat?`<button type="button" class="pmap" data-map title="Show on map" aria-label="Show ${esc(A.disp(p))} on map">Map</button>`:""}</td></tr>`).join("")||
     `<tr><td colspan="${cs.length+5}" class="pnone">No parks match these filters.</td></tr>`;
   $("#pCount").textContent=`${list.length} of ${A.caParks.length} California state parks`;
   $("#pMap").disabled=!list.some(p=>p.lat);

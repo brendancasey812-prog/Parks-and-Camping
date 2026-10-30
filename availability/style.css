@@ -22,7 +22,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 .side{position:sticky;top:0;align-self:start;height:100dvh;display:flex;flex-direction:column;gap:1.2rem;padding:1.2rem 1rem;border-right:1px solid var(--line);background:var(--bg);overflow:auto}
 .brand{display:flex;align-items:center;gap:.6rem;padding:.2rem .5rem}.mark{width:22px;height:22px;border-radius:7px;background:var(--accent);position:relative}.mark::after{content:"";position:absolute;left:5px;top:6px;border:6px solid transparent;border-bottom:9px solid var(--accent-ink);border-top:0}
 .brand-t{font-weight:650;letter-spacing:-.01em}
-.nav{display:grid;gap:2px}.nav-i{display:flex;align-items:center;min-height:40px;padding:.45rem .7rem;border-radius:10px;color:var(--ink-2);text-decoration:none;font-weight:500}.nav-i:hover{background:var(--hover)}.nav-i[aria-current=page]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav{display:grid;gap:2px}.nav-i{display:flex;align-items:center;min-height:40px;padding:.45rem .7rem;border-radius:10px;color:var(--ink-2);text-decoration:none;font-weight:500;font-size:1.02rem}.nav-i:hover{background:var(--hover)}.nav-i[aria-current=page]{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .side-g{display:grid;gap:.15rem}.side-h{padding:.6rem .7rem .2rem;font:600 .72rem var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .side-l{display:flex;justify-content:space-between;gap:.5rem;min-height:36px;align-items:center;padding:.3rem .7rem;border-radius:10px;color:var(--ink-2);text-decoration:none;font-size:.9rem}.side-l:hover{background:var(--hover)}.side-l small{color:var(--muted)}.side-l[aria-current=true]{background:var(--hover);color:var(--ink);font-weight:600}
 .side-f{margin-top:auto;padding:.4rem .5rem}.link-btn{border:0;background:none;color:var(--muted);font:500 .85rem var(--font);cursor:pointer;padding:.4rem 0;min-height:var(--tap);text-align:left}.link-btn:hover{color:var(--ink)}
@@ -62,7 +62,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 .tw{overflow:auto}
 .tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.9rem}
 .tbl thead th{position:sticky;top:0;z-index:1;padding:0;background:var(--panel);border-bottom:1px solid var(--line-2);text-align:left;white-space:nowrap}
-.tbl thead button,.tbl thead span.h{display:block;width:100%;min-height:var(--tap);padding:.5rem .9rem;border:0;background:none;color:var(--muted);font:600 .76rem var(--font);letter-spacing:.02em;text-align:left;cursor:pointer}
+.tbl thead button,.tbl thead span.h{display:block;width:100%;min-height:var(--tap);padding:.5rem .9rem;border:0;background:none;color:var(--ink-2);font:600 .9rem var(--font);letter-spacing:.01em;text-align:left;cursor:pointer}
 .tbl thead th[aria-sort] button:first-child::after{content:"";display:inline-block;margin-left:.4rem;border:4px solid transparent}.tbl thead th[aria-sort=ascending] button:first-child::after{border-bottom:5px solid var(--ink);border-top:0}.tbl thead th[aria-sort=descending] button:first-child::after{border-top:5px solid var(--ink);border-bottom:0}
 .tbl td,.tbl tbody th{padding:.8rem .9rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left;font-weight:400}
 .tbl tbody tr:last-child>*{border-bottom:0}
@@ -123,7 +123,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 .pm-foot ul{margin:.4rem 0 0;padding-left:1.1rem}
 .tbl td,.tbl tbody th{font-size:.88rem}.tbl .st{white-space:nowrap}
 @media(min-width:861px){.tbl td,.tbl tbody th{padding:.7rem .7rem}.tbl thead button{padding:.5rem .7rem}}
-.tbl thead th:not(:has(button)){padding:.6rem .9rem;color:var(--muted);font:600 .76rem var(--font)}
+.tbl thead th:not(:has(button)){padding:.6rem .9rem;color:var(--ink-2);font:600 .9rem var(--font)}
 .badge{display:inline-block;padding:.2rem .65rem;border-radius:999px;border:1px solid var(--line-2);font-size:.78rem;font-weight:600;color:var(--ink-2);white-space:nowrap}.badge.good{color:var(--ok)}.badge.check{color:var(--wait)}
 .pm-card .tbl.simple th{width:8rem;color:var(--muted);font-weight:600}
 /* Google Sheets-style column menus and in-cell editing */
@@ -149,7 +149,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 .tbtn{margin-left:.6rem;padding:.15rem .6rem;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;font:600 .82rem var(--font);cursor:pointer}
 /* Parks table: type tabs, actions and the filter row in the header */
 .tbl-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
-.ktabs{display:flex;flex-wrap:wrap;gap:.3rem}.ktabs button{min-height:34px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink-2);font:500 .84rem var(--font);cursor:pointer}
+.ktabs{display:flex;flex-wrap:wrap;gap:.3rem}.ktabs button{min-height:34px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink-2);font:500 .95rem var(--font);cursor:pointer}
 .ktabs button small{color:var(--muted);margin-left:.2rem}.ktabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}.ktabs button[aria-pressed=true] small{color:#ffffffcc}
 .tbl-act{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;position:relative}
 .more>summary{display:flex;align-items:center;gap:.4rem;min-height:34px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:999px;cursor:pointer;font:500 .84rem var(--font);list-style:none}.more>summary::-webkit-details-marker{display:none}
@@ -171,7 +171,7 @@ abbr.des{text-decoration:none;font-weight:700;font-size:.8rem;padding:.1rem .45r
 .vtabs{display:none}
 .embed .shell{grid-template-columns:minmax(0,1fr)}.embed .side,.embed .scrim,.embed .icon-btn{display:none}
 .embed .vtabs{display:flex;gap:.3rem;padding:.6rem 1.5rem 0;max-width:1180px;margin:0 auto;border-bottom:1px solid var(--line)}
-.embed .vtabs .nav-i{min-height:40px;padding:.5rem .9rem;border-radius:10px 10px 0 0;margin-bottom:-1px;border:1px solid transparent;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.9rem;background:none}
+.embed .vtabs .nav-i{min-height:40px;padding:.5rem .9rem;border-radius:10px 10px 0 0;margin-bottom:-1px;border:1px solid transparent;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:1.05rem;background:none}
 .embed .vtabs .nav-i[aria-current=page]{background:var(--panel);border-color:var(--line);border-bottom-color:var(--panel);color:var(--ink)}
 @media(max-width:860px){.embed .ask{flex-basis:100%}.embed .vtabs{padding:.5rem .7rem 0;overflow-x:auto}}
 /* Permits: search and filters above a table of every step */

@@ -25,14 +25,14 @@
       <div class="tabmenu" hidden>
         <button class="tabitem" data-tab="explore"><b>◫</b>Table + Map</button>
         <button class="tabitem" data-tab="trips"><b>▣</b>Trip Planner</button>
-        <button class="tabitem" data-tab="camping"><b>⛺</b>Campsite availability</button>
+        <button class="tabitem" data-tab="camping"><b>△</b>Campsite availability</button>
       </div>
     </div>
     <div class="tabgroup" data-group="parks">
       <button class="tab grp" type="button" data-group="parks" aria-expanded="false">National Parks <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
       <div class="tabmenu" hidden>
         <button class="tabitem" data-tab="grid"><b>▦</b>Park Info</button>
-        <button class="tabitem" data-tab="list"><b>☰</b>Park List</button>
+        <button class="tabitem" data-tab="list"><b>≡</b>Park List</button>
         <button class="tabitem" data-tab="map"><b>◉</b>Park Map</button>
       </div>
     </div>
@@ -61,7 +61,7 @@
   <div id="chips" class="chips" aria-label="Active filters"></div>
 </section>
 
-<div id="exBar" class="exbar"><div class="seg exseg" id="exSeg" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">☰ List</button><button type="button" data-m="split" aria-pressed="false">◫ Split</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div></div>
+<div id="exBar" class="exbar"><div class="seg exseg" id="exSeg" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">≡ List</button><button type="button" data-m="split" aria-pressed="false">◫ Split</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div></div>
 
 <main id="main" tabindex="-1">
   <section id="tab-dashboard" class="panel">
@@ -70,7 +70,7 @@
       <div id="dashTools" class="dash-tools" hidden>
         <div class="dash-cols"><span id="dashColsLbl">Apps across</span><div class="seg" id="dashCols" role="group" aria-labelledby="dashColsLbl"><button type="button" data-c="1">1</button><button type="button" data-c="2">2</button><button type="button" data-c="3">3</button><button type="button" data-c="4">4</button></div></div>
         <button id="dashAddBtn" type="button">+ Add widget</button><button id="dashReset" type="button" class="ghost">Reset layout</button>
-        <p class="hint">Drag a tile, or use ◀ ▶, to move it. ⤡ changes its size. − removes it. Tap Done when finished.</p>
+        <p class="hint">Drag a tile, or use ‹ ›, to move it. ⤡ changes its size. − removes it. Tap Done when finished.</p>
       </div>
       <div id="dashGrid" class="dash-grid"></div>
     </div>
@@ -80,10 +80,10 @@
     <div class="tp-top"><div class="seg panesw" id="tpPane" role="group" aria-label="Show"><button type="button" data-p="list" class="on" aria-pressed="true">Plans</button><button type="button" data-p="cal" aria-pressed="false">Calendar</button></div></div>
     <div class="tp" data-pane="list">
       <aside class="tp-list" aria-label="Camping and hiking plans">
-        <div class="tp-lh"><h2>Plans</h2><div class="tp-lb"><button id="tpNewCamp" type="button" class="pri">⛺ Camping</button><button id="tpNewHike" type="button" class="pri">🥾 Hike</button>
+        <div class="tp-lh"><h2>Plans</h2><div class="tp-lb"><button id="tpNewCamp" type="button" class="pri">Camping</button><button id="tpNewHike" type="button" class="pri">Hike</button>
           <details class="tp-more"><summary aria-label="More">⋯</summary><div><button id="tpImportBtn" type="button">Import a booking confirmation</button><button id="tpConnBtn" type="button">Booking sites &amp; connections</button><button id="tpIcs" type="button">Export calendar (.ics)</button></div></details></div></div>
         <div class="tp-fl"><div class="seg" id="tpScope" role="group" aria-label="Which plans"><button type="button" data-s="upcoming">Upcoming</button><button type="button" data-s="past">Past</button><button type="button" data-s="all">All</button></div>
-          <span id="tpTypes" class="tp-types"><label><input type="checkbox" data-t="camp" checked> ⛺ Camping</label><label><input type="checkbox" data-t="hike" checked> 🥾 Hiking</label></span><span id="tpListCount" class="tp-n" role="status" aria-live="polite"></span></div>
+          <span id="tpTypes" class="tp-types"><label><input type="checkbox" data-t="camp" checked> Camping</label><label><input type="checkbox" data-t="hike" checked> Hiking</label></span><span id="tpListCount" class="tp-n" role="status" aria-live="polite"></span></div>
         <ul id="tpList" class="tp-ul"></ul>
       </aside>
       <section class="tp-cal" aria-label="Calendar">
@@ -118,9 +118,9 @@
           <button id="addRow" type="button"><b>+</b>Add row</button>
           <button id="delRows" type="button" title="Deletes selected custom rows you added"><b>−</b>Delete row</button>
           <button id="revert" type="button" title="Put selected cells back to the official value"><b>⟲</b>Revert to official</button>
-          <button id="mapSel" type="button" title="Fly the map to the selected rows"><b>📍</b>Show selected on map</button>
+          <button id="mapSel" type="button" title="Fly the map to the selected rows"><b>⌖</b>Show selected on map</button>
           <div class="hm-group">View</div>
-          <label class="hm-check" data-keep><input type="checkbox" id="onlyEdited"><b>✎</b>Edited rows only</label>
+          <label class="hm-check" data-keep><input type="checkbox" id="onlyEdited"><b>∗</b>Edited rows only</label>
           <button id="clearColFilters" type="button"><b>⊘</b>Clear column filters</button>
           <button id="resetCols" type="button" title="Drag any column header to move it"><b>⇄</b>Reset column order</button>
           <div class="hm-group">Data</div>
@@ -225,11 +225,11 @@
 
 <div id="cellLive" class="sr" aria-live="polite" aria-atomic="true"></div>
 <div id="mmBar" class="mmbar" hidden>
-  <div class="seg exseg" id="exSegM" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">☰ List</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div>
+  <div class="seg exseg" id="exSegM" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">≡ List</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div>
   <button id="mmSearchBtn" type="button" aria-label="Search parks"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
   <input id="mmQ" type="search" placeholder="Search parks, cities…" aria-label="Search parks">
   <button id="mmFilt" type="button" aria-label="Filters"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg></button>
-  <button id="mmMenu" type="button" aria-label="Settings and backup">⚙</button>
+  <button id="mmMenu" type="button" aria-label="Settings and backup">⋯</button>
 </div>
 <div id="mmFabs" class="mmfabs" hidden>
   <button id="mmLocate" type="button" aria-label="Near me: show my location and the nearest places">◎</button>
