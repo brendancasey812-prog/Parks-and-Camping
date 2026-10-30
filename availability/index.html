@@ -69,9 +69,13 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <th scope="col" data-k="name"><button type="button">Park</button></th>
               <th scope="col" data-k="des"><button type="button">Type</button></th>
               <th scope="col" data-k="region"><button type="button">Region</button></th>
+              <th scope="col" data-k="openD"><button type="button">Open season</button></th>
+              <th scope="col" data-k="peakD"><button type="button">Peak season</button></th>
+              <th scope="col" data-k="sites"><button type="button">Sites</button></th>
               <th scope="col" data-k="sys"><button type="button">Booking site</button></th>
               <th scope="col" data-k="rule"><button type="button">How it opens</button></th>
-              <th scope="col" data-k="days"><button type="button">Opens in</button></th>
+              <th scope="col" data-k="days"><button type="button">Days out</button></th>
+              <th scope="col" data-k="wday"><button type="button">Day</button></th>
               <th scope="col" data-k="date"><button type="button">Open date</button></th>
               <th scope="col" data-k="time"><button type="button">Open time</button></th>
               <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
@@ -82,9 +86,11 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <td><input id="fName" type="search" placeholder="Filter parks" aria-label="Filter parks and campgrounds"></td>
               <td><select id="fDes" aria-label="Type"><option value="">All types</option></select></td>
               <td><select aria-label="Region" id="fRegion"><option value="">All regions</option></select></td>
+              <td></td><td></td><td></td>
               <td><select aria-label="Booking site" id="fSys"><option value="">All sites</option><option value="rec">Recreation.gov</option><option value="rc">ReserveCalifornia</option><option value="fcfs">First-come only</option></select></td>
               <td></td>
               <td><select aria-label="Opens in" id="fAvail"><option value="">Any time</option><option value="open">Already open for my date</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking on my date</option></select></td>
+              <td></td>
               <td></td><td></td>
               <td><select aria-label="Walk-up" id="fWalk"><option value="">Any walk-up</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></td>
               <td></td>
@@ -114,6 +120,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
                   <th scope="col" data-k="season"><button type="button">Season</button></th>
                   <th scope="col" data-k="peak"><button type="button">Peak season</button></th>
                   <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
+                  <th scope="col" data-k="sites"><button type="button">Sites</button></th>
                   <th scope="col" data-k="conf"><button type="button">Data</button></th>
                 </tr></thead>
                 <tbody id="campBody"></tbody>
@@ -170,6 +177,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
 <script src="data/sites.js"></script>
 <script src="data/roster.js"></script>
 <script src="data/permits.js"></script>
+<script src="data/seasons.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 <script src="permits.js"></script>

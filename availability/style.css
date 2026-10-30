@@ -181,3 +181,9 @@ abbr.des{text-decoration:none;font-weight:700;font-size:.8rem;padding:.1rem .45r
 #pmAll td[data-l="Opens date"],#pmAll td[data-l="Opens time"],#pmSoon td[data-l="Opens time"]{white-space:nowrap}
 #vPermits>.card+.card,#vPermits>.card+.pm-list{margin-top:1rem}
 .embed #content,.embed .vtabs{max-width:none}.embed .vtabs .nav-i{white-space:nowrap}
+/* season / peak / sites columns */
+.tbl td.num{font-variant-numeric:tabular-nums;min-width:5rem}.tbl td.num small{max-width:16rem}
+#parksTable td[data-l="Open season"],#parksTable td[data-l="Peak season"]{min-width:9rem}
+#parksTable td[data-l="Day"]{white-space:nowrap}
+.h3s{margin-top:.8rem}
+.dl dd small{display:block;margin-top:.15rem;color:var(--muted);font-size:.8rem}

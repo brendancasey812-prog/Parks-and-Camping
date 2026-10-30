@@ -23,6 +23,8 @@ function fmtAt(date, withTime = true) {
   return date.toLocaleString([], o);
 }
 const tzOpt = o => (st.tz === "pt" ? Object.assign(o, { timeZone: E.TZ }) : o);
+const fmtWd = d => d.toLocaleDateString([], tzOpt({ weekday: "short" }));
+const fmtDOnly = d => d.toLocaleDateString([], tzOpt({ month: "short", day: "numeric", year: "numeric" }));
 const fmtDay = d => d.toLocaleDateString([], tzOpt({ weekday: "short", month: "short", day: "numeric", year: "numeric" }));
 const fmtTime = d => d.toLocaleTimeString([], tzOpt({ hour: "numeric", minute: "2-digit", timeZoneName: "short" }));
 const timeKey = d => d.toLocaleTimeString("en-GB", tzOpt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }));
@@ -48,7 +50,26 @@ function ics(title, at, desc, url) {
 }
 
 // ---------- data: base rows, local edits, parks ----------
-const BASE = window.SITES.map(s => Object.assign({}, s, { updated: s.updated || window.DATA_CHECKED }));
+// researched season dates, peak season and site counts (data/seasons.js) ride on each row; peak months fill in where the row had none
+function monthsFrom(t) {            // "May 15 – Sep 15" -> [5..9]; "Oct – Apr" wraps; "Mar – May, Oct" -> [3,4,5,10]
+  const out = new Set();
+  String(t || "").split(/[,;]/).forEach(part => {
+    const ms = [...part.toLowerCase().matchAll(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/g)].map(m => MON3.map(x => x.toLowerCase()).indexOf(m[1]) + 1);
+    if (ms.length >= 2) { let a = ms[0]; const b = ms[ms.length - 1]; for (let i = 0; i < 12; i++) { out.add(a); if (a === b) break; a = a === 12 ? 1 : a + 1; } } else if (ms.length === 1) out.add(ms[0]);
+  });
+  return out.size ? [...out].sort((a, b) => a - b) : null;
+}
+const SEAS = window.SEASONS || {};
+const BASE = window.SITES.map(s => {
+  const x = Object.assign({}, s, { updated: s.updated || window.DATA_CHECKED, openDates: "", peakDates: "", sites: null, sitesNote: "", seasonSrc: [] }), r = SEAS[s.id];
+  if (r) {
+    Object.assign(x, { openDates: r.openDates || "", peakDates: r.peakDates || "", sites: r.sites ?? null, sitesNote: r.sitesNote || "", seasonSrc: r.src || [] });
+    if (!x.peak && /\b[A-Z][a-z]{2}\b/.test(r.peakDates || "")) x.peak = monthsFrom(r.peakDates);
+    if (!x.open && /^year-round/i.test(r.openDates || "")) x.open = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    if (x.conf === "assumed" && (r.sites != null || r.openDates)) x.conf = "check";
+  }
+  return x;
+});
 let edits = store.get("cc-edits", {});
 const kindOf = s => s.agency === "California State Parks" ? "state" : s.agency === "USFS" ? "forest" : s.agency === "NPS" ? "nps" : "default";
 function eff(s) { const e = edits[s.id]; return e ? Object.assign({}, s, e, { edited: true }) : Object.assign({}, s, { edited: false }); }
@@ -119,6 +140,10 @@ const WALK = { none: "Reservation only", some: "Some walk-up", only: "Walk-up on
 const CONF = { good: ["Verified", "good"], check: ["Needs checking", "check"], assumed: ["Not yet researched", ""] };
 const confLabel = s => CONF[s.conf][0];
 const seasonText = s => s.open ? E.monthsLabel(s.open) : "";
+const userSet = (s, k) => !!(edits[s.id] && k in edits[s.id]);
+const openTxt = s => s.openDates && !userSet(s, "open") ? s.openDates : seasonText(s);
+const peakTxt = s => s.peakDates && !userSet(s, "peak") ? s.peakDates : (s.peak ? E.monthsLabel(s.peak) : "");
+const sitesTxt = s => s.sites == null ? "" : String(s.sites);
 const peakText = s => s.peak ? E.monthsLabel(s.peak) : "";
 const ruleTxt = s => E.ruleText(s.rule) + (s.check.includes("rule") && s.rule.kind !== "none" ? " (assumed)" : "");
 function opensCell(s, c) {
@@ -129,13 +154,14 @@ function opensCell(s, c) {
   }
   return '<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>";
 }
-const NV = '<span class="nv">Not researched</span>';
+const NV = '<span class="nv">Not researched</span>', NF = '<span class="nv">Not found</span>';
 // ---------- column filters (Google Sheets style): per column, the values you untick are hidden ----------
 function opensBucket(c) { if (c.at) { if (c.status === "open") return "Open now"; const h = hoursUntil(c.at); return h <= 168 ? "Opens within 7 days" : h <= 720 ? "Opens within 30 days" : "Opens later"; } return STATUS_TEXT[c.status] || ""; }
 const PCOL = { name: x => splitName(x.p.name).name, des: x => splitName(x.p.name).des || "—", region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0],
-  days: x => opensBucket((x.first || x.calcs[0]).c), date: x => x.first ? fmtDay(x.first.c.at) : "—", time: x => x.first ? fmtTime(x.first.c.at) : "—",
+  days: x => opensBucket((x.first || x.calcs[0]).c), wday: x => x.first ? fmtWd(x.first.c.at) : "—", date: x => x.first ? fmtDOnly(x.first.c.at) : "—", time: x => x.first ? fmtTime(x.first.c.at) : "—",
+  openD: x => x.openD || "Not found", peakD: x => x.peakD || "Not found", sites: x => x.sites == null ? "Not found" : String(x.sites),
   walk: x => x.walk || "Not researched", n: x => String(x.n), conf: x => x.researched === x.n ? "Verified or checked" : x.researched ? "Partly researched" : "Not yet researched" };
-const CCOL = { name: x => x.s.name, opens: x => opensBucket(x.c), season: x => seasonText(x.s) || "Not researched", peak: x => peakText(x.s) || "Not researched", walk: x => x.s.walkup ? WALK[x.s.walkup] : "Not researched", conf: x => confLabel(x.s) };
+const CCOL = { name: x => x.s.name, opens: x => opensBucket(x.c), season: x => openTxt(x.s) || "Not researched", peak: x => peakTxt(x.s) || "Not researched", sites: x => x.s.sites == null ? "Not found" : String(x.s.sites), walk: x => x.s.walkup ? WALK[x.s.walkup] : "Not researched", conf: x => confLabel(x.s) };
 const passCF = (x, cols, cf, skip) => Object.keys(cf).every(k => k === skip || !cf[k] || !cf[k].length || !cf[k].includes(cols[k](x)));
 const campCF = () => { if (st.ccf.park !== R.key) st.ccf = { park: R.key, f: {} }; return st.ccf.f; };   // campground filters belong to one park
 let allParkSums = [], allCamps = [];
@@ -170,15 +196,18 @@ function parkSummary(p) {
   const sys = [...new Set(match.map(r => SYSTEMS[r.system].name))].join(", ");
   const rules = [...new Set(match.map(r => ruleTxt(r)))];
   const researched = match.filter(r => r.conf !== "assumed").length;
+  const one = vals => { const v = [...new Set(vals.filter(Boolean))]; return v.length === 1 ? v[0] : v.length ? "Varies by campground" : ""; };
+  const known = match.filter(r => r.sites != null), sites = known.reduce((t, r) => t + r.sites, 0);
   return { p, calcs, first, sameAt, sys, rules, all: all.length, n: match.length, walk: AGG_WALK(match), researched,
+    openD: one(match.map(openTxt)), peakD: one(match.map(peakTxt)), sites: known.length ? sites : null, sitesMissing: match.length - known.length,
     opens: sameAt ? first.c : (first ? first.c : null), varies: !sameAt && ats.length > 1 };
 }
 function opensCells(x) {          // days out | date | time, for the first campground to open
   const varies = x.varies ? '<span class="when-t">Varies by campground</span>' : "";
-  if (!x.first) { const c = x.calcs[0].c; return ['<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>", '<span class="nv">—</span>', '<span class="nv">—</span>']; }
+  if (!x.first) { const c = x.calcs[0].c; return ['<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>", '<span class="nv">—</span>', '<span class="nv">—</span>', '<span class="nv">—</span>']; }
   const c = x.first.c, d = c.status === "open" ? '<span class="st open">Open now</span>' : '<span class="st later" data-cd="' + c.at.getTime() + '" data-bare>' + esc(countdown(c.at).replace(/^in /, "")) + "</span>";
   const span = c.from !== c.to ? '<span class="when-t">Dates ' + esc(fmtShort(c.from)) + " to " + esc(fmtShort(c.to)) + "</span>" : "";
-  return [d + varies, esc(fmtDay(c.at)) + span, esc(fmtTime(c.at))];
+  return [d + varies, esc(fmtWd(c.at)), esc(fmtDOnly(c.at)) + span, esc(fmtTime(c.at))];
 }
 function opensParkCell(x) {
   if (x.sameAt && x.first) return opensCell(x.first.r, x.first.c);
@@ -186,8 +215,11 @@ function opensParkCell(x) {
   const c = x.calcs[0].c; return '<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>";
 }
 const atOf = x => x.first ? x.first.c.at.getTime() : Infinity;
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], wdOf = x => x.first ? WD.indexOf(fmtWd(x.first.c.at).slice(0, 3)) : 9;
 const SORTP = {
   name: (a, b) => splitName(a.p.name).name.localeCompare(splitName(b.p.name).name), des: (a, b) => desOf(a.p.name).localeCompare(desOf(b.p.name)) || a.p.name.localeCompare(b.p.name),
+  wday: (a, b) => wdOf(a) - wdOf(b) || atOf(a) - atOf(b), openD: (a, b) => (a.openD || "~").localeCompare(b.openD || "~"), peakD: (a, b) => (a.peakD || "~").localeCompare(b.peakD || "~"),
+  sites: (a, b) => (b.sites ?? -1) - (a.sites ?? -1),
   days: (a, b) => atOf(a) - atOf(b) || a.p.name.localeCompare(b.p.name), date: (a, b) => atOf(a) - atOf(b) || a.p.name.localeCompare(b.p.name),
   time: (a, b) => (a.first ? timeKey(a.first.c.at) : "~").localeCompare(b.first ? timeKey(b.first.c.at) : "~") || atOf(a) - atOf(b), region: (a, b) => a.p.region.localeCompare(b.p.region) || a.p.name.localeCompare(b.p.name), sys: (a, b) => a.sys.localeCompare(b.sys) || a.p.name.localeCompare(b.p.name),
   rule: (a, b) => a.rules[0].localeCompare(b.rules[0]), opens: (a, b) => (a.first ? a.first.c.at.getTime() : Infinity) - (b.first ? b.first.c.at.getTime() : Infinity) || a.p.name.localeCompare(b.p.name),
@@ -204,10 +236,11 @@ function renderParks() {
     const nm = splitName(x.p.name), oc = opensCells(x);
     return '<tr class="link" data-park="' + esc(x.p.key) + '"><th scope="row" data-l="Park"><a class="nm link-cell" href="#/park/' + esc(x.p.key) + '" title="' + esc(x.p.name) + '">' + esc(nm.name) + "</a><small>" + esc(x.p.agency) + "</small>" +
       hit(x).map(r => '<a class="hit" href="#/park/' + esc(x.p.key) + "/" + esc(r.id) + '">Campground: ' + esc(r.name) + "</a>").join("") + "</th>" +
-      '<td data-l="Type">' + (nm.des ? '<abbr class="des" title="' + esc(DES_FULL[nm.des] || "Statewide") + '">' + esc(nm.des) + "</abbr>" : "") + '</td><td data-l="Region">' + esc(x.p.region) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
-      '<td data-l="Days out">' + oc[0] + '</td><td data-l="Open date">' + oc[1] + '</td><td data-l="Open time">' + oc[2] + '</td><td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td><td data-l="Campgrounds">' + x.n + (x.n !== x.all ? " of " + x.all : "") + '</td>' +
+      '<td data-l="Type">' + (nm.des ? '<abbr class="des" title="' + esc(DES_FULL[nm.des] || "Statewide") + '">' + esc(nm.des) + "</abbr>" : "") + '</td><td data-l="Region">' + esc(x.p.region) + '</td>' +
+      '<td data-l="Open season">' + (x.openD ? esc(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? esc(x.peakD) : NF) + '</td><td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
+      '<td data-l="Days out">' + oc[0] + '</td><td data-l="Day">' + oc[1] + '</td><td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + '</td><td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td><td data-l="Campgrounds">' + x.n + (x.n !== x.all ? " of " + x.all : "") + '</td>' +
       '<td data-l="Data"><span class="dtl ' + dc + '">' + (x.researched === x.n ? "Verified or checked" : x.researched ? x.researched + " of " + x.n + " researched" : "Not yet researched") + "</span></td></tr>";
-  }).join("") || '<tr><td colspan="11" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
+  }).join("") || '<tr><td colspan="15" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
   markFiltered("#parksTable", st.cf);
   $("#parksTable").classList.add("stack");
   $$("#parksTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; if (on) th.setAttribute("aria-sort", st.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
@@ -247,6 +280,7 @@ function renderSide() {
 // ---------- one park ----------
 let selId = "";
 const SORTC = {
+  sites: (a, b) => (b.s.sites ?? -1) - (a.s.sites ?? -1),
   name: (a, b) => a.s.name.localeCompare(b.s.name), opens: (a, b) => (a.c.at ? a.c.at.getTime() : Infinity) - (b.c.at ? b.c.at.getTime() : Infinity) || a.s.name.localeCompare(b.s.name),
   season: (a, b) => ((a.s.open || []).length || 99) - ((b.s.open || []).length || 99), peak: (a, b) => ((a.s.peak || []).length || 99) - ((b.s.peak || []).length || 99),
   walk: (a, b) => ["none", "some", "only"].indexOf(a.s.walkup) - ["none", "some", "only"].indexOf(b.s.walkup), conf: (a, b) => a.s.conf.localeCompare(b.s.conf)
@@ -265,7 +299,7 @@ function renderPark() {
   const cf = campCF(); shownCamps = list.filter(x => passCF(x, CCOL, cf)); markFiltered("#campTable", cf);
   if (R.id && all.some(r => r.id === R.id)) selId = R.id;
   if (!shownCamps.some(x => x.s.id === selId)) selId = shownCamps.length ? shownCamps[0].s.id : "";
-  $("#campBody").innerHTML = shownCamps.map(x => campRow(x)).join("") || '<tr><td colspan="6" class="empty">No campgrounds match. Clear a filter or the search.</td></tr>';
+  $("#campBody").innerHTML = shownCamps.map(x => campRow(x)).join("") || '<tr><td colspan="7" class="empty">No campgrounds match. Clear a filter or the search.</td></tr>';
   $("#campTable").classList.add("stack");
   $$("#campTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.csort; if (on) th.setAttribute("aria-sort", st.cdir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
   $$("#cMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === st.cmode));
@@ -277,11 +311,11 @@ function renderPark() {
 function cmodeOk(x) { const m = monthOf(st.target); if (st.cmode === "open") return x.s.open && x.s.open.includes(m); if (st.cmode === "peak") return x.s.peak && x.s.peak.includes(m); if (st.cmode === "walk") return ["some", "only"].includes(x.s.walkup); return true; }
 function campRow(x) {
   const { s, c } = x, dc = CONF[s.conf][1];
-  const season = s.open ? "<b>" + esc(seasonText(s)) + "</b>" + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") + (s.open ? "" : NV);
-  const m = monthOf(st.target), peak = s.peak ? "<b>" + esc(peakText(s)) + "</b>" + (s.peak.includes(m) ? '<span class="tag">Peak on your date</span>' : "") + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : NV);
+  const season = openTxt(s) ? "<b>" + esc(openTxt(s)) + "</b>" + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") + NV;
+  const m = monthOf(st.target), peak = peakTxt(s) ? "<b>" + esc(peakTxt(s)) + "</b>" + (s.peak && s.peak.includes(m) ? '<span class="tag">Peak on your date</span>' : "") + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : NV);
   const walk = s.walkup ? "<b>" + esc(WALK[s.walkup]) + "</b>" + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") : (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") + (s.walkup ? "" : NV);
   return '<tr class="link' + (s.id === selId ? " sel" : "") + '" data-id="' + esc(s.id) + '"><th scope="row" data-l="Campground"><button type="button" class="nm" data-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === selId) + '">' + esc(s.name) + "</button>" + (s.edited ? '<span class="tag edit">Edited</span>' : "") + "</th>" +
-    '<td data-l="Opens for your date">' + opensCell(s, c) + "</td>" + edCell("season", "Season", season, s) + edCell("peak", "Peak season", peak, s) + edCell("walk", "Walk-up", walk, s) + '<td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(s)) + "</span></td></tr>";
+    '<td data-l="Opens for your date">' + opensCell(s, c) + "</td>" + edCell("season", "Season", season, s) + edCell("peak", "Peak season", peak, s) + edCell("walk", "Walk-up", walk, s) + '<td data-l="Sites" class="num">' + (s.sites == null ? NF : s.sites + (s.sitesNote ? '<small>' + esc(s.sitesNote) + "</small>" : "")) + '</td><td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(s)) + "</span></td></tr>";
 }
 const edCell = (k, label, html, s) => '<td data-l="' + label + '" class="edc" tabindex="0" data-ed="' + k + '" title="Double-click to edit">' + html +
   '<button type="button" class="pen" data-cedit="' + k + '" aria-label="Edit ' + label.toLowerCase() + " for " + esc(s.name) + '"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-2.6.6L4 10z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button></td>';
@@ -297,8 +331,9 @@ function renderPanel(x) {
   const verify = s.check.length ? esc(s.check.join(", ")) : "";
   const dl = [
     ["Opens for your date", opensCell(s, c)], ["Booking site", esc(sys.name)], ["How it opens", esc(ruleTxt(s))],
-    ["Season", s.open ? esc(seasonText(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : NV],
-    ["Peak season", s.peak ? esc(peakText(s)) + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : NV],
+    ["Season", openTxt(s) ? esc(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : NV],
+    ["Peak season", peakTxt(s) ? esc(peakTxt(s)) + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : NV],
+    ["Sites", s.sites == null ? NF + (s.sitesNote ? "<small>" + esc(s.sitesNote) + "</small>" : "") : esc(s.sites) + (s.sitesNote ? "<small>" + esc(s.sitesNote) + "</small>" : "")],
     ["Walk-up", s.walkup ? esc(WALK[s.walkup]) + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") : NV]
   ];
   if (s.notes) dl.push(["Notes", esc(s.notes)]);
@@ -307,7 +342,8 @@ function renderPanel(x) {
   el.innerHTML = '<div class="photo" id="photo"></div><div class="pn-b"><div><h2>' + esc(s.name) + '</h2><p class="sub">' + esc(s.park) + "</p></div>" +
     '<dl class="dl">' + dl.map(d => "<div><dt>" + d[0] + "</dt><dd>" + d[1] + "</dd></div>").join("") + "</dl>" +
     '<div class="pn-act">' + (c.at && c.status === "later" ? '<button type="button" class="btn primary" data-act="remind">Remind me</button>' : "") + '<button type="button" class="btn" data-act="edit">Edit details</button>' + (sys.url ? '<a class="btn" href="' + esc(sys.url) + '" target="_blank" rel="noopener">Booking site</a>' : "") + "</div>" +
-    '<div><h3>Sources</h3><ul class="src">' + src + "</ul></div></div>";
+    '<div><h3>Sources</h3><ul class="src">' + src + "</ul>" + (s.seasonSrc.length ? '<h3 class="h3s">Season, peak and sites (web search, ' + esc(fmtShort(window.DATA_SEASONS || todayPT())) + ')</h3><ul class="src">' +
+      s.seasonSrc.map(r => "<li>" + (r.u ? '<a href="' + esc(r.u) + '" target="_blank" rel="noopener">' + esc(r.t) + "</a>" : esc(r.t)) + "</li>").join("") + "</ul>" : "") + "</div></div>";
   loadPhoto(s.id);
 }
 function editHtml(s) {
@@ -416,8 +452,8 @@ $("#panel").addEventListener("click", e => {
 $("#panel").addEventListener("submit", e => { if (e.target.id === "edForm") { e.preventDefault(); saveEdit(e.target); } });
 $("#panel").addEventListener("change", e => { const f = e.target.closest("[data-photo]"); if (!f || !f.files[0]) return; shrink(f.files[0]).then(u => dbSet(f.dataset.photo, u)).then(() => { loadPhoto(f.dataset.photo); toast("Photo saved on this device."); }).catch(err => toast(err.message || "Could not save the photo.")); });
 $("#csv").onclick = () => {
-  const head = ["Park", "Type", "Campground", "Booking site", "How it opens", "Open date", "Open time (" + (st.tz === "pt" ? "Pacific" : "local") + ")", "Season", "Peak season", "Walk-up", "Data", "Notes"];
-  const out = []; shownParks.forEach(x => x.calcs.forEach(({ r, c }) => out.push([splitName(r.park).name, desOf(r.park), r.name, SYSTEMS[r.system].name, ruleTxt(r), c.at ? fmtDay(c.at) : STATUS_TEXT[c.status], c.at ? fmtTime(c.at) : "", seasonText(r) || "Not researched", peakText(r) || "Not researched", r.walkup ? WALK[r.walkup] : "Not researched", confLabel(r), r.notes])));
+  const head = ["Park", "Type", "Campground", "Booking site", "How it opens", "Day", "Open date", "Open time (" + (st.tz === "pt" ? "Pacific" : "local") + ")", "Season", "Peak season", "Sites", "Walk-up", "Data", "Notes"];
+  const out = []; shownParks.forEach(x => x.calcs.forEach(({ r, c }) => out.push([splitName(r.park).name, desOf(r.park), r.name, SYSTEMS[r.system].name, ruleTxt(r), c.at ? fmtWd(c.at) : "", c.at ? fmtDOnly(c.at) : STATUS_TEXT[c.status], c.at ? fmtTime(c.at) : "", openTxt(r) || "Not researched", peakTxt(r) || "Not researched", sitesTxt(r) || "Not found", r.walkup ? WALK[r.walkup] : "Not researched", confLabel(r), r.notes])));
   download("california-campsite-release-dates.csv", [head].concat(out).map(r => r.map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\r\n"), "text/csv");
 };
 if (document.documentElement.classList.contains("embed")) window.addEventListener("storage", e => { if (e.key !== "theme") return; let t = null; try { t = JSON.parse(e.newValue); } catch (x) {} if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; });   // follow the site's theme
