@@ -59,6 +59,36 @@
     .forEach(([id, m]) => fix(id, { rule: { kind: "rolling", months: m, time: "07:00" }, check: ["rule"] }));
 
   // ---------- state parks ----------
+  // campgrounds named on each park's parks.ca.gov page that were missing, and rows that carried the park's name instead of the campground's (2026-11-02)
+  const PCS = (pid, park) => [{ t: "parks.ca.gov: " + park, u: "https://www.parks.ca.gov/?page_id=" + pid }];
+  const rename = (id, name) => { const r = S.find(s => s.id === id); if (r) r.name = name; };
+  rename("sp-monta-a-de-oro-state-park-monta-a-de-oro", "Islay Creek");
+  rename("sp-china-camp-state-park-china-camp", "Back Ranch Meadows");
+  rename("sp-austin-creek-state-recreation-area-austin-creek", "Bullfrog Pond");
+  rename("sp-red-rock-canyon-state-park-red-rock-canyon", "Ricardo");
+  rename("sp-plumas-eureka-state-park-plumas-eureka", "Upper Jamison Creek");
+  rename("sp-andrew-molera-state-park-andrew-molera", "Andrew Molera Trail Camp");
+  rename("sp-mount-diablo-state-park-mount-diablo--junction", "Junction");
+  const more = (likeId, pid, park, list) => list.forEach(([n, note, open]) => add(likeId, n, {}, { openDates: open || "", peakDates: SP, sites: null, sitesNote: note || "count not found", src: PCS(pid, park) }));
+  more("sp-monta-a-de-oro-state-park-monta-a-de-oro", 592, "Montaña de Oro State Park", [["Hazard Canyon Horse Camp", "equestrian sites"]]);
+  more("sp-borrego-palm", 638, "Anza-Borrego Desert State Park", [["Vern Whitaker Horse Camp", "equestrian sites"], ["Blair Valley", "primitive, first-come"], ["Culp Valley", "primitive, first-come"], ["Mountain Palm Springs", "primitive, first-come"], ["Sheep Canyon", "primitive, first-come"]]);
+  more("sp-butano-state-park-butano", 536, "Butano State Park", [["Butano Trail Camp", "8 backcountry sites"]]);
+  more("sp-cuyamaca-rancho-state-park-paso-picacho-green-valley--paso-picacho", 667, "Cuyamaca Rancho State Park", [["Los Caballos Horse Camp", "equestrian sites"]]);
+  more("sp-emerald-bay-state-park-eagle-point", 506, "Emerald Bay State Park", [["Boat-in Campground", "boat-in only", "Summer (closed for the 2026 season)"]]);
+  more("sp-folsom-lake-state-recreation-area-beals-point-peninsula--beals-point", 500, "Folsom Lake SRA", [["Black Miners Bar"]]);
+  more("sp-henry-w-coe-state-park-dowdy-ranch-hunting-hollow--dowdy-ranch", 561, "Henry W. Coe State Park", [["Coe Ranch (Headquarters)", "drive-in sites"], ["Manzanita Point Group (hike-in)", "group sites"], ["Poverty Flat Group (hike-in)", "group sites"], ["Coe Horse Camp", "equestrian sites"]]);
+  more("sp-lake-oroville-state-recreation-area-lake-oroville--loafer-creek", 462, "Lake Oroville SRA", [["Lime Saddle"]]);
+  more("sp-mount-tamalpais-state-park-pantoll-steep-ravine--pantoll", 471, "Mount Tamalpais State Park", [["Bootjack", "walk-in, first-come"], ["Alice Eastwood Group Camp", "group sites"], ["Frank Valley Horse Camp", "equestrian sites"]]);
+  more("sp-plumas-eureka-state-park-plumas-eureka", 507, "Plumas-Eureka State Park", [["Camp Lisa Group Camp", "group site"]]);
+  more("sp-point-mugu-state-park-thornhill-broome-sycamore-canyon--sycamore-canyon", 630, "Point Mugu State Park", [["La Jolla Group Camp", "walk-in group site"]]);
+  more("sp-portola-redwoods-state-park-portola-redwoods", 539, "Portola Redwoods State Park", [["Slate Creek Trail Camp", "backcountry"]]);
+  more("sp-saddleback-butte-state-park-saddleback-butte", 618, "Saddleback Butte State Park", [["Joshua Group Camp", "group site"]]);
+  more("sp-salton-sea-state-recreation-area-mecca-beach-corvina-beach--corvina-beach", 639, "Salton Sea SRA", [["Bombay Beach", "", "Closed"], ["Salt Creek", "primitive"]]);
+  more("sp-samuel-p-taylor-state-park-samuel-p-taylor", 469, "Samuel P. Taylor State Park", [["Madrone Group Camp", "group site"]]);
+  more("sp-silverwood-lake-state-recreation-area-silverwood-lake", 650, "Silverwood Lake SRA", [["Miller Canyon Group Camps", "3 group sites"]]);
+  more("sp-sonoma-coast-state-park-bodega-dunes-wright-s-beach--bodega-dunes", 451, "Sonoma Coast State Park", [["Pomo Canyon Environmental", "walk-in environmental sites"], ["Willow Creek Environmental", "walk-in environmental sites; closed in winter"]]);
+  split("sp-richardson-grove-state-park-richardson-grove", [["Huckleberry", null, "Week before Memorial Day – fall"], ["Madrone", null, "Year-round"], ["Oak Flat", null, "Summer only"], ["Dawn Redwood Group Camp", null, "Week before Memorial Day – fall", "", "group site"]]);
+
   split("sp-patrick-s-point-state-park-patrick-s-point", [["Abalone", 70, "", "", "from site-number range"], ["Agate", 39, "Late May – early Sep", ""], ["Penn Creek", 15, "Year-round (reservations May – Sep)", "", "tent only"]]);
   split("sp-humboldt-redwoods-state-park-burlington-albee-creek-hidden-springs", [["Burlington", 57, "Year-round"], ["Albee Creek", null, "Mid-May – mid-Oct", "", "count not confirmed"], ["Hidden Springs", 146, "Mid-Apr – Labor Day"]]);
   split("sp-standish-hickey-state-recreation-area-standish-hickey", [["Rock Creek", 35, "Year-round"], ["Hickey", 63, "May 1 – Oct 15 (reservations)"], ["Redwood", 62, "Jul 1 – Sep 15"]]);
