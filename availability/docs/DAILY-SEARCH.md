@@ -15,6 +15,7 @@ information supports, and opens a pull request for the owner to review. Nothing 
    |---|---|
    | nps.gov park pages (campgrounds, operating hours, alerts, news releases) | season dates, closures, site counts |
    | recreation.gov public data (no key): `www.recreation.gov/api/camps/campgrounds/<id>` (booking rules, notices, description) and `www.recreation.gov/api/search/campsites?fq=asset_id:<id>&size=1` (`total` = campsite count) | site counts, booking windows, closures |
+   | RIDB API `https://ridb.recreation.gov/api/v1/facilities/<id>` (header `apikey: $RIDB_API_KEY`; also `/facilities/<id>/campsites`) | official facility details and campsite lists for federal campgrounds |
    | parks.ca.gov park pages and campground maps, reservecalifornia.com | state park seasons, closures, site counts |
    | Web search | hints only; a value from search alone is marked "needs checking" |
    If an official host is unreachable from the session, fall back to web search and say so in the pull request.
@@ -34,7 +35,8 @@ information supports, and opens a pull request for the owner to review. Nothing 
 
 ## What the owner may be asked to do
 - Review and merge the weekly pull request.
-- Keep network access for `www.nps.gov`, `www.recreation.gov`, `www.parks.ca.gov` and `www.reservecalifornia.com` in the environment settings. No API key is needed.
+- Keep network access for `www.nps.gov`, `www.recreation.gov`, `ridb.recreation.gov`, `www.parks.ca.gov` and `www.reservecalifornia.com` in the environment settings.
+- Keep the RIDB key in the environment variable `RIDB_API_KEY` (set up 2026-11-02). If it stops working (401), regenerate it at ridb.recreation.gov and update the variable.
 
 ## Adding the rest of California (later)
 - **State parks:** the ReserveCalifornia facility list (about 280 campgrounds), one row per campground, `system: "rc"`, default rule `RC6`.
