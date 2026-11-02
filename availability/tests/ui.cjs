@@ -68,11 +68,13 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('every campground of a park is listed (Joshua Tree has 9, incl. Belle and Sheep Pass)',async()=>{const n=await h.$$eval('#parksBody tr[data-park=joshua-tree-national-park] td[data-l=Campground]',a=>a.map(x=>x.textContent));return n.length===9&&n.some(x=>/^Belle/.test(x))&&n.some(x=>/Sheep Pass/.test(x))});
  await check('opening is split into days out, day, date and time',async()=>{const r=await prow(h,'yose-upper-pines');return /^\d+ (day|month)|Open now/.test(r[9])&&/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(r[10])&&/\b20\d\d\b/.test(r[11])&&!/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(r[11])&&/\d:\d\d\s?[AP]M/.test(r[12])});
  await check('open season, peak season and sites per campground (Pinnacles; Camp 4)',async()=>{const p=await prow(h,'pinn-campground'),c=await prow(h,'yose-camp4');
-   return p[4]==='Year-round'&&/Mar/.test(p[5])&&/^149/.test(p[6])&&/Apr 15 – Nov 9/.test(c[4])&&/^36/.test(c[6])});
+   return p[4]==='Year-round'&&/Mar/.test(p[5])&&/^149/.test(p[6])&&/Apr 15 – Nov 29/.test(c[4])&&/^61/.test(c[6])});
  await check('peak season shows MM/DD/YYYY dates for the trip date (state park May 15 – Sep 15; desert Oct – Apr)',async()=>{const y=+(await h.inputValue('#target')).slice(0,4);
    const sp=(await prow(h,'sp-elk-prairie'))[5],jt=(await prow(h,'jotr-black-rock'))[5];
    return new RegExp('^05/15/'+y+' –\\s09/15/'+y).test(sp)&&/May 15 – Sep 15 each year/.test(sp)&&/^10\/01\/20\d\d –\s05\/31\/20\d\d/.test(jt)});
  await check('season dates from an earlier year are flagged for a later trip date',async()=>{const c=(await prow(h,'yose-north-pines'))[4];return /2026 dates; 2027 not published yet/.test(c)});
+ await check('official corrections: Crane Flat books 2 weeks ahead; Seacliff shows closed; Whiskeytown lists Oak Bottom',async()=>{const c=await prow(h,'nps-yosemite-national-park-crane-flat'),sc=await prow(h,'sp-seacliff-state-beach-seacliff');
+   const wk=await h.$$eval('#parksBody tr[data-park=whiskeytown-national-recreation-area] td[data-l=Campground]',a=>a.map(x=>x.textContent));return /14 days ahead/.test(c[8])&&/^148/.test(c[6])&&/Closed/.test(sc[4])&&wk.some(x=>/Oak Bottom Tent/.test(x))});
  await check('sort by Sites puts the biggest first',async()=>{await h.click('#parksTable th[data-k=sites] .fb');await h.click('.cmenu [data-cm=asc]');await h.waitForTimeout(150);const n=await h.$$eval('#parksBody td[data-l=Sites]',a=>a.slice(0,3).map(x=>parseInt(x.childNodes[0].textContent.replace(/,/g,''))));
    await h.click('#parksTable th[data-k=name] .fb');await h.click('.cmenu [data-cm=asc]');return n[0]>=n[1]&&n[1]>=n[2]&&n[0]>300});
  await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);
@@ -82,7 +84,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
    await h.fill('#fName','pinnacles');await h.waitForTimeout(150);const m=await parks(h);await h.fill('#fName','');await h.waitForTimeout(100);return n>=1&&m.length===1&&/Pinnacles/.test(m[0])});
  await check('campground table: researched dates and sites; panel lists the sources',async()=>{await h.goto(URL_+'#/park/yosemite-national-park/yose-camp4');await h.waitForTimeout(300);
    const r=await h.$eval('#campBody tr[data-id=yose-camp4]',r=>[...r.children].map(c=>c.textContent));const pn=await h.textContent('#panel');await h.goto(URL_+'#/');await h.waitForTimeout(250);
-   return /Apr 15 – Nov 9/.test(r[2])&&/^36/.test(r[5])&&/Sites36/.test(pn.replace(/\s/g,''))&&/web search/.test(pn)});
+   return /Apr 15 – Nov 29/.test(r[2])&&/^61/.test(r[5])&&/Sites61/.test(pn.replace(/\s/g,''))&&/NPS Yosemite campgrounds table/.test(pn)});
  await check('More filters opens Season / month / peak',async()=>{await h.click('#filters summary');return await h.isVisible('#fSeason')&&await h.isVisible('#fMonth')});
  // ---- permits: search, location, status
  await h.goto(URL_+'#/permits');await h.waitForTimeout(300);
