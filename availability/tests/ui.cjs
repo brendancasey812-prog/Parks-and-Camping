@@ -1,9 +1,9 @@
-// UI tests: NODE_PATH=<playwright dir> node tests/ui.cjs   (serves this folder on a random port)
+// UI tests: NODE_PATH=<playwright dir> node tests/ui.cjs   (serves the whole site on a random port; the tracker is at /availability/ and uses ../saved.js and ../data/details.js)
 const http=require('http'),fs=require('fs'),path=require('path');const {chromium}=require('playwright');
-const ROOT=path.join(__dirname,'..'),MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2'};
+const ROOT=path.join(__dirname,'..','..'),MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2'};
 const srv=http.createServer((q,r)=>{let f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));if(f.endsWith('/'))f+='index.html';fs.readFile(f,(e,d)=>{if(e){r.statusCode=404;return r.end()}r.setHeader('content-type',MIME[path.extname(f)]||'application/octet-stream');r.end(d)})});
 let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await fn())}catch(e){err=e.message.split('\n')[0]}n++;if(!ok)bad++;console.log((ok?'PASS':'FAIL')+' | '+name+(err?' | '+err:''))};
-(async()=>{await new Promise(r=>srv.listen(0,'127.0.0.1',r));const URL_=`http://127.0.0.1:${srv.address().port}/`;const b=await chromium.launch();
+(async()=>{await new Promise(r=>srv.listen(0,'127.0.0.1',r));const URL_=`http://127.0.0.1:${srv.address().port}/availability/`;const b=await chromium.launch();
  const open=async(o={},st)=>{const ctx=await b.newContext({viewport:{width:1280,height:900},acceptDownloads:true,...o});const p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(e.message));p.on('console',m=>m.type()==='error'&&p.errs.push(m.text()));
   await p.goto(URL_);await p.evaluate(s=>{localStorage.clear();if(s)localStorage.setItem('cc-state',JSON.stringify(s))},st);await p.reload();await p.waitForTimeout(400);return p};
  const rows=p=>p.$$eval('#parksBody tr',e=>e.map(r=>({id:r.dataset.id,t:r.textContent})));
@@ -42,7 +42,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  // ---- search finds campgrounds; Google Sheets-style column menus; in-cell editing
  const g=await open({},{target:plus(240)});
  await check('search "camp 4" shows Camp 4 under Yosemite and opens it',async()=>{await g.fill('#q','camp 4');await g.press('#q','Enter');await g.waitForTimeout(200);
-   const l=g.locator('#parksBody a.cg',{hasText:'Camp 4'});const ok=await l.count()===1;await l.click();await g.waitForTimeout(300);return ok&&/#\/park\/yosemite-national-park\/yose-camp4/.test(g.url())&&/Camp 4/.test(await g.textContent('#panel h2'))});
+   const l=g.locator('#parksBody tr[data-park=yosemite-national-park] a.cg',{hasText:'Camp 4'});const ok=await l.count()===1;await l.click();await g.waitForTimeout(300);return ok&&/#\/park\/yosemite-national-park\/yose-camp4/.test(g.url())&&/Camp 4/.test(await g.textContent('#panel h2'))});
  await g.goto(URL_+'#/');await g.fill('#q','');await g.evaluate(()=>{const c=document.querySelector('.chip[data-k=q]');c&&c.click()});await g.waitForTimeout(200);
  const regions=()=>g.$$eval('#parksBody tr td[data-l=Region]',a=>[...new Set(a.map(x=>x.textContent))]);
  await check('column menu: search values, tick one, OK filters the table',async()=>{await g.click('#parksTable th[data-k=region] .fb');await g.fill('.cmenu .cm-q','bay');const shown=await g.$$eval('.cmenu .cm-l li',a=>a.map(x=>x.textContent));
@@ -64,19 +64,29 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  // ---- parks table layout: name / type split, opening in three columns, type tabs, filters in the header row
  const h=await open({},{target:plus(240)});
  const prow=(q,id)=>q.$eval(`#parksBody tr[data-id="${id}"]`,r=>[...r.children].map(c=>c.textContent.trim()));
- await check('one row per campground: park, campground and type columns (Yosemite | Upper Pines | NP)',async()=>{const r=await prow(h,'yose-upper-pines');return /^Yosemite/.test(r[0])&&!/National Park/.test(r[0])&&r[1]==='Upper Pines'&&r[2]==='NP'});
- await check('every campground of a park is listed (Joshua Tree has 9, incl. Belle and Sheep Pass)',async()=>{const n=await h.$$eval('#parksBody tr[data-park=joshua-tree-national-park] td[data-l=Campground]',a=>a.map(x=>x.textContent));return n.length===9&&n.some(x=>/^Belle/.test(x))&&n.some(x=>/Sheep Pass/.test(x))});
- await check('opening is split into days out, day, date and time',async()=>{const r=await prow(h,'yose-upper-pines');return /^\d+ (day|month)|Open now/.test(r[9])&&/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(r[10])&&/\b20\d\d\b/.test(r[11])&&!/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(r[11])&&/\d:\d\d\s?[AP]M/.test(r[12])});
+ await check('one row per campground: park, campground and type columns (Yosemite | Upper Pines | NP)',async()=>{const r=await prow(h,'yose-upper-pines');return /^Yosemite/.test(r[0])&&!/National Park/.test(r[0])&&r[1]==='Upper Pines'&&r[3]==='NP'});
+ await check('every campground of a park is listed (Joshua Tree has at least 9, incl. Belle and Sheep Pass)',async()=>{const n=await h.$$eval('#parksBody tr[data-park=joshua-tree-national-park] td[data-l=Campground]',a=>a.map(x=>x.textContent));return n.length>=9&&n.some(x=>/^Belle/.test(x))&&n.some(x=>/Sheep Pass/.test(x))});
+ await check('opening is split into days out, day, date and time',async()=>{const r=await prow(h,'yose-upper-pines');return /^\d+ (day|month)|Open now/.test(r[10])&&/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(r[11])&&/\b20\d\d\b/.test(r[12])&&!/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(r[12])&&/\d:\d\d\s?[AP]M/.test(r[13])});
  await check('open season, peak season and sites per campground (Pinnacles; Camp 4)',async()=>{const p=await prow(h,'pinn-campground'),c=await prow(h,'yose-camp4');
-   return p[4]==='Year-round'&&/Mar/.test(p[5])&&/^149/.test(p[6])&&/Apr 15 – Nov 29/.test(c[4])&&/^61/.test(c[6])});
+   return p[5]==='Year-round'&&/Mar/.test(p[6])&&/^149/.test(p[7])&&/Apr 15 – Nov 29/.test(c[5])&&/^61/.test(c[7])});
  await check('peak season shows MM/DD/YYYY dates for the trip date (state park May 15 – Sep 15; desert Oct – Apr)',async()=>{const y=+(await h.inputValue('#target')).slice(0,4);
-   const sp=(await prow(h,'sp-elk-prairie'))[5],jt=(await prow(h,'jotr-black-rock'))[5];
+   const sp=(await prow(h,'sp-elk-prairie'))[6],jt=(await prow(h,'jotr-black-rock'))[6];
    return new RegExp('^05/15/'+y+' –\\s09/15/'+y).test(sp)&&/May 15 – Sep 15 each year/.test(sp)&&/^10\/01\/20\d\d –\s05\/31\/20\d\d/.test(jt)});
- await check('season dates from an earlier year are flagged for a later trip date',async()=>{const c=(await prow(h,'yose-north-pines'))[4];return /2026 dates; 2027 not published yet/.test(c)});
+ await check('season dates from an earlier year are flagged for a later trip date',async()=>{const c=(await prow(h,'yose-north-pines'))[5];return /2026 dates; 2027 not published yet/.test(c)});
  await check('official corrections: Crane Flat books 2 weeks ahead; Seacliff shows closed; Whiskeytown lists Oak Bottom',async()=>{const c=await prow(h,'nps-yosemite-national-park-crane-flat'),sc=await prow(h,'sp-seacliff-state-beach-seacliff');
-   const wk=await h.$$eval('#parksBody tr[data-park=whiskeytown-national-recreation-area] td[data-l=Campground]',a=>a.map(x=>x.textContent));return /14 days ahead/.test(c[8])&&/^148/.test(c[6])&&/Closed/.test(sc[4])&&wk.some(x=>/Oak Bottom Tent/.test(x))});
+   const wk=await h.$$eval('#parksBody tr[data-park=whiskeytown-national-recreation-area] td[data-l=Campground]',a=>a.map(x=>x.textContent));return /14 days ahead/.test(c[9])&&/^148/.test(c[7])&&/Closed/.test(sc[5])&&wk.some(x=>/Oak Bottom Tent/.test(x))});
  await check('campgrounds named by their own name (Montaña de Oro → Islay Creek, 47 sites; Hazard Canyon horse camp listed)',async()=>{const r=await prow(h,'sp-monta-a-de-oro-state-park-monta-a-de-oro');
-   const n=await h.$$eval('#parksBody tr[data-park=monta-a-de-oro-state-park] td[data-l=Campground]',a=>a.map(x=>x.textContent));return r[1]==='Islay Creek'&&/^47/.test(r[6])&&n.some(x=>/Hazard Canyon/.test(x))});
+   const n=await h.$$eval('#parksBody tr[data-park=monta-a-de-oro-state-park] td[data-l=Campground]',a=>a.map(x=>x.textContent));return r[1]==='Islay Creek'&&/^47/.test(r[7])&&n.some(x=>/Hazard Canyon/.test(x))});
+ await check('City column: state park from the site list (Big Basin → Boulder Creek); Recreation.gov city for a forest campground',async()=>{const b=await prow(h,'sp-big-basin-redwoods-state-park-big-basin');
+   const f=await h.$eval('#parksBody tr[data-id^="rg-"] td[data-l=City]',x=>x.textContent.trim());return b[2]==='Boulder Creek'&&f.length>1&&f!=='Not found'});
+ await check('every Recreation.gov campground is listed (800+ campgrounds; BLM & Army Corps tab; forest-wide rows gone)',async()=>{const t=await h.textContent('#parksSub'),k=await h.textContent('#kindTabs');
+   return +t.match(/with (\d+) campground/)[1]>=800&&/BLM & Army Corps/.test(k)&&!(await h.$('#parksBody tr[data-id^="usfs-all-campgrounds"]'))});
+ await check('star saves a campground; "Saved only" shows the saved list; star again removes it',async()=>{await h.fill('#fName','pinnacles');await h.waitForTimeout(150);
+   const was=(await h.evaluate(()=>JSON.parse(localStorage.getItem('savedCamps')||'[]').length));await h.click('#parksBody tr[data-id=pinn-campground] [data-star]');await h.waitForTimeout(100);
+   const on=await h.getAttribute('#parksBody tr[data-id=pinn-campground] [data-star]','aria-pressed'),n1=await h.evaluate(()=>JSON.parse(localStorage.getItem('savedCamps')).length);
+   await h.fill('#fName','');await h.selectOption('#fSaved','1');await h.waitForTimeout(150);const ids=await h.$$eval('#parksBody tr[data-id]',a=>a.map(r=>r.dataset.id));
+   await h.click('#parksBody tr[data-id=pinn-campground] [data-star]');await h.waitForTimeout(100);const gone=!(await h.$('#parksBody tr[data-id=pinn-campground]'));await h.selectOption('#fSaved','');await h.waitForTimeout(100);
+   return on==='true'&&n1===was+1&&ids.includes('pinn-campground')&&ids.includes('chis-scorpion')&&gone});
  await check('sort by Sites puts the biggest first',async()=>{await h.click('#parksTable th[data-k=sites] .fb');await h.click('.cmenu [data-cm=asc]');await h.waitForTimeout(150);const n=await h.$$eval('#parksBody td[data-l=Sites]',a=>a.slice(0,3).map(x=>parseInt(x.childNodes[0].textContent.replace(/,/g,''))));
    await h.click('#parksTable th[data-k=name] .fb');await h.click('.cmenu [data-cm=asc]');return n[0]>=n[1]&&n[1]>=n[2]&&n[0]>300});
  await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);

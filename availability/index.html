@@ -68,6 +68,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
             <thead><tr>
               <th scope="col" data-k="name"><button type="button">Park</button></th>
               <th scope="col" data-k="camp"><button type="button">Campground</button></th>
+              <th scope="col" data-k="city"><button type="button">City</button></th>
               <th scope="col" data-k="des"><button type="button">Type</button></th>
               <th scope="col" data-k="region"><button type="button">Region</button></th>
               <th scope="col" data-k="openD"><button type="button">Open season</button></th>
@@ -83,7 +84,8 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <th scope="col" data-k="conf"><button type="button">Data</button></th>
             </tr>
             <tr class="frow">
-              <td><input id="fName" type="search" placeholder="Filter parks or campgrounds" aria-label="Filter parks and campgrounds"></td>
+              <td><input id="fName" type="search" placeholder="Filter parks, campgrounds or towns" aria-label="Filter parks, campgrounds and towns"></td>
+              <td><select id="fSaved" aria-label="Saved campgrounds"><option value="">All campgrounds</option><option value="1">Saved only</option></select></td>
               <td></td>
               <td><select id="fDes" aria-label="Type"><option value="">All types</option></select></td>
               <td><select aria-label="Region" id="fRegion"><option value="">All regions</option></select></td>
@@ -179,6 +181,9 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
 <script src="data/permits.js"></script>
 <script src="data/seasons.js"></script>
 <script src="data/campgrounds.js"></script>
+<script src="data/federal.js"></script>
+<script src="../data/details.js"></script>
+<script src="../saved.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 <script src="permits.js"></script>

@@ -38,6 +38,15 @@ information supports, and opens a pull request for the owner to review. Nothing 
 - Keep network access for `www.nps.gov`, `www.recreation.gov`, `ridb.recreation.gov`, `www.parks.ca.gov` and `www.reservecalifornia.com` in the environment settings.
 - Keep the RIDB key in the environment variable `RIDB_API_KEY` (set up 2026-11-02). If it stops working (401), regenerate it at ridb.recreation.gov and update the variable.
 
-## Adding the rest of California (later)
-- **State parks:** the ReserveCalifornia facility list (about 280 campgrounds), one row per campground, `system: "rc"`, default rule `RC6`.
-- **Federal:** California campgrounds from Recreation.gov (NPS, USFS, BLM, USACE), `system: "rec"`, default rule `REC6`.
+## Federal campgrounds (Recreation.gov), refreshed each run
+`data/federal.js` lists every California campground on Recreation.gov that is not already a hand-checked row. It is generated, never edited by hand:
+1. `python3 -I tools/fetch_recgov.py <tmp>` (public API, no key; about 2 minutes)
+2. `node tools/current_rows.cjs <tmp>/cur.json`
+3. `python3 -I tools/build_federal.py <tmp>/fed.json <tmp>/cur.json data/federal.js YYYY-MM-DD`
+In the pull request, list campgrounds that were added or dropped and any that changed site count, booking window or closure notice (`git diff data/federal.js`).
+A campground that Recreation.gov lists twice under different names goes in the `SAME` table in `tools/build_federal.py`, not in the data.
+
+## State parks not on ReserveCalifornia's public pages
+ReserveCalifornia's full facility list is served by a separate booking service that the scheduled task does not use. New state campgrounds come from each park's
+parks.ca.gov page (`place(...)` in `data/campgrounds.js`, with the page as the source). Parks run by a county or district (Dockweiler, Castaic Lake, Placerita Canyon,
+Lake Del Valle) are listed with "Other / concessionaire" as the booking site.

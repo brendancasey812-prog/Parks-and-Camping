@@ -13,7 +13,7 @@ const ptParts = d => { const p = {}; new Intl.DateTimeFormat("en-US", { timeZone
 const todayPT = () => { const p = ptParts(new Date()); return E.iso(p.year, p.month, p.day); };
 const defaultTarget = () => { const d = E.addDays(todayPT(), 215), p = E.parseISO(d), dow = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay(); return E.addDays(d, (5 - dow + 7) % 7); };
 const saved = store.get("cc-state", {});
-const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", kind: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", unk: true, sort: "name", dir: 1, des: "", csort: "name", cdir: 1, cq: "", cmode: "all", cf: {}, ccf: { park: "", f: {} } }, saved);
+const st = Object.assign({ target: defaultTarget(), tz: "pt", q: "", kind: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", saved: "", unk: true, sort: "name", dir: 1, des: "", csort: "name", cdir: 1, cq: "", cmode: "all", cf: {}, ccf: { park: "", f: {} } }, saved);
 if (st.target < todayPT()) st.target = defaultTarget();
 const persist = () => store.set("cc-state", st);
 function fmtAt(date, withTime = true) {
@@ -67,26 +67,45 @@ const BASE = window.SITES.map(s => {
     if (!x.peak && /\b[A-Z][a-z]{2}\b/.test(r.peakDates || "")) x.peak = monthsFrom(r.peakDates);
     if (!x.open && /^year-round/i.test(r.openDates || "")) x.open = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     if (x.conf === "assumed" && (r.sites != null || r.openDates)) x.conf = "check";
+    if (!x.open && s.rg && /^(?:Early |Mid-|Late )?[A-Z][a-z]{2}\b[^,]*–/.test(r.openDates || "")) x.open = monthsFrom(r.openDates);   // Recreation.gov season phrase
   }
   return x;
 });
+// nearest city / town: Recreation.gov's city for federal campgrounds; the site's California State Parks list (../data/details.js) for state parks;
+// otherwise the city of another campground in the same park
+{
+  const RC = window.RECGOV_CITY || {}, CA = {};
+  (window.CA_PARKS || []).forEach(p => { CA[(p[0] + " " + p[1]).toLowerCase()] = p[2]; });
+  // parks whose name differs between the two lists, and a few the site's list does not have (city from the park's own page)
+  Object.assign(CA, { "benbow lake state recreation area": CA["benbow state recreation area"], "el capitan state beach": CA["el capitán state beach"],
+    "hearst san simeon state park": CA["san simeon state park"], "manresa uplands state beach": CA["manresa state beach"], "patrick's point state park": CA["sue-meg state park"],
+    "sugar pine point state park": CA["ed z'berg sugar pine point state park"], "tahoe state recreation area": "Tahoe City", "tolowa dunes state park": "Crescent City",
+    "devils postpile national monument": "Mammoth Lakes" });
+  const byPark = {};
+  BASE.forEach(x => { if (!x.city) x.city = RC[x.id] || CA[x.park.toLowerCase()] || CA[x.park.replace(/\s*\(.*\)$/, "").toLowerCase()] || ""; if (x.city && !byPark[x.park]) byPark[x.park] = x.city; });
+  BASE.forEach(x => { if (!x.city && byPark[x.park]) x.city = byPark[x.park]; });
+}
 let edits = store.get("cc-edits", {});
 { // rows that grouped several campgrounds were split (data/campgrounds.js): an edit saved on the group moves to each campground
   const SF = window.SPLIT_FROM || {}; let moved = false;
   Object.keys(SF).forEach(nid => { const o = SF[nid]; if (edits[o]) { if (!edits[nid]) edits[nid] = JSON.parse(JSON.stringify(edits[o])); moved = true; } });
   if (moved) { Object.values(SF).forEach(o => delete edits[o]); store.set("cc-edits", edits); }
 }
-const kindOf = s => s.agency === "California State Parks" ? "state" : s.agency === "USFS" ? "forest" : s.agency === "NPS" ? "nps" : "default";
+const FED = new Set(["BLM", "USACE", "BOR", "FWS", "Presidio Trust"]);
+const kindOf = s => s.agency === "California State Parks" ? "state" : s.agency === "USFS" ? "forest" : s.agency === "NPS" ? "nps" : FED.has(s.agency) ? "fed" : "default";
 function eff(s) { const e = edits[s.id]; return e ? Object.assign({}, s, e, { edited: true }) : Object.assign({}, s, { edited: false }); }
 const rows = () => BASE.map(eff);
 // "Yosemite National Park" -> name "Yosemite", designation NP (full name kept for tooltips and filters)
 const DES = [["National and State Parks", "NP & SP"], ["National Parks", "NP"], ["National Park", "NP"], ["National Monument", "NM"], ["National Preserve", "NPres"], ["National Seashore", "NS"],
   ["National Recreation Area", "NRA"], ["National Forest", "NF"], ["State Vehicular Recreation Area", "SVRA"], ["State Recreation Area", "SRA"], ["State Historic Park", "SHP"],
   ["State Natural Reserve", "SNR"], ["State Beach", "SB"], ["State Park", "SP"]];
-const DES_FULL = Object.fromEntries(DES.map(d => [d[1], d[0].replace(/s$/, "")]));
+const AGENCY_DES = [[/\(BLM\)$|^Bureau of Land Management$/, "BLM", "Bureau of Land Management"], [/\(Army Corps\)$/, "USACE", "US Army Corps of Engineers lake"], [/\(Reclamation\)$/, "BOR", "Bureau of Reclamation reservoir"]];
+const DES_FULL = Object.assign(Object.fromEntries(DES.map(d => [d[1], d[0].replace(/s$/, "")])), Object.fromEntries(AGENCY_DES.map(d => [d[1], d[2]])));
 function splitName(park) {
   const m = park.match(/^(.*?)\s*(\([^)]*\))?$/), base = m[1], extra = m[2] ? " " + m[2] : "";
   for (const [full, ab] of DES) if (base.endsWith(" " + full)) return { name: base.slice(0, -full.length - 1) + extra, des: ab };
+  for (const [rx, ab] of AGENCY_DES) if (rx.test(park)) return { name: park.replace(/\s*\((?:BLM|Army Corps|Reclamation)\)$/, ""), des: ab };
+  if (/Management Unit$/.test(park)) return { name: park, des: "NF" };
   return { name: park, des: /forest/i.test(park) ? "NF" : /state park/i.test(park) ? "SP" : park.startsWith("All ") ? "All" : "" };   // statewide "All …" rows
 }
 const desOf = park => splitName(park).des;
@@ -112,7 +131,8 @@ const hoursUntil = at => (at - new Date()) / 36e5;
 const STATUS_TEXT = { past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
 function matches(s, c) {
   const q = st.q.trim().toLowerCase();
-  if (q && !(s.name + " " + s.park + " " + s.region + " " + s.agency + " " + SYSTEMS[s.system].name).toLowerCase().includes(q)) return false;
+  if (q && !(s.name + " " + s.park + " " + s.region + " " + s.agency + " " + (s.city || "") + " " + SYSTEMS[s.system].name).toLowerCase().includes(q)) return false;
+  if (st.saved && !(window.Saved && Saved.isCamp(s.id))) return false;
   if (st.kind && kindOf(s) !== st.kind) return false;
   if (st.des && desOf(s.park) !== st.des) return false;
   if (st.sys && s.system !== st.sys) return false;
@@ -186,7 +206,7 @@ function opensCell(s, c) {
 const NV = '<span class="nv">Not researched</span>', NF = '<span class="nv">Not found</span>';
 // ---------- column filters (Google Sheets style): per column, the values you untick are hidden ----------
 function opensBucket(c) { if (c.at) { if (c.status === "open") return "Open now"; const h = hoursUntil(c.at); return h <= 168 ? "Opens within 7 days" : h <= 720 ? "Opens within 30 days" : "Opens later"; } return STATUS_TEXT[c.status] || ""; }
-const PCOL = { name: x => splitName(x.p.name).name, camp: x => x.r.name, des: x => splitName(x.p.name).des || "—", region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0],
+const PCOL = { name: x => splitName(x.p.name).name, camp: x => x.r.name, city: x => x.r.city || "Not found", des: x => splitName(x.p.name).des || "—", region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0],
   days: x => opensBucket((x.first || x.calcs[0]).c), wday: x => x.first ? fmtWd(x.first.c.at) : "—", date: x => x.first ? fmtDOnly(x.first.c.at) : "—", time: x => x.first ? fmtTime(x.first.c.at) : "—",
   openD: x => x.openD || "Not found", peakD: x => x.peakD ? peakDatesTxt(x.peakD) : "Not found", sites: x => x.sites == null ? "Not found" : String(x.sites),
   walk: x => x.walk || "Not researched", conf: x => confLabel(x.r) };
@@ -246,7 +266,7 @@ function opensParkCell(x) {
 const atOf = x => x.first ? x.first.c.at.getTime() : Infinity;
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], wdOf = x => x.first ? WD.indexOf(fmtWd(x.first.c.at).slice(0, 3)) : 9;
 const SORTP = {
-  name: (a, b) => splitName(a.p.name).name.localeCompare(splitName(b.p.name).name) || a.r.name.localeCompare(b.r.name), camp: (a, b) => a.r.name.localeCompare(b.r.name) || a.p.name.localeCompare(b.p.name), des: (a, b) => desOf(a.p.name).localeCompare(desOf(b.p.name)) || a.p.name.localeCompare(b.p.name),
+  name: (a, b) => splitName(a.p.name).name.localeCompare(splitName(b.p.name).name) || a.r.name.localeCompare(b.r.name), camp: (a, b) => a.r.name.localeCompare(b.r.name) || a.p.name.localeCompare(b.p.name), city: (a, b) => (a.r.city || "~").localeCompare(b.r.city || "~") || a.r.name.localeCompare(b.r.name), des: (a, b) => desOf(a.p.name).localeCompare(desOf(b.p.name)) || a.p.name.localeCompare(b.p.name),
   wday: (a, b) => wdOf(a) - wdOf(b) || atOf(a) - atOf(b), openD: (a, b) => (a.openD || "~").localeCompare(b.openD || "~"), peakD: (a, b) => { const k = x => { const r = peakDates(x.peakD); return r ? r[0].a.getTime() : Infinity; }; return k(a) - k(b) || (a.peakD || "~").localeCompare(b.peakD || "~"); },
   sites: (a, b) => (b.sites ?? -1) - (a.sites ?? -1),
   days: (a, b) => atOf(a) - atOf(b) || a.p.name.localeCompare(b.p.name), date: (a, b) => atOf(a) - atOf(b) || a.p.name.localeCompare(b.p.name),
@@ -255,6 +275,17 @@ const SORTP = {
   walk: (a, b) => a.walk.localeCompare(b.walk), n: (a, b) => b.n - a.n, conf: (a, b) => b.researched / b.n - a.researched / a.n
 };
 let shownParks = [];
+// save star (../saved.js, shared with the rest of the site): one per campground, in the table, the park page and the details panel
+const starHtml = r => window.Saved ? Saved.star(Saved.isCamp(r.id), r.name + (r.park ? ", " + r.park : "")) : "";
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-star]"); if (!b || !window.Saved) return;
+  e.preventDefault(); e.stopPropagation();
+  const id = b.dataset.sid || (b.closest("[data-id]") || {}).dataset?.id, r = id && BASE.find(x => x.id === id); if (!r) return;
+  const on = Saved.toggleCamp({ id: r.id, name: eff(r).name, park: r.park, city: r.city });
+  const t = $("#toast"); if (t) { t.textContent = on ? "Saved: " + eff(r).name : "Removed from saved"; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, 2200); }
+}, true);
+function paintStars() { if (R.v === "park") { renderPark(); return; } $$("[data-star]").forEach(b => { const id = b.dataset.sid || (b.closest("[data-id]") || {}).dataset?.id, r = id && BASE.find(x => x.id === id); if (r) { const n = document.createElement("span"); n.innerHTML = starHtml(r); const nb = n.firstChild; if (b.dataset.sid) nb.dataset.sid = b.dataset.sid; b.replaceWith(nb); } });
+  if (st.saved && R.v === "parks") renderParks(); }
 function renderParks() {
   const list = rows().map(r => ({ r, c: calc(r) })).filter(x => matches(x.r, x.c)).map(x => x.r);
   // one row per campground: a one-campground park summary, so the park columns and menus work unchanged
@@ -265,12 +296,13 @@ function renderParks() {
     const dc = CONF[x.r.conf][1];
     const nm = splitName(x.p.name), oc = opensCells(x);
     return '<tr class="link" data-park="' + esc(x.p.key) + '" data-id="' + esc(x.r.id) + '"><th scope="row" data-l="Park"><a class="nm link-cell" href="#/park/' + esc(x.p.key) + '" title="' + esc(x.p.name) + '">' + esc(nm.name) + "</a><small>" + esc(x.p.agency) + "</small>" +
-      "</th>" + '<td data-l="Campground"><a class="cg link-cell" href="#/park/' + esc(x.p.key) + "/" + esc(x.r.id) + '">' + esc(x.r.name) + "</a>" + (x.r.edited ? '<span class="tag edit">Edited</span>' : "") + "</td>" +
+      "</th>" + '<td data-l="Campground" class="cgc">' + starHtml(x.r) + '<a class="cg link-cell" href="#/park/' + esc(x.p.key) + "/" + esc(x.r.id) + '">' + esc(x.r.name) + "</a>" + (x.r.edited ? '<span class="tag edit">Edited</span>' : "") + "</td>" +
+      '<td data-l="City">' + (x.r.city ? esc(x.r.city) : NF) + "</td>" +
       '<td data-l="Type">' + (nm.des ? '<abbr class="des" title="' + esc(DES_FULL[nm.des] || "Statewide") + '">' + esc(nm.des) + "</abbr>" : "") + '</td><td data-l="Region">' + esc(x.p.region) + '</td>' +
       '<td data-l="Open season">' + (x.openD ? openCell(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? peakCell(x.peakD) : NF) + '</td><td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
       '<td data-l="Days out">' + oc[0] + '</td><td data-l="Day">' + oc[1] + '</td><td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + '</td><td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td>' +
       '<td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(x.r)) + "</span></td></tr>";
-  }).join("") || '<tr><td colspan="15" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
+  }).join("") || '<tr><td colspan="16" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
   markFiltered("#parksTable", st.cf);
   $("#parksTable").classList.add("stack");
   $$("#parksTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; if (on) th.setAttribute("aria-sort", st.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
@@ -278,11 +310,12 @@ function renderParks() {
   $("#parksSub").textContent = ALLPARKS.length + " parks and forests with " + BASE.length + " campground listings. Opening times are for " + fmtDate(st.target) + ".";
   renderChips(); renderSugg(); renderSide(); renderKinds();
 }
-const KINDS = [["", "All"], ["nps", "National parks & monuments"], ["state", "State parks"], ["forest", "National forests"]];
+window.Saved && Saved.on(() => paintStars());
+const KINDS = [["", "All"], ["nps", "National parks & monuments"], ["state", "State parks"], ["forest", "National forests"], ["fed", "BLM & Army Corps"]];
 function renderKinds() { $("#kindTabs").innerHTML = KINDS.map(k => '<button type="button" data-kind="' + k[0] + '" aria-pressed="' + (st.kind === k[0]) + '">' + esc(k[1]) + " <small>" + (k[0] ? ALLPARKS.filter(p => p.kind === k[0]).length : ALLPARKS.length) + "</small></button>").join(""); }
 const FILT = { kind: "Type", sys: "Booking site", region: "Region", avail: "Date available", season: "Season", month: "Month", peak: "Peak season", walk: "Walk-up", conf: "Data" };
 const LAB = {
-  kind: v => ({ nps: "National parks and monuments", state: "State parks", forest: "National forests" })[v], des: v => v + (DES_FULL[v] ? " (" + DES_FULL[v] + ")" : ""), sys: v => SYSTEMS[v].name, region: v => v,
+  kind: v => ({ nps: "National parks and monuments", state: "State parks", forest: "National forests", fed: "BLM, Army Corps and Reclamation" })[v], saved: v => v ? "Saved only" : "", des: v => v + (DES_FULL[v] ? " (" + DES_FULL[v] + ")" : ""), sys: v => SYSTEMS[v].name, region: v => v,
   avail: v => ({ open: "Already open", "7d": "Opens within 7 days", "30d": "Opens within 30 days", later: "Opens later", walk: "No advance booking" })[v], season: v => ({ on: "Open on my date", year: "Year-round", seasonal: "Seasonal only" })[v],
   month: v => "Open in " + MONTHS[v - 1], peak: v => ({ on: "Peak on my date", off: "Not peak on my date", has: "Has a defined peak" })[v], walk: v => ({ any: "Walk-up available", none: "Reservation only", only: "Walk-up only" })[v],
   conf: v => ({ good: "Verified", check: "Needs checking", assumed: "Not yet researched" })[v]
@@ -300,7 +333,7 @@ function renderChips() {
 const SUGG = [["avail", "30d", "Opening within 30 days"], ["walk", "any", "Walk-up available"], ["season", "on", "Open on my date"], ["peak", "on", "Peak season on my date"], ["walk", "none", "Reservation only"], ["conf", "good", "Verified data"]];
 function renderSugg() { $("#sugg").innerHTML = SUGG.map(s => '<button type="button" class="sg" data-f="' + s[0] + '" data-v="' + s[1] + '" aria-pressed="' + (st[s[0]] === s[1]) + '">' + s[2] + "</button>").join(""); }
 function renderSide() {
-  const kinds = [["nps", "National parks and monuments"], ["state", "State parks"], ["forest", "National forests"]];
+  const kinds = [["nps", "National parks and monuments"], ["state", "State parks"], ["forest", "National forests"], ["fed", "BLM, Army Corps and reservoirs"]];
   const cnt = k => ALLPARKS.filter(p => p.kind === k).length, regions = [...new Set(BASE.map(s => s.region))].sort();
   $("#sideGroups").innerHTML = '<div class="side-h">Browse</div>' + kinds.map(k => '<a class="side-l" href="#/" data-side="kind:' + k[0] + '"' + (R.v === "parks" && st.kind === k[0] ? ' aria-current="true"' : "") + ">" + k[1] + " <small>" + cnt(k[0]) + "</small></a>").join("") +
     '<div class="side-h">Regions</div>' + regions.map(r => '<a class="side-l" href="#/" data-side="region:' + esc(r) + '"' + (R.v === "parks" && st.region === r ? ' aria-current="true"' : "") + ">" + esc(r) + "</a>").join("");
@@ -343,7 +376,7 @@ function campRow(x) {
   const season = openTxt(s) ? "<b>" + esc(openTxt(s)) + "</b>" + staleNote(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") + NV;
   const m = monthOf(st.target), peak = peakTxt(s) ? "<b>" + peakCell(peakTxt(s)) + "</b>" + (s.peak && s.peak.includes(m) ? '<span class="tag">Peak on your date</span>' : "") + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : NV);
   const walk = s.walkup ? "<b>" + esc(WALK[s.walkup]) + "</b>" + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") : (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") + (s.walkup ? "" : NV);
-  return '<tr class="link' + (s.id === selId ? " sel" : "") + '" data-id="' + esc(s.id) + '"><th scope="row" data-l="Campground"><button type="button" class="nm" data-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === selId) + '">' + esc(s.name) + "</button>" + (s.edited ? '<span class="tag edit">Edited</span>' : "") + "</th>" +
+  return '<tr class="link' + (s.id === selId ? " sel" : "") + '" data-id="' + esc(s.id) + '"><th scope="row" data-l="Campground">' + starHtml(s) + '<button type="button" class="nm" data-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === selId) + '">' + esc(s.name) + "</button>" + (s.edited ? '<span class="tag edit">Edited</span>' : "") + "</th>" +
     '<td data-l="Opens for your date">' + opensCell(s, c) + "</td>" + edCell("season", "Season", season, s) + edCell("peak", "Peak season", peak, s) + edCell("walk", "Walk-up", walk, s) + '<td data-l="Sites" class="num">' + (s.sites == null ? NF : s.sites + (s.sitesNote ? '<small>' + esc(s.sitesNote) + "</small>" : "")) + '</td><td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(s)) + "</span></td></tr>";
 }
 const edCell = (k, label, html, s) => '<td data-l="' + label + '" class="edc" tabindex="0" data-ed="' + k + '" title="Double-click to edit">' + html +
@@ -359,6 +392,8 @@ function renderPanel(x) {
   const src = s.sources.map(r => '<li><a href="' + esc(r.u) + '" target="_blank" rel="noopener">' + esc(r.t) + "</a></li>").join("");
   const verify = s.check.length ? esc(s.check.join(", ")) : "";
   const dl = [
+    ["Saved", starHtml(s).replace("data-star", 'data-star data-sid="' + esc(s.id) + '"') + (window.Saved && Saved.isCamp(s.id) ? "On your saved list (dashboard)" : "Star to add to your saved list")],
+    ["Nearest city", s.city ? esc(s.city) : NF],
     ["Opens for your date", opensCell(s, c)], ["Booking site", esc(sys.name)], ["How it opens", esc(ruleTxt(s))],
     ["Season", openTxt(s) ? openCell(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : NV],
     ["Peak season", peakTxt(s) ? peakCell(peakTxt(s)) + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : NV],
@@ -454,7 +489,7 @@ $("#q").addEventListener("input", e => { if (!e.target.value.trim() && st.q) { s
 $("#sugg").addEventListener("click", e => { const b = e.target.closest(".sg"); if (!b) return; const k = b.dataset.f; st[k] = st[k] === b.dataset.v ? "" : b.dataset.v; persist(); syncFields(); render(); });
 $("#chips").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; if (c.dataset.k.startsWith("cf:")) { delete st.cf[c.dataset.k.slice(3)]; persist(); render(); return; } st[c.dataset.k] = ""; if (c.dataset.k === "q") $("#q").value = ""; syncFields(); persist(); render(); });
 $("#sideGroups").addEventListener("click", e => { const a = e.target.closest("[data-side]"); if (!a) return; e.preventDefault(); const [k, v] = a.dataset.side.split(":"); st.kind = k === "kind" ? (st.kind === v ? "" : v) : st.kind; st.region = k === "region" ? (st.region === v ? "" : v) : st.region; syncFields(); persist(); nav("#/"); });
-const FIELD = { fDes: "des", fSys: "sys", fRegion: "region", fAvail: "avail", fSeason: "season", fMonth: "month", fPeak: "peak", fWalk: "walk", fConf: "conf" };
+const FIELD = { fSaved: "saved", fDes: "des", fSys: "sys", fRegion: "region", fAvail: "avail", fSeason: "season", fMonth: "month", fPeak: "peak", fWalk: "walk", fConf: "conf" };
 Object.keys(FIELD).forEach(id => { $("#" + id).onchange = e => { st[FIELD[id]] = e.target.value; persist(); render(); }; });
 $("#kindTabs").addEventListener("click", e => { const b = e.target.closest("[data-kind]"); if (!b) return; st.kind = b.dataset.kind; persist(); render(); });
 $("#fName").addEventListener("input", e => { st.q = e.target.value; $("#q").value = st.q; persist(); render(); });
@@ -464,7 +499,7 @@ $("#target").onchange = e => { if (e.target.value) { st.target = e.target.value;
 $("#tz").onchange = e => { st.tz = e.target.value; persist(); render(); };
 $$("#parksTable thead th[data-k] button").forEach(b => b.onclick = () => { const k = b.closest("th").dataset.k; if (st.sort === k) st.dir = -st.dir; else { st.sort = k; st.dir = 1; } persist(); render(); });
 $$("#campTable thead th[data-k] button").forEach(b => b.onclick = () => { const k = b.closest("th").dataset.k; if (st.csort === k) st.cdir = -st.cdir; else { st.csort = k; st.cdir = 1; } persist(); render(); });
-$("#parksBody").addEventListener("click", e => { const tr = e.target.closest("tr[data-park]"); if (tr && !e.target.closest("a")) nav("#/park/" + tr.dataset.park + "/" + tr.dataset.id); });
+$("#parksBody").addEventListener("click", e => { if (e.target.closest("[data-star]")) return; const tr = e.target.closest("tr[data-park]"); if (tr && !e.target.closest("a")) nav("#/park/" + tr.dataset.park + "/" + tr.dataset.id); });
 $("#campBody").addEventListener("click", e => { const pen = e.target.closest("[data-cedit]"); if (pen) { openEditor(pen.closest("tr").dataset.id, pen.dataset.cedit, pen.closest("td")); return; } const b = e.target.closest("[data-pick]"); const tr = e.target.closest("tr[data-id]"); const id = b ? b.dataset.pick : tr && tr.dataset.id; if (!id) return; selId = id; editing = false;
   $$("#campBody tr[data-id]").forEach(r => { const on = r.dataset.id === id; r.classList.toggle("sel", on); const p = r.querySelector("[data-pick]"); p && p.setAttribute("aria-pressed", on); });   // no redraw, so a double-click can land on the same cell
   renderPanel(shownCamps.find(x => x.s.id === id)); });

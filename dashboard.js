@@ -17,7 +17,7 @@ const T={
   statVisited:{name:"Visited overall",desc:"Every place you've checked",sizes:[[1,1],[2,1]],def:[1,1]},
   statLeft:{name:"Parks left",desc:"National parks still to go",sizes:[[1,1],[2,1]],def:[1,1]},
   statStates:{name:"States visited",desc:"States with a visited place",sizes:[[1,1],[2,1]],def:[1,1]},
-  favorites:{name:"Favorite parks",desc:"Your favorites; add as many as you like",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
+  favorites:{name:"Saved parks & campgrounds",desc:"Everything you've starred in the park list and the Camping tab",sizes:[[2,2],[2,3],[4,2],[4,3],[2,1]],def:[2,2]},
   potd:{name:"Park of the day",desc:"A new national park every day",sizes:[[2,2],[4,2]],def:[2,2]},
   camping:{name:"Camping plan",desc:"Your next camping and hiking plans; opens the Trip Planner",sizes:[[2,2],[2,1],[4,2]],def:[2,2]},
   countdown:{name:"Trip countdown",desc:"Days until your next trip",sizes:[[2,1],[1,1],[4,1]],def:[2,1]},
@@ -27,12 +27,14 @@ const T={
 };
 const uid=()=>Math.random().toString(36).slice(2,8);
 const mk=(type,cfg)=>({id:type+"-"+uid(),type,w:T[type].def[0],h:T[type].def[1],cfg:cfg||{}});
-const DEFAULT=()=>({v:4,cols:4,items:[mk("clock"),mk("list"),mk("statVisited"),mk("statStates"),mk("camping"),mk("progress"),mk("favorites"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
+const DEFAULT=()=>({v:5,cols:4,items:[mk("clock"),mk("favorites"),mk("list"),mk("statVisited"),mk("statStates"),mk("camping"),mk("progress"),mk("calendar"),mk("potd"),mk("recent"),mk("topStates"),mk("countdown"),
   ...APPS.map(a=>{const it=mk("app",{target:a[0]});if(a[0]==="backup")it.w=1;return it})]});   // the main apps are large, Backup is the small one
 let st=A.store.get("dash",null);if(!st||!Array.isArray(st.items)||![1,2,3,4].includes(st.cols))st=DEFAULT();
 if((st.v||1)<4){st.v=4;if(!st.items.some(i=>i.type==="list"))st.items.splice(Math.min(1,st.items.length),0,mk("list"));A.store.set("dash",st)}
 if((st.v||1)<3){st.v=3;if(!st.items.some(i=>i.type==="camping"))st.items.splice(Math.min(3,st.items.length),0,mk("camping"));if(!st.items.some(i=>i.type==="app"&&i.cfg.target==="trips"))st.items.push(mk("app",{target:"trips"}));A.store.set("dash",st)}
 if((st.v||1)<2){st.v=2;st.items.forEach(it=>{if(it.type==="app"&&it.cfg&&it.cfg.target!=="backup"){it.w=2;it.h=1}});A.store.set("dash",st)}   // v2: main app shortcuts became large tiles
+if((st.v||1)<5){   // v5: the favorites tile became "Saved parks & campgrounds"; put it near the top
+  const i=st.items.findIndex(x=>x.type==="favorites"),it=i<0?mk("favorites"):st.items.splice(i,1)[0];it.w=2;it.h=2;st.items.splice(Math.min(1,st.items.length),0,it);st.v=5;A.store.set("dash",st)}
 const save=()=>A.store.set("dash",st);
 let editing=false,visible=false,timer=0;
 
@@ -78,10 +80,14 @@ const body={
   statVisited(){return `<div class="w-stat"><b>${visitedAll().length}</b><span>Visited overall</span></div>`},
   statLeft(){const np=nps63();return `<div class="w-stat"><b>${np.filter(p=>!A.isChecked(p.id)).length}</b><span>Parks left</span></div>`},
   statStates(){const s=new Set();visitedAll().forEach(p=>p.states.forEach(x=>s.add(x)));return `<div class="w-stat"><b>${s.size}</b><span>States visited</span></div>`},
-  favorites(tile){const f=favs().map(id=>A.byId.get(id)),big=f[0];
-    const rows=f.slice(big?1:0).map(p=>`<li><button type="button" data-open="${esc(p.id)}">${esc(A.disp(p))}</button><button type="button" class="x" data-unfav="${esc(p.id)}" aria-label="Remove ${esc(A.disp(p))} from favorites">✕</button></li>`).join("");
-    return `<div class="w-fav"><div class="w-h">Favorite parks</div>${big?`<div class="w-fav-top"><button type="button" class="w-fav-name" data-open="${esc(big.id)}">${esc(A.disp(big))}</button><span>${esc(A.fld(big,"d"))} · ${esc(big.states.slice(0,2).join(", "))}</span>${A.isChecked(big.id)?'<em>✓ Visited</em>':'<em class="no">Not visited yet</em>'}<button type="button" class="x" data-unfav="${esc(big.id)}" aria-label="Remove ${esc(A.disp(big))} from favorites">✕</button></div>`:`<p class="w-empty">No favorites yet. Add the parks you love most.</p>`}
-      ${rows?`<ul class="w-fav-l">${rows}</ul>`:""}<button type="button" class="w-btn" data-act="addfav">+ Add favorite</button></div>`},
+  favorites(tile){const SV=window.Saved,f=favs().map(id=>A.byId.get(id)).filter(Boolean),cs=SV?SV.camps():[];
+    const star=(on,l)=>SV?SV.star(on,l):"";
+    const pk=f.map(p=>`<li data-sv-park="${esc(p.id)}">${star(true,A.disp(p))}<button type="button" class="go" data-open="${esc(p.id)}"><b>${esc(A.disp(p))}</b><span>${esc([A.fld(p,"d"),A.fld(p,"city")||p.states.slice(0,1).join("")].filter(Boolean).join(" · "))}</span></button></li>`).join("");
+    const cg=cs.map(c=>`<li data-sv-camp="${esc(c.id)}">${star(true,c.name)}<button type="button" class="go" data-camp="${esc(c.id)}" data-park="${esc(c.park)}"><b>${esc(c.name)}</b><span>${esc([c.park,c.city].filter(Boolean).join(" · "))}</span></button></li>`).join("");
+    return `<div class="w-fav w-sv"><div class="w-h">Saved <em>${f.length+cs.length}</em></div>
+      <div class="w-sv-b"><div class="w-sv-sec">Campgrounds (${cs.length})</div>${cg?`<ul class="w-sv-l">${cg}</ul>`:`<p class="w-empty">Star a campground on the Camping tab.</p>`}
+      <div class="w-sv-sec">Parks (${f.length})</div>${pk?`<ul class="w-sv-l">${pk}</ul>`:`<p class="w-empty">Star a park in the Park List.</p>`}</div>
+      <div class="w-row"><button type="button" class="w-btn" data-act="addfav">+ Add park</button><button type="button" class="w-btn" data-go="camping">Find campgrounds</button></div></div>`},
   potd(){const np=nps63(),d=new Date(),i=(d.getFullYear()*372+d.getMonth()*31+d.getDate())%np.length,p=np[i];
     return `<div class="w-potd"><div class="w-h">Park of the day</div><b>${esc(A.disp(p))}</b><span>${esc(p.states.slice(0,2).join(", "))}</span><p>${esc((A.fld(p,"hl")||p.blurb||"").slice(0,140))}</p><div class="w-row"><button type="button" class="w-btn" data-open="${esc(p.id)}">Show on map</button><button type="button" class="w-btn" data-fav="${esc(p.id)}">${favs().includes(p.id)?"✓ Favorite":"+ Favorite"}</button></div></div>`},
   countdown(tile){const c=A.store.get("countdown",null);let main='<p class="w-empty">No trip planned yet.</p>';
@@ -142,9 +148,12 @@ root.addEventListener("click",e=>{
   }
   if(editing)return;                       // controls only act outside edit mode
   const go=e.target.closest("[data-go]");if(go){const t=go.dataset.go;if(t==="backup")A.backup();else A.showTab(t);return}
+  const sv=e.target.closest("[data-star]");if(sv&&window.Saved){const lp=sv.closest("[data-sv-park]"),lc=sv.closest("[data-sv-camp]");
+    if(lp)Saved.togglePark(lp.dataset.svPark);else if(lc)Saved.removeCamp(lc.dataset.svCamp);A.toast("Removed from saved");return}
+  const cb=e.target.closest("[data-camp]");if(cb){A.openCamp(cb.dataset.camp,cb.dataset.park);return}
   const op=e.target.closest("[data-open]");if(op){openPark(op.dataset.open);return}
-  const uf=e.target.closest("[data-unfav]");if(uf){A.store.set("favorites",favs().filter(x=>x!==uf.dataset.unfav));render();return}
-  const fv=e.target.closest("[data-fav]");if(fv){const id=fv.dataset.fav,f=favs();A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);render();return}
+  const uf=e.target.closest("[data-unfav]");if(uf){if(window.Saved&&Saved.isPark(uf.dataset.unfav))Saved.togglePark(uf.dataset.unfav);render();return}
+  const fv=e.target.closest("[data-fav]");if(fv){const id=fv.dataset.fav,f=favs();if(window.Saved)Saved.togglePark(id);else A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);render();return}
   const tr=e.target.closest("[data-trip]");if(tr){window.Trips&&Trips.open(tr.dataset.trip);return}
   const li=e.target.closest("[data-li]");if(li&&e.target.closest("[data-ldel]")){const i=myList.items.findIndex(x=>x.id===li.dataset.li),gone=myList.items[i];
     myList.items.splice(i,1);saveList();const tt=$("#toast");tt.innerHTML='<span>Deleted</span><button type="button">Undo</button>';tt.querySelector("button").onclick=()=>{myList.items.splice(i,0,gone);saveList();tt.hidden=true};tt.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>tt.hidden=true,4000);return}
@@ -191,7 +200,7 @@ function drawPick(){const q=$("#dashPickQ").value.toLowerCase().trim(),f=new Set
   const list=[...A.parks,...A.caParks].filter(p=>!q||(A.disp(p)+" "+A.fld(p,"state")).toLowerCase().includes(q)).sort((a,b)=>(b.np63-a.np63)||A.disp(a).localeCompare(A.disp(b))).slice(0,150);
   $("#dashPickList").innerHTML=list.map(p=>`<li><button type="button" data-pick="${esc(p.id)}" aria-pressed="${f.has(p.id)}"><span>${f.has(p.id)?"✓":"+"}</span><b>${esc(A.disp(p))}</b><i>${esc(A.fld(p,"d"))} · ${esc(A.fld(p,"state")||p.states[0]||"")}</i></button></li>`).join("")||"<li class='w-empty'>No matches</li>"}
 $("#dashPickQ").oninput=drawPick;
-$("#dashPickList").onclick=e=>{const b=e.target.closest("[data-pick]");if(!b)return;const id=b.dataset.pick,f=favs();A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);drawPick();render()};
+$("#dashPickList").onclick=e=>{const b=e.target.closest("[data-pick]");if(!b)return;const id=b.dataset.pick,f=favs();if(window.Saved)Saved.togglePark(id);else A.store.set("favorites",f.includes(id)?f.filter(x=>x!==id):[...f,id]);drawPick();render()};
 $("#dashPickDone").onclick=()=>pick.close();
 const trip=$("#dashTrip");
 function openTrip(){const c=A.store.get("countdown",{})||{};$("#tripTitle").value=c.title||"";$("#tripDate").value=c.date||"";trip.showModal()}
@@ -205,6 +214,7 @@ window.Dashboard={
   hide(){visible=false;clearInterval(timer);if(editing)setEditing(false)}
 };
 A.subscribe(()=>{if(visible&&!editing)render()});
+window.Saved&&Saved.on(()=>{if(visible&&!editing)render()});
 setTimeout(()=>{window.Trips&&Trips.subscribe(()=>{if(visible&&!editing)render()});if(visible&&!editing)render()},0);
 if(document.body.classList.contains("dash"))window.Dashboard.show();   // app.js may have opened this tab before this file loaded
 window.addEventListener("resize",()=>{if(visible)layout()});

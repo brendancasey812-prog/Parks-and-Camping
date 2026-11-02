@@ -108,4 +108,49 @@
   split("sp-mount-san-jacinto-state-park-idyllwild-stone-creek", [["Idyllwild", 31, "", "", "listings 31–78"], ["Stone Creek", 50, "", "", "listings 35–50"]]);
   split("sp-anza-borrego-desert-state-park-tamarisk-grove-bow-willow-fish-creek", [["Tamarisk Grove", 27, "Oct – Apr (reservations)", "", "includes 11 cabins"], ["Bow Willow", 16, "Year-round (first-come)"], ["Fish Creek", null, "Year-round (primitive, first-come)", "", "count not found"]]);
   split("sp-salton-sea-state-recreation-area-mecca-beach-corvina-beach", [["Headquarters", null, "Year-round", "", "main campground; hookup and tent sites"], ["Mecca Beach", null, "Closed for maintenance repairs (no reopening date)"], ["Corvina Beach", null, "", "", "primitive"]]);
+  // ---------- state parks that were not on the site (parks.ca.gov park pages, 2026-11-02) ----------
+  // place(): a campground in a park that has no row yet; starts from the statewide ReserveCalifornia defaults.
+  const RC = S.find(s => s.id === "sys-rc");
+  function place(park, region, name, o, seas) {
+    let id = "sp-" + slug(park) + "-" + slug(name), n = 2; while (S.some(s => s.id === id)) id = "sp-" + slug(park) + "-" + slug(name) + "-" + n++;
+    S.push(Object.assign({}, RC, { id, name, park, region, open: null, openNote: "", peak: null, peakNote: "", walkup: null, walkupNote: "", conf: "check", check: ["season", "peak", "walkup"], notes: "", sources: [] }, o || {}));
+    SEAS[id] = Object.assign({ openDates: "", peakDates: SP, sites: null, sitesNote: "count not found" }, seas);
+  }
+  const ST = (pid, park, region, list) => list.forEach(([name, sites, open, note, o]) =>
+    place(park, region, name, Object.assign({ sources: PCS(pid, park) }, o || {}), { openDates: open || "", sites: sites ?? null, sitesNote: note || (sites == null ? "count not found" : ""), src: PCS(pid, park) }));
+  const FC = { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: "First-come, first-served", check: ["season", "peak"] };
+  const GRP = { notes: "Group camping" };
+  const COUNTY = (who, url) => ({ system: "other", rule: { kind: "none" }, check: ["rule", "season", "peak", "walkup"], notes: "Operated by " + who + "; book through their site", sources: [{ t: who, u: url }] });
+  ST(502, "Auburn State Recreation Area", "Sierra Nevada", [["Mineral Bar"], ["Ruck-A-Chucky"], ["Lower Lake Clementine Boat-In", null, "", "boat-in; count not found"]]);
+  ST(642, "Bolsa Chica State Beach", "Southern California", [["Bolsa Chica RV Campground", 50, "Year-round", "RV only, electric and water hookups; max 40 ft"]]);
+  ST(557, "Caswell Memorial State Park", "Central Valley", [["Caswell Memorial", 64, "", "plus group and hike-and-bike sites"]]);
+  ST(604, "Emma Wood State Beach", "Southern California", [["North Beach", 90, "Year-round (park page lists an upcoming closure)", "fully self-contained vehicles only; no tents, water or restrooms"],
+    ["Ventura River Group Camp", 5, "Year-round (reservations required)", "group sites, up to 30 people each", GRP]]);
+  ST(585, "Fort Tejon State Historic Park", "Southern California", [["Group Campground", null, "Year-round (water Apr 16 – Nov 14)", "group camping only; 2 RV spaces with hookups", GRP]]);
+  ST(556, "George J. Hatfield State Recreation Area", "Central Valley", [["Hatfield Walk-in", null, "Year-round", "tent-only, short walk from parking; count not found", FC], ["Hatfield Group Site", 1, "Year-round", "up to 25 people", GRP]]);
+  ST(421, "Grizzly Creek Redwoods State Park", "North Coast", [["Grizzly Creek Redwoods", 28, "Summer only", "max camper 24 ft; plus group and hike-and-bike sites"]]);
+  ST(553, "Indian Grinding Rock State Historic Park", "Sierra Nevada", [["Indian Grinding Rock", null]]);
+  ST(437, "Manchester State Park", "North Coast", [["Manchester", null, "Closed for the season", "first-come in season; environmental sites permanently closed", FC], ["Manchester Group Camp", null, "", "group camp", GRP]]);
+  ST(554, "McConnell State Recreation Area", "Central Valley", [["McConnell", null, "Year-round", "max camper 30 ft; plus group sites"]]);
+  ST(435, "Navarro River Redwoods State Park", "North Coast", [["Navarro Beach", null], ["Paul Dimmick", null, "Closed for the season; open May 28 – Sep 7, 2027", "max camper 30 ft"]]);
+  ST(637, "Palomar Mountain State Park", "Southern California", [["Doane Valley", 31, "Year-round (reservations Apr 1 – Nov 30; first-come Dec 1 – Mar 31)", "sites 1–31; max camper 24 ft"]]);
+  ST(504, "Tahoe State Recreation Area", "Sierra Nevada", [["Tahoe State Recreation Area", 23, "Summer; closed for the 2026 season", "trailers to 15 ft, RVs to 18 ft"]]);
+  ST(666, "The Forest of Nisene Marks State Park", "Bay Area", [["West Ridge Trail Camp", null, "Closed (no camping in the park)", "backcountry trail camp"]]);
+  ST(440, "Westport-Union Landing State Beach", "North Coast", [["Abalone Point and the other bluff campgrounds", 86, "Abalone Point closed until Apr 15, 2027", "86 sites in three bluff campgrounds"]]);
+  ST(538, "Castle Rock State Park", "Bay Area", [["Castle Rock Trail Camp", null, "Open (no campfires)", "backcountry; reservation or registration required"]]);
+  ST(583, "Colonel Allensworth State Historic Park", "Central Valley", [["Colonel Allensworth", 17, "Year-round", "RVs or tents; sites 16 and 17 have hookups"]]);
+  ST(461, "Colusa-Sacramento River State Recreation Area", "Central Valley", [["Colusa-Sacramento River", null, "", "plus en route sites"], ["Group Campsites", null, "", "not reservable online; call Colusa City Hall (530) 329-9198", GRP]]);
+  ST(476, "Benicia State Recreation Area", "Bay Area", [["En route sites", 3, "Year-round", "self-contained RVs only; no tents", FC]]);
+  ST(617, "Dockweiler State Beach", "Southern California", [["Dockweiler RV Campground", null, "Year-round", "RV hookups; booked 24 hours to 90 days ahead",
+    Object.assign(COUNTY("Los Angeles County Beaches and Harbors", "https://beaches.lacounty.gov/"), { rule: { kind: "days", days: 90, time: "00:00" }, check: ["season", "peak", "walkup"] })]]);
+  ST(628, "Castaic Lake State Recreation Area", "Southern California", [["Castaic Lake", null, "", "tent, group and boat-in camps", COUNTY("Los Angeles County Parks", "https://parks.lacounty.gov/castaic-lake-state-recreation-area/")]]);
+  ST(622, "Placerita Canyon State Park", "Southern California", [["Placerita Canyon Group Camp", null, "", "group sites", Object.assign(COUNTY("Los Angeles County Parks", "https://parks.lacounty.gov/placerita-canyon-state-park"), GRP)]]);
+  ST(629, "Topanga State Park", "Southern California", [["Musch Trail Camp", null, "", "hike-in primitive camping"]]);
+  ST(549, "Wilder Ranch State Park", "Bay Area", [["Wilder Ranch Horse Camp", 6, "Year-round", "equestrian only; call 831-423-9703", FC]]);
+  ST(429, "Sinkyone Wilderness State Park", "North Coast", [["Sinkyone primitive campgrounds", null, "", "primitive; no water; roads may be impassable when wet"]]);
+  ST(443, "Mendocino Woodlands State Park", "North Coast", [["Mendocino Woodlands group camps", 3, "Year-round", "three cabin camps for groups of 30–200", Object.assign({ system: "other", rule: { kind: "none" }, check: ["rule", "peak"], notes: "Group camping retreat; book through Mendocino Woodlands" })]]);
+  ST(555, "Turlock Lake State Recreation Area", "Central Valley", [["Turlock Lake", null, "Year-round (reservations late Mar – mid-Sep; walk-in the rest of the year)", "plus hike-and-bike sites", { check: ["peak"] }]]);
+  ST(537, "Lake Del Valle State Recreation Area", "Bay Area", [["Del Valle", null, "", "RV hookups, group sites", COUNTY("East Bay Regional Park District", "https://www.ebparks.org/parks/del-valle")]]);
+  ST(430, "Tolowa Dunes State Park", "North Coast", [["Tolowa Dunes", null, "Closed until further notice"]]);
+  ST(519, "Candlestick Point State Recreation Area", "Bay Area", [["Sunrise Point Campground", null, "", "named on the park page; details not found"]]);
 })();
