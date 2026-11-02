@@ -67,6 +67,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
           <div class="tw" tabindex="-1"><table class="tbl" id="parksTable">
             <thead><tr>
               <th scope="col" data-k="name"><button type="button">Park</button></th>
+              <th scope="col" data-k="camp"><button type="button">Campground</button></th>
               <th scope="col" data-k="des"><button type="button">Type</button></th>
               <th scope="col" data-k="region"><button type="button">Region</button></th>
               <th scope="col" data-k="openD"><button type="button">Open season</button></th>
@@ -79,11 +80,11 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <th scope="col" data-k="date"><button type="button">Open date</button></th>
               <th scope="col" data-k="time"><button type="button">Open time</button></th>
               <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
-              <th scope="col" data-k="n"><button type="button">Campgrounds</button></th>
               <th scope="col" data-k="conf"><button type="button">Data</button></th>
             </tr>
             <tr class="frow">
-              <td><input id="fName" type="search" placeholder="Filter parks" aria-label="Filter parks and campgrounds"></td>
+              <td><input id="fName" type="search" placeholder="Filter parks or campgrounds" aria-label="Filter parks and campgrounds"></td>
+              <td></td>
               <td><select id="fDes" aria-label="Type"><option value="">All types</option></select></td>
               <td><select aria-label="Region" id="fRegion"><option value="">All regions</option></select></td>
               <td></td><td></td><td></td>
@@ -93,7 +94,6 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <td></td>
               <td></td><td></td>
               <td><select aria-label="Walk-up" id="fWalk"><option value="">Any walk-up</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></td>
-              <td></td>
               <td><select aria-label="Data" id="fConf"><option value="">Any data status</option><option value="good">Verified</option><option value="check">Needs checking</option><option value="assumed">Not yet researched</option></select></td>
             </tr></thead>
             <tbody id="parksBody"></tbody>
@@ -178,6 +178,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
 <script src="data/roster.js"></script>
 <script src="data/permits.js"></script>
 <script src="data/seasons.js"></script>
+<script src="data/campgrounds.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 <script src="permits.js"></script>

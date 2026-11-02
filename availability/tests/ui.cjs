@@ -42,7 +42,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  // ---- search finds campgrounds; Google Sheets-style column menus; in-cell editing
  const g=await open({},{target:plus(240)});
  await check('search "camp 4" shows Camp 4 under Yosemite and opens it',async()=>{await g.fill('#q','camp 4');await g.press('#q','Enter');await g.waitForTimeout(200);
-   const l=g.locator('#parksBody a.hit',{hasText:'Camp 4'});const ok=await l.count()===1;await l.click();await g.waitForTimeout(300);return ok&&/#\/park\/yosemite-national-park\/yose-camp4/.test(g.url())&&/Camp 4/.test(await g.textContent('#panel h2'))});
+   const l=g.locator('#parksBody a.cg',{hasText:'Camp 4'});const ok=await l.count()===1;await l.click();await g.waitForTimeout(300);return ok&&/#\/park\/yosemite-national-park\/yose-camp4/.test(g.url())&&/Camp 4/.test(await g.textContent('#panel h2'))});
  await g.goto(URL_+'#/');await g.fill('#q','');await g.evaluate(()=>{const c=document.querySelector('.chip[data-k=q]');c&&c.click()});await g.waitForTimeout(200);
  const regions=()=>g.$$eval('#parksBody tr td[data-l=Region]',a=>[...new Set(a.map(x=>x.textContent))]);
  await check('column menu: search values, tick one, OK filters the table',async()=>{await g.click('#parksTable th[data-k=region] .fb');await g.fill('.cmenu .cm-q','bay');const shown=await g.$$eval('.cmenu .cm-l li',a=>a.map(x=>x.textContent));
@@ -63,11 +63,15 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('no errors in column menu / editing session',async()=>g.errs.length===0);
  // ---- parks table layout: name / type split, opening in three columns, type tabs, filters in the header row
  const h=await open({},{target:plus(240)});
- const prow=(q,name)=>q.$eval(`#parksBody tr[data-park="${name}"]`,r=>[...r.children].map(c=>c.textContent.trim()));
- await check('name and designation are separate columns (Yosemite | NP)',async()=>{const r=await prow(h,'yosemite-national-park');return /^Yosemite/.test(r[0])&&!/National Park/.test(r[0])&&r[1]==='NP'});
- await check('opening is split into days out, day, date and time',async()=>{const r=await prow(h,'yosemite-national-park');return /^\d+ (day|month)|Open now/.test(r[8])&&/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(r[9])&&/\b20\d\d\b/.test(r[10])&&!/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(r[10])&&/\d:\d\d\s?[AP]M/.test(r[11])});
- await check('open season, peak season and sites columns (Pinnacles; Yosemite totals)',async()=>{const p=await prow(h,'pinnacles-national-park'),y=await prow(h,'yosemite-national-park');
-   return p[3]==='Year-round'&&/Mar/.test(p[4])&&/^149/.test(p[5])&&/Varies/.test(y[3])&&/^\d{3,}/.test(y[5].replace(',',''))});
+ const prow=(q,id)=>q.$eval(`#parksBody tr[data-id="${id}"]`,r=>[...r.children].map(c=>c.textContent.trim()));
+ await check('one row per campground: park, campground and type columns (Yosemite | Upper Pines | NP)',async()=>{const r=await prow(h,'yose-upper-pines');return /^Yosemite/.test(r[0])&&!/National Park/.test(r[0])&&r[1]==='Upper Pines'&&r[2]==='NP'});
+ await check('every campground of a park is listed (Joshua Tree has 9, incl. Belle and Sheep Pass)',async()=>{const n=await h.$$eval('#parksBody tr[data-park=joshua-tree-national-park] td[data-l=Campground]',a=>a.map(x=>x.textContent));return n.length===9&&n.some(x=>/^Belle/.test(x))&&n.some(x=>/Sheep Pass/.test(x))});
+ await check('opening is split into days out, day, date and time',async()=>{const r=await prow(h,'yose-upper-pines');return /^\d+ (day|month)|Open now/.test(r[9])&&/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(r[10])&&/\b20\d\d\b/.test(r[11])&&!/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(r[11])&&/\d:\d\d\s?[AP]M/.test(r[12])});
+ await check('open season, peak season and sites per campground (Pinnacles; Camp 4)',async()=>{const p=await prow(h,'pinn-campground'),c=await prow(h,'yose-camp4');
+   return p[4]==='Year-round'&&/Mar/.test(p[5])&&/^149/.test(p[6])&&/Apr 15 – Nov 9/.test(c[4])&&/^36/.test(c[6])});
+ await check('peak season shows MM/DD/YYYY dates for the trip date (state park May 15 – Sep 15; desert Oct – Apr)',async()=>{const y=+(await h.inputValue('#target')).slice(0,4);
+   const sp=(await prow(h,'sp-elk-prairie'))[5],jt=(await prow(h,'jotr-black-rock'))[5];
+   return new RegExp('^05/15/'+y+' –\\s09/15/'+y).test(sp)&&/May 15 – Sep 15 each year/.test(sp)&&/^10\/01\/20\d\d –\s05\/31\/20\d\d/.test(jt)});
  await check('sort by Sites puts the biggest first',async()=>{await h.click('#parksTable th[data-k=sites] .fb');await h.click('.cmenu [data-cm=asc]');await h.waitForTimeout(150);const n=await h.$$eval('#parksBody td[data-l=Sites]',a=>a.slice(0,3).map(x=>parseInt(x.childNodes[0].textContent.replace(/,/g,''))));
    await h.click('#parksTable th[data-k=name] .fb');await h.click('.cmenu [data-cm=asc]');return n[0]>=n[1]&&n[1]>=n[2]&&n[0]>300});
  await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);

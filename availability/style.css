@@ -187,3 +187,6 @@ abbr.des{text-decoration:none;font-weight:700;font-size:.8rem;padding:.1rem .45r
 #parksTable td[data-l="Day"]{white-space:nowrap}
 .h3s{margin-top:.8rem}
 .dl dd small{display:block;margin-top:.15rem;color:var(--muted);font-size:.8rem}
+.tbl .cg{color:var(--ink);font-weight:600;text-decoration:none}.tbl .cg:hover{color:var(--accent);text-decoration:underline}
+#parksTable td[data-l="Campground"]{min-width:9rem}
+.pk{white-space:nowrap;font-variant-numeric:tabular-nums}
