@@ -72,6 +72,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('peak season shows MM/DD/YYYY dates for the trip date (state park May 15 – Sep 15; desert Oct – Apr)',async()=>{const y=+(await h.inputValue('#target')).slice(0,4);
    const sp=(await prow(h,'sp-elk-prairie'))[5],jt=(await prow(h,'jotr-black-rock'))[5];
    return new RegExp('^05/15/'+y+' –\\s09/15/'+y).test(sp)&&/May 15 – Sep 15 each year/.test(sp)&&/^10\/01\/20\d\d –\s05\/31\/20\d\d/.test(jt)});
+ await check('season dates from an earlier year are flagged for a later trip date',async()=>{const c=(await prow(h,'yose-north-pines'))[4];return /2026 dates; 2027 not published yet/.test(c)});
  await check('sort by Sites puts the biggest first',async()=>{await h.click('#parksTable th[data-k=sites] .fb');await h.click('.cmenu [data-cm=asc]');await h.waitForTimeout(150);const n=await h.$$eval('#parksBody td[data-l=Sites]',a=>a.slice(0,3).map(x=>parseInt(x.childNodes[0].textContent.replace(/,/g,''))));
    await h.click('#parksTable th[data-k=name] .fb');await h.click('.cmenu [data-cm=asc]');return n[0]>=n[1]&&n[1]>=n[2]&&n[0]>300});
  await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);

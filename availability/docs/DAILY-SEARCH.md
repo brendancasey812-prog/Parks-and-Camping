@@ -1,38 +1,42 @@
-# Daily check (planned, not built)
+# Weekly update
 
-Goal: keep `data/sites.js` correct without hand-editing, and tell the owner when a booking rule changes (for example Yosemite delaying a summer release).
+A scheduled Claude task runs every Monday at 8:41 AM Pacific. It re-checks the campground data, changes only what new
+information supports, and opens a pull request for the owner to review. Nothing goes live until that pull request is merged.
 
-## What the daily job does
-1. **Load** the current rows from `data/sites.js`.
-2. **Fetch** each row's sources (the `sources` list) and the booking site's own page for that campground.
-3. **Extract** the fields we publish: release rule (months ahead, release time, monthly block day), season dates, peak-season notes, walk-up / first-come notes, closures, and any new alert text.
-4. **Compare** with the stored row. Anything that differs becomes a proposed change; nothing is overwritten silently.
-5. **Report**: open a pull request that edits `data/sites.js` (and bumps `DATA_CHECKED`), with a table of old vs new values and the source link for each. A human merges it.
-6. **Confidence**: a row moves to `conf: "good"` only when an official page confirms every field; fields that could not be confirmed stay in `check`.
+## What a run does
+1. **Start fresh.** Fetch `main` into a new branch `data-update/YYYY-MM-DD`.
+2. **Decide what to check.** Every run covers:
+   - every row whose season text names a year before the coming season (for example "Apr 21 – Oct 25, 2026" once 2027 dates could exist);
+   - closures and reopenings (rows saying "Closed", "Not opening", "temporarily closed", "no reopening date");
+   - permits and lotteries in `data/permits.js` (Half Dome preseason and daily lottery, Yosemite wilderness permits, North Pines early access);
+   - about a quarter of the remaining rows in turn, so every campground is looked at once a month.
+3. **Look it up**, in this order of trust, and keep the page that settled each value:
+   | Source | For |
+   |---|---|
+   | nps.gov park pages (campgrounds, operating hours, alerts, news releases) | season dates, closures, site counts |
+   | recreation.gov campground pages and the RIDB API (`ridb.recreation.gov/api/v1`, key in `RIDB_API_KEY`) | site counts, booking windows, facility names |
+   | parks.ca.gov park pages and campground maps, reservecalifornia.com | state park seasons, closures, site counts |
+   | Web search | hints only; a value from search alone is marked "needs checking" |
+   If an official host is unreachable from the session, fall back to web search and say so in the pull request.
+4. **Change the data**, never the page code:
+   - `data/seasons.js`: `openDates`, `peakDates`, `sites`, `sitesNote`, `src`; set `DATA_SEASONS` to the run date.
+   - `data/campgrounds.js`: per-campground values for split rows, and new campgrounds (`add(...)`).
+   - `data/sites.js`: booking rules (months ahead, release time, monthly block day) only when an official page states a change; bump `DATA_CHECKED`.
+   - `data/permits.js`: new season dates (`open`, `close`, `announced`), and remove "projected" once a year's dates are published.
+   A value changes only when a source says so. Where sources disagree, keep the official one and note the range in `sitesNote`.
+5. **Test**: `node tests/engine.test.cjs`, `node tests/ui.cjs` (in `availability/`) and `node tests/regression.cjs` (repo root).
+   If a test fails because of the data change, fix the data; never edit or skip a test to make it pass.
+6. **Open a pull request** titled `Campsite data update YYYY-MM-DD` with:
+   - a table: campground, field, old value, new value, source link;
+   - what could not be checked and why (unreachable site, no information yet);
+   - anything the owner should act on (a booking window that opens soon, a closure, a new lottery).
+   If nothing changed, open no pull request and leave a one-line note in the session instead.
 
-## Where to run it
-A scheduled GitHub Action (cron, once a day, early morning Pacific). It needs no server of its own.
+## What the owner may be asked to do
+- Review and merge the weekly pull request.
+- Keep network access for `nps.gov`, `recreation.gov`, `ridb.recreation.gov`, `parks.ca.gov` and `reservecalifornia.com` in the environment settings.
+- Keep a Recreation.gov RIDB API key (free, from ridb.recreation.gov) in the environment as `RIDB_API_KEY`.
 
-## Sources, in order of trust
-| Source | Use | Notes |
-|---|---|---|
-| Park pages on nps.gov (camping / reservations / alerts) | Season, closures, release schedule announcements | Public pages; respect robots.txt and rate limits |
-| Recreation.gov facility pages and the RIDB API (`ridb.recreation.gov/api/v1`) | Facility names and IDs, booking details | Free API key stored as a GitHub secret, never in the repo. Availability itself is not part of RIDB |
-| ReserveCalifornia FAQs and park pages on parks.ca.gov | State park rules and season dates | The facility list (about 280 campgrounds) can seed the full state-park table |
-| Web search for "<park> campground reservations release" | Catch announcements (delays, lotteries, new rules) | Search results are hints; confirm against an official page before changing a row |
-
-## Adding the rest of California
-- **State parks:** import the ReserveCalifornia facility list, one row per campground, `system: "rc"`, default rule `RC6`, then fill season, peak and walk-up from each park's page.
-- **Federal:** pull California campgrounds from RIDB (organizations NPS, USFS, BLM, USACE), `system: "rec"`, default rule `REC6`, then override where a campground uses a different window.
-- **Walk-up:** a campground is walk-up friendly when its page says first-come, first-served or when it keeps same-day sites. Track it in `walkup` (`none`, `some`, `only`) and add the detail in `walkupNote`.
-
-## Things to decide before building it
-- Terms of service and rate limits for each site; prefer official APIs and public pages over scraping logged-in views.
-- Where API keys live (GitHub Actions secrets) and who reviews the pull requests.
-- Whether to add live availability later (needs a small server-side proxy because browsers block these calls and keys must stay private); see the Trip Planner notes in the main project's `docs/INTEGRATIONS.md`.
-
-## Permits and lotteries (added)
-`data/permits.js` holds the Yosemite lottery schedules. The daily check should also:
-- watch the NPS Yosemite wilderness-permit and Half Dome pages and the Recreation.gov permit pages (234652 Half Dome, 445859 wilderness per search results) for the new season's dates. Half Dome's preseason window has been March 1-31 with results in mid-April; the 2027 dates are shown as "projected" until an official page publishes them.
-- flag any change to the weekly lottery season (mid-November to early May), the lead time (24 weeks), the leftover release (Friday 9:00 AM Pacific) and the 7-day release time.
-- add other parks' lotteries (for example Mount Whitney, Inyo National Forest) as new entries in the same format.
+## Adding the rest of California (later)
+- **State parks:** the ReserveCalifornia facility list (about 280 campgrounds), one row per campground, `system: "rc"`, default rule `RC6`.
+- **Federal:** California campgrounds from RIDB (NPS, USFS, BLM, USACE), `system: "rec"`, default rule `REC6`.

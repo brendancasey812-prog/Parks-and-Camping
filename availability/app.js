@@ -166,6 +166,12 @@ function peakDates(text) {
 }
 const peakDatesTxt = text => { const r = peakDates(text); return r ? r.map(x => mdy(x.a) + " – " + mdy(x.b)).join(", ") : text; };
 const peakCell = text => { const r = peakDates(text); return r ? '<span class="pk">' + r.map(x => esc(mdy(x.a)) + " –&nbsp;" + esc(mdy(x.b))).join("<br>") + "</span><small>" + esc(text) + " each year</small>" : esc(text); };
+// season text that names a year before the trip year ("Apr 21 – Oct 25, 2026" for a 2027 trip) gets a note: that year's dates are not in yet
+function staleNote(text) {
+  const ys = (String(text || "").match(/\b20\d\d\b/g) || []).map(Number), ty = E.parseISO(st.target).y;
+  return ys.length && Math.max(...ys) < ty ? '<small class="stale">' + Math.max(...ys) + " dates; " + ty + " not published yet</small>" : "";
+}
+const openCell = text => esc(text) + staleNote(text);
 const sitesTxt = s => s.sites == null ? "" : String(s.sites);
 const peakText = s => s.peak ? E.monthsLabel(s.peak) : "";
 const ruleTxt = s => E.ruleText(s.rule) + (s.check.includes("rule") && s.rule.kind !== "none" ? " (assumed)" : "");
@@ -261,7 +267,7 @@ function renderParks() {
     return '<tr class="link" data-park="' + esc(x.p.key) + '" data-id="' + esc(x.r.id) + '"><th scope="row" data-l="Park"><a class="nm link-cell" href="#/park/' + esc(x.p.key) + '" title="' + esc(x.p.name) + '">' + esc(nm.name) + "</a><small>" + esc(x.p.agency) + "</small>" +
       "</th>" + '<td data-l="Campground"><a class="cg link-cell" href="#/park/' + esc(x.p.key) + "/" + esc(x.r.id) + '">' + esc(x.r.name) + "</a>" + (x.r.edited ? '<span class="tag edit">Edited</span>' : "") + "</td>" +
       '<td data-l="Type">' + (nm.des ? '<abbr class="des" title="' + esc(DES_FULL[nm.des] || "Statewide") + '">' + esc(nm.des) + "</abbr>" : "") + '</td><td data-l="Region">' + esc(x.p.region) + '</td>' +
-      '<td data-l="Open season">' + (x.openD ? esc(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? peakCell(x.peakD) : NF) + '</td><td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
+      '<td data-l="Open season">' + (x.openD ? openCell(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? peakCell(x.peakD) : NF) + '</td><td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
       '<td data-l="Days out">' + oc[0] + '</td><td data-l="Day">' + oc[1] + '</td><td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + '</td><td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td>' +
       '<td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(x.r)) + "</span></td></tr>";
   }).join("") || '<tr><td colspan="15" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
@@ -334,7 +340,7 @@ function renderPark() {
 function cmodeOk(x) { const m = monthOf(st.target); if (st.cmode === "open") return x.s.open && x.s.open.includes(m); if (st.cmode === "peak") return x.s.peak && x.s.peak.includes(m); if (st.cmode === "walk") return ["some", "only"].includes(x.s.walkup); return true; }
 function campRow(x) {
   const { s, c } = x, dc = CONF[s.conf][1];
-  const season = openTxt(s) ? "<b>" + esc(openTxt(s)) + "</b>" + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") + NV;
+  const season = openTxt(s) ? "<b>" + esc(openTxt(s)) + "</b>" + staleNote(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") + NV;
   const m = monthOf(st.target), peak = peakTxt(s) ? "<b>" + peakCell(peakTxt(s)) + "</b>" + (s.peak && s.peak.includes(m) ? '<span class="tag">Peak on your date</span>' : "") + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : NV);
   const walk = s.walkup ? "<b>" + esc(WALK[s.walkup]) + "</b>" + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") : (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") + (s.walkup ? "" : NV);
   return '<tr class="link' + (s.id === selId ? " sel" : "") + '" data-id="' + esc(s.id) + '"><th scope="row" data-l="Campground"><button type="button" class="nm" data-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === selId) + '">' + esc(s.name) + "</button>" + (s.edited ? '<span class="tag edit">Edited</span>' : "") + "</th>" +
@@ -354,7 +360,7 @@ function renderPanel(x) {
   const verify = s.check.length ? esc(s.check.join(", ")) : "";
   const dl = [
     ["Opens for your date", opensCell(s, c)], ["Booking site", esc(sys.name)], ["How it opens", esc(ruleTxt(s))],
-    ["Season", openTxt(s) ? esc(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : NV],
+    ["Season", openTxt(s) ? openCell(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : NV],
     ["Peak season", peakTxt(s) ? peakCell(peakTxt(s)) + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : NV],
     ["Sites", s.sites == null ? NF + (s.sitesNote ? "<small>" + esc(s.sitesNote) + "</small>" : "") : esc(s.sites) + (s.sitesNote ? "<small>" + esc(s.sitesNote) + "</small>" : "")],
     ["Walk-up", s.walkup ? esc(WALK[s.walkup]) + (s.walkupNote ? "<small>" + esc(s.walkupNote) + "</small>" : "") : NV]

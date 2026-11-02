@@ -20,7 +20,7 @@ Edits and photos are stored in this browser only (localStorage and IndexedDB).
 - `data/seasons.js` open-season dates, peak season and number of sites for every listing (web search, 2026-10-30; official sites were unreachable, so each value needs checking).
 - `engine.js` release-date math in Pacific time (DST-safe); `data/sites.js` researched rows; `data/roster.js` default-rule rows; `data/permits.js` permit phases.
 - `app.js`, `permits.js`, `style.css`, `index.html` the interface.
-- `docs/DAILY-SEARCH.md` plan for the daily updater (not built yet).
+- `docs/DAILY-SEARCH.md` the weekly update: what the scheduled task checks, its sources, and the pull request it opens.
 
 ## Tests
 ```
