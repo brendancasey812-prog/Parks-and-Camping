@@ -9,16 +9,20 @@
    valid: {from:"MM-DD", to:"MM-DD"} trip dates the phase applies to */
 window.PERMITS = [
   { id: "half-dome", name: "Half Dome cables permit", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/permits/234652",
-    summary: "Required for the cables section, up to 300 hikers a day (225 day hikers, 75 backpackers). Cables are normally up from late May to mid-October, depending on snow.",
-    fees: "$10 per lottery application, plus $10 per person if you win", group: "Up to 6 people; up to 7 dates ranked on one application", conf: "check",
-    check: ["2027 dates (not published yet)", "application open and close times", "results and acceptance deadline", "cable season dates"],
+    summary: "Required for every hiker on the cables beyond the base of the subdome, seven days a week while the cables are up. Day-hike permits: 275 a day on Recreation.gov, 225 of them in the preseason lottery and the rest (about 50, plus any preseason permits not claimed) in the daily lottery. NPS caps the trail at 300 hikers a day including about 75 backpackers, who get Half Dome permits with their wilderness permit. Hiking dates: the cables go up the Friday before Memorial Day and the last day is the Tuesday after the second Monday in October, so May 28 to October 12 in 2027 (2026: May 22 to October 13).",
+    fees: "$10 per lottery application (not refundable), plus $10 per person only if you win (refunded if you cancel by 11:59 PM Pacific the day before, or if the cables are down)",
+    group: "Up to 6 people per application; preseason: up to 7 dates or date ranges in order of preference and an alternate permit holder; one application per person per lottery (as holder or alternate)", conf: "good",
+    check: ["2027 dates: Recreation.gov still lists the 2026 season; 2027 is projected from the NPS rule"],
     phases: [
-      { id: "hd-pre", label: "Preseason lottery", kind: "annual", open: { m: 3, d: 1 }, close: { m: 3, d: 31 }, announced: 2026, valid: { from: "05-15", to: "10-20" },
-        results: "Mid-April (2026: results around April 11-15; accept by about April 24 or the permit is cancelled)", what: "Apply once for a season of dates", note: "Sources agree on March 1-31 for 2026; one gives March 30. The 2027 dates are not published yet, so the next window is projected from 2026." },
-      { id: "hd-daily", label: "Daily lottery", kind: "daily", daysBefore: 2, open: "00:00", close: "16:00", valid: { from: "05-15", to: "10-20" },
-        results: "Emailed the evening the lottery closes", what: "Apply two days before your hike date", note: "Unclaimed preseason permits are reported to move into the daily pool after about April 24." }
+      { id: "hd-pre", label: "Preseason lottery", kind: "annual", open: { m: 3, d: 1, time: "00:00" }, close: { m: 3, d: 31, time: "16:59" }, announced: 2026, valid: { from: "05-28", to: "10-12" },
+        results: "Results about April 10 (2026: posted April 10 at 5:01 PM Pacific, emailed by April 11). Winners must accept and pay by May 17 (2026) or the permits go to the daily lottery.",
+        what: "225 permits for each hiking day. Apply once in March for up to 6 people and up to 7 dates or date ranges.",
+        note: "2026 window: March 1-31 (NPS says Eastern time; Recreation.gov's system closes at 4:59 PM Pacific on March 31, so apply before then). Preseason hiking dates in 2026 were May 22 - October 13; 2027 is projected as May 28 - October 12 from the NPS rule until Recreation.gov posts it." },
+      { id: "hd-daily", label: "Daily lottery", kind: "daily", daysBefore: 2, open: "00:00", close: "16:00", valid: { from: "05-28", to: "10-12" },
+        results: "Emailed late the same night", what: "About 50 permits a day plus unclaimed preseason permits. Apply two days before your hike date (Thursday for a Saturday hike); permit holder only, no alternate.",
+        note: "Recreation.gov's lottery text gives midnight to 4:00 PM Pacific; one of its pages says 1:00 PM, so apply early. In 2026 daily lotteries ran May 13 - October 11 for hikes May 15 - October 13." }
     ],
-    sources: [{ t: "Half Dome permits: how the lottery works (2026)", u: "https://tohikecalifornia.substack.com/p/half-dome-permits" }, { t: "Half Dome permit lottery dates, odds (2026)", u: "https://hikewithryan.com/half-dome-permit-lottery/" }, { t: "Recreation.gov Half Dome permit", u: "https://www.recreation.gov/permits/234652" }] },
+    sources: [{ t: "Recreation.gov: Half Dome permit, important dates and quota (2026)", u: "https://www.recreation.gov/permits/234652" }, { t: "NPS: Half Dome permits for day hikers", u: "https://www.nps.gov/yose/planyourvisit/hdpermits.htm" }] },
 
   { id: "yose-wilderness", name: "Yosemite wilderness permits (overnight trailheads)", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/permits/445859",
     summary: "Overnight trips from any trailhead, including Little Yosemite Valley (Mist Trail) and Cathedral Lakes. About 60% of permits go through a weekly lottery 24 weeks ahead; the rest release 7 days before the start date.",

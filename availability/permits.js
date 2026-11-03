@@ -80,8 +80,8 @@ function cardHtml(perm, D, now) {
 function nextEvents(now) {
   const out = [], hd = PERMITS.find(x => x.id === "half-dome").phases[0], y = E.parseISO(CC.todayPT()).y;
   for (const Y of [y, y + 1]) {
-    const o = at(Y + "-" + pad(hd.open.m) + "-" + pad(hd.open.d), "00:00"), c = at(Y + "-" + pad(hd.close.m) + "-" + pad(hd.close.d), "23:59");
-    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026; 2027 dates not published" : "Applications", open: o, close: c, rule: "Apply March 1-31. Results mid-April.", url: PERMITS[0].url, park: "Yosemite" }); break; }
+    const o = at(Y + "-" + pad(hd.open.m) + "-" + pad(hd.open.d), hd.open.time || "00:00"), c = at(Y + "-" + pad(hd.close.m) + "-" + pad(hd.close.d), hd.close.time || "23:59");
+    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026; 2027 dates not published" : "Applications", open: o, close: c, rule: "Apply March 1-31 (closes 4:59 PM Pacific on March 31). 225 permits a day. Results about April 10; accept by mid-May.", url: PERMITS[0].url, park: "Yosemite" }); break; }
   }
   const yw = PERMITS.find(x => x.id === "yose-wilderness").phases[0];
   let sun = CC.todayPT(); sun = E.addDays(sun, -dow(sun));
