@@ -84,11 +84,12 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
   await check('Cloud','no page errors',async()=>!A1.errs.length&&!B1.errs.length);
   await A1.context().close();await B1.context().close();
   p=await open();
-  await check('Camping','Camping tab shows the tracker inside the site, header kept',async()=>{await p.click('.tab[data-tab=camping]');await p.waitForTimeout(1200);const f=p.frame({url:/availability/});
+  const openCamp=async()=>{await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[data-tab=camping]')};
+  await check('Camping','Camping is under Explore (no separate top-level tab) and shows the tracker inside the site, header kept',async()=>{if(await p.$('.tab[data-tab=camping]'))return false;await openCamp();await p.waitForTimeout(1200);const f=p.frame({url:/availability/});
     return await p.isVisible('#campFrame')&&await p.isVisible('.tabs')&&!!f&&(await f.$$('#parksBody tr')).length>=30&&!(await f.isVisible('#side'))&&await f.isVisible('.vtabs')});
   await check('Camping','the tracker fills the space under the header',async()=>{const b=await p.$eval('#campFrame',e=>e.getBoundingClientRect());return Math.abs(b.bottom-800)<=2&&b.top>50});
-  await check('Camping','Explore → Campsite availability opens the same tab',async()=>{await p.click('.tab[data-tab=dashboard]');await p.click('.tab.grp[data-group=explore]');await p.click('.tabitem[data-tab=camping]');await p.waitForTimeout(300);return await p.isVisible('#campFrame')});
-  await check('Camping','the site theme carries into the tracker',async()=>{await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=dark]');await p.click('.tab[data-tab=camping]');await p.waitForTimeout(300);const f=p.frame({url:/availability/});
+  await check('Camping','Explore → Camping opens it again from another tab',async()=>{await p.click('.tab[data-tab=dashboard]');await openCamp();await p.waitForTimeout(300);return await p.isVisible('#campFrame')});
+  await check('Camping','the site theme carries into the tracker',async()=>{await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=dark]');await openCamp();await p.waitForTimeout(300);const f=p.frame({url:/availability/});
     const t=await f.evaluate(()=>document.documentElement.dataset.theme);await p.click('.tab[data-tab=about]');await p.click('#theme [data-t=system]');return t==='dark'});
   await check('Camping','the tracker page also works on its own',async()=>{await p.goto(p.url().replace(/[^/]*$/,'')+'availability/');await p.waitForTimeout(600);return (await p.$$('#parksBody tr')).length>=30&&await p.isVisible('#side')&&!p.errs.length});
   await p.context().close();
@@ -275,6 +276,19 @@ const results=[];const check=async(g,n,fn)=>{let ok=false,err='';try{ok=!!(await
    await check('MobileMap','tap empty map: hides every control, tap again shows them',async()=>{await m.evaluate(()=>{window.parksMap.setView([30,-150],4,{animate:false})});await m.waitForTimeout(500);await m.touchscreen.tap(195,400);await m.waitForTimeout(250);
      const hid=!(await m.isVisible('#mmBar'))&&!(await m.isVisible('#mmFabs'))&&!(await m.isVisible('#mmPill'));await m.touchscreen.tap(195,400);await m.waitForTimeout(250);return hid&&await m.isVisible('#mmBar')&&await m.isVisible('#mmPill')});
    await check('MobileMap','List button returns to the table cards',async()=>{await m.tap('#mmBar [data-m=list]');await m.waitForTimeout(400);return await m.isVisible('#cardlist .rc')&&!(await m.evaluate(()=>document.body.classList.contains('mm')))});
+   await ctx.close()}
+  {const ctx=await b.newContext({viewport:{width:390,height:800},hasTouch:true,isMobile:true});const m=await ctx.newPage();
+   await m.goto(URL_);await m.evaluate(()=>localStorage.clear());await m.reload();await m.waitForTimeout(1200);await m.evaluate(()=>document.querySelector('.tab[data-tab=dashboard]').click());await m.waitForTimeout(500);
+   await check('Phone','header is one short row with a menu button; the tabs stay folded away',async()=>{const h=await m.$eval('.top',e=>e.getBoundingClientRect().height);return h<70&&await m.isVisible('#navBtn')&&!(await m.isVisible('#mainNav'))&&/Dashboard/.test(await m.textContent('#navCur'))});
+   await check('Phone','menu lists every tab including Explore → Camping; picking one closes the menu and names it on the button',async()=>{await m.tap('#navBtn');await m.waitForTimeout(200);const open=await m.isVisible('#mainNav')&&await m.isVisible('.tabitem[data-tab=camping]');
+     await m.tap('.tabitem[data-tab=camping]');await m.waitForTimeout(1500);return open&&!(await m.isVisible('#mainNav'))&&(await m.textContent('#navCur'))==='Camping'&&await m.isVisible('#campFrame')});
+   await check('Phone','scrolling the campground list slides the header away and the list fills the screen; scrolling back up brings it back',async()=>{const f=m.frame({url:/availability/});
+     await f.evaluate(()=>scrollTo(0,400));await m.waitForTimeout(150);await f.evaluate(()=>scrollTo(0,800));await m.waitForTimeout(500);const hid=await m.evaluate(()=>document.body.classList.contains('hd'));const fh=await m.$eval('#campFrame',e=>e.getBoundingClientRect());
+     await f.evaluate(()=>scrollTo(0,600));await m.waitForTimeout(150);await f.evaluate(()=>scrollTo(0,300));await m.waitForTimeout(500);const back=!(await m.evaluate(()=>document.body.classList.contains('hd')));return hid&&fh.top<=1&&Math.abs(fh.bottom-800)<=2&&back});
+   await check('Phone','campground filters fold behind a Filters button; a set filter shows an x that clears it in one tap',async()=>{const f=m.frame({url:/availability/});await f.evaluate(()=>scrollTo(0,0));
+     const hidden=!(await f.isVisible('#fRegion'));await f.tap('#fToggle');await f.selectOption('#fRegion','Bay Area');await m.waitForTimeout(300);const n=(await f.$$('#parksBody tr')).length;
+     await f.tap('#fRegion + .fx');await m.waitForTimeout(300);return hidden&&n>0&&(await f.inputValue('#fRegion'))===''&&(await f.$$('#parksBody tr')).length>n&&!(await f.isVisible('#fRegion + .fx'))});
+   await check('Phone','no sideways scrolling on the Camping tab',async()=>{const f=m.frame({url:/availability/});return await f.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)});
    await ctx.close()}
   const bad=results.filter(r=>!r.ok);console.log(`\n${results.length-bad.length}/${results.length} passed`);
   await b.close();srv.close();process.exit(bad.length?1:0);

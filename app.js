@@ -101,12 +101,13 @@ $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear
 
 // ---------- tabs ----------
 const TAB_SECTION={dashboard:"dashboard",trips:"trips",camping:"camping",passes:"passes",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
-const TAB_GROUP={dashboard:"",trips:"explore",camping:"",explore:"explore",grid:"parks",list:"parks",map:"parks"};
+const TAB_GROUP={dashboard:"",trips:"explore",camping:"explore",explore:"explore",grid:"parks",list:"parks",map:"parks"};
 let currentTab="grid";
 function showTab(t){
   if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
   if(!TAB_SECTION[t])t="explore";currentTab=t;const sec=TAB_SECTION[t],grp=TAB_GROUP[t];
-  toggleDrawer(false);
+  toggleDrawer(false);setNav(false);clearTimeout(hintT);if($("#toast")&&/Tap empty map/.test($("#toast").textContent))$("#toast").hidden=true;
+  $("#navCur").textContent=TAB_LABEL[t]||"Menu";setHd(false);
   $$(".tabitem").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
@@ -123,9 +124,23 @@ function showTab(t){
   if(t==="map"){mainView.init();setTimeout(()=>{mainView.map.invalidateSize();zoomToFilter(true)},80)}
   store.set("tab",t);updateMM();
 }
+// ---------- phone header: one compact row; the tabs open from a menu button and the bar hides while you scroll down ----------
+const TAB_LABEL={dashboard:"Dashboard",explore:"Table + Map",trips:"Trip Planner",camping:"Camping",grid:"Park Info",list:"Park List",map:"Park Map",passes:"Passes",visited:"Visited"};
+const phoneMQ=matchMedia("(max-width:700px)");let hintT=0;
+function setNav(on){document.body.classList.toggle("navopen",on);const b=$("#navBtn");if(b)b.setAttribute("aria-expanded",String(on));if(on)setHd(false)}
+$("#navBtn")?.addEventListener("click",e=>{e.stopPropagation();setNav(!document.body.classList.contains("navopen"))});
+document.addEventListener("click",e=>{if(document.body.classList.contains("navopen")&&!e.target.closest("#mainNav,#navBtn"))setNav(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")setNav(false)});
+function headTrack(getY){let last=getY(),acc=0;return()=>{if(!phoneMQ.matches||document.body.classList.contains("navopen"))return;const y=getY(),d=y-last;last=y;
+  if(y<40){acc=0;setHd(false);return}if(Math.sign(d)!==Math.sign(acc))acc=0;acc+=d;if(acc>24)setHd(true);else if(acc<-24)setHd(false)}}
+function setHd(on){const b=document.body,top=$(".top");if(!top||b.classList.contains("hd")===on)return;top.style.setProperty("--toph",top.offsetHeight+"px");b.classList.toggle("hd",on);
+  if(b.classList.contains("camping")){sizeCamping();setTimeout(sizeCamping,260)}}
+addEventListener("scroll",headTrack(()=>scrollY),{passive:true});
+$("#campFrame").addEventListener("load",()=>{try{const w=$("#campFrame").contentWindow;w.addEventListener("scroll",headTrack(()=>w.scrollY),{passive:true})}catch(e){}});
 // Camping tab: the campsite tracker (availability/) shown inside the page, sized to the space under the header
 function showCamping(){const f=$("#campFrame");if(!f.src)f.src=f.dataset.src;requestAnimationFrame(sizeCamping)}
-function sizeCamping(){const f=$("#campFrame");if(!document.body.classList.contains("camping"))return;f.style.height=Math.max(320,innerHeight-f.getBoundingClientRect().top)+"px"}
+function sizeCamping(){const f=$("#campFrame");if(!document.body.classList.contains("camping"))return;
+  const hd=phoneMQ.matches&&document.body.classList.contains("hd");f.style.height=Math.max(320,innerHeight-(hd?0:Math.max(0,f.getBoundingClientRect().top)))+"px"}
 window.addEventListener("resize",sizeCamping);
 // Settings / backup / edits / about live in a side drawer so the table + map stay on screen
 function toggleDrawer(open){
@@ -865,7 +880,7 @@ function updateMM(){
   const was=mmOn();document.body.classList.toggle("mm",on);
   ["#mmBar","#mmFabs","#mmSheet","#mmPill"].forEach(i=>$(i).hidden=!on);
   if(!on){document.body.classList.remove("mm-filters","mm-layers","mm-clean");return}
-  if(!was&&!store.get("cleanHint",false)){store.set("cleanHint",true);setTimeout(()=>toast("Tap empty map to hide or show the controls"),900)}
+  if(!was&&!store.get("cleanHint",false)){store.set("cleanHint",true);hintT=setTimeout(()=>{if(mmOn())toast("Tap empty map to hide or show the controls")},900)}
   if(!was){setSheet(mmSnap,true)}
   mmRender();setTimeout(()=>mainView.map&&mainView.map.invalidateSize(),60);
 }

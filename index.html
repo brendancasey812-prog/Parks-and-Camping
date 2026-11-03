@@ -18,14 +18,15 @@
   <h1><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 11 9l5 8 3-5 11 14z" fill="currentColor" opacity=".9"/><circle cx="24" cy="7" r="3" fill="#9fd8c8"/></svg>Parks &amp; Camping</h1>
   <button id="progress" class="progress" type="button" title="Show only unvisited national parks" aria-live="polite"></button>
   <span id="saveState" class="savestate" role="status"></span>
-  <nav class="tabs" aria-label="Main">
+  <button id="navBtn" class="navbtn" type="button" aria-expanded="false" aria-controls="mainNav"><svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M1 1h14M1 6h14M1 11h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span id="navCur">Menu</span></button>
+  <nav class="tabs" id="mainNav" aria-label="Main">
     <button class="tab" data-tab="dashboard" type="button">Dashboard</button>
     <div class="tabgroup" data-group="explore">
       <button class="tab grp" type="button" data-group="explore" aria-expanded="false">Explore <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
       <div class="tabmenu" hidden>
         <button class="tabitem" data-tab="explore"><b>◫</b>Table + Map</button>
         <button class="tabitem" data-tab="trips"><b>▣</b>Trip Planner</button>
-        <button class="tabitem" data-tab="camping"><b>△</b>Campsite availability</button>
+        <button class="tabitem" data-tab="camping"><b>△</b>Camping</button>
       </div>
     </div>
     <div class="tabgroup" data-group="parks">
@@ -36,7 +37,6 @@
         <button class="tabitem" data-tab="map"><b>◉</b>Park Map</button>
       </div>
     </div>
-    <button class="tab" data-tab="camping" type="button">Camping</button>
     <button class="tab" data-tab="passes" type="button">Passes</button>
     <button class="tab" data-tab="visited">Visited</button>
     <button class="tab" data-tab="about" type="button" aria-controls="tab-about" aria-expanded="false">Settings</button>

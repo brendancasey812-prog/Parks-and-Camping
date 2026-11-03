@@ -618,8 +618,27 @@ $("#campBody").addEventListener("keydown", e => { const td = e.target.closest("t
 
 // ---------- setup and render ----------
 function syncFields() { Object.keys(FIELD).forEach(id => $("#" + id).value = st[FIELD[id]] || ""); $("#fName").value = st.q; $("#fUnk").checked = st.unk !== false; $("#q").value = st.q; }
+// filters: every filter box gets a clear (x) button while it is set, and on phones the column filters fold behind a "Column filters" button
+const FXSEL = ".frow select, .frow input, #filters select, #cq";
+function decorateFilters() {
+  $$(FXSEL).forEach(el => {
+    let x = el.nextElementSibling; if (!x || !x.classList.contains("fx")) {
+      x = document.createElement("button"); x.type = "button"; x.className = "fx"; x.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+      x.setAttribute("aria-label", "Clear " + (el.getAttribute("aria-label") || (el.closest("label") || {}).textContent || "filter").trim().split("\n")[0]);
+      el.after(x); (el.parentElement).classList.add("fxw");
+    }
+    const on = el.type === "checkbox" ? false : String(el.value || "").trim() !== ""; el.classList.toggle("set", on); x.hidden = !on;
+  });
+  const n = ["fSaved", "fDes", "fRegion", "fSys", "fAvail", "fWalk", "fConf"].filter(id => $("#" + id) && $("#" + id).value).length + (st.q.trim() ? 1 : 0) + Object.keys(st.cf).filter(k => st.cf[k] && st.cf[k].length).length;
+  const c = $("#fhCount"); if (c) { c.hidden = !n; c.textContent = n; }
+}
+document.addEventListener("click", e => { const x = e.target.closest(".fx"); if (!x) return; const el = x.previousElementSibling; if (!el) return;
+  el.value = ""; el.dispatchEvent(new Event(el.tagName === "SELECT" ? "change" : "input", { bubbles: true })); decorateFilters(); });
+document.addEventListener("input", e => { if (e.target.matches && e.target.matches(FXSEL)) decorateFilters(); });
+$("#fToggle").addEventListener("click", () => { const t = $("#parksTable"), on = !t.classList.contains("fopen"); t.classList.toggle("fopen", on); $("#fToggle").setAttribute("aria-expanded", String(on)); });
 function render() {
   if (R.v === "parks") renderParks(); else if (R.v === "park") { renderPark(); renderSide(); } else if (R.v === "data") renderData(); else renderSide();
+  decorateFilters();
   CC.subs.forEach(f => { try { f(); } catch (e) {} });
 }
 const CC = { subs: [], st, fmtAt, fmtShort, fmtDate, fmtDay, fmtTime, splitName, countdown, ics, download, toast, todayPT, esc };

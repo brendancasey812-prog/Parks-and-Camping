@@ -198,3 +198,60 @@ abbr.des{text-decoration:none;font-weight:700;font-size:.8rem;padding:.1rem .45r
 .star:hover{color:#c58f00;background:var(--hover)}.star:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .star.on{color:#c58f00}.star.on svg{fill:#f2b705;stroke:#b07f00}
 td.cgc{white-space:normal}
+
+/* clear (x) button on a filter that is set; set filters are tinted so they are easy to spot */
+.fxw{position:relative}
+.fx{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--accent-ink);cursor:pointer;z-index:2}
+.fx svg{width:11px;height:11px}.fx[hidden]{display:none}
+label.fxw .fx{top:auto;bottom:6px;transform:none}
+.frow select.set,.frow input.set,#filters select.set,#cq.set{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:600;padding-right:30px}
+.frow input[type=search]::-webkit-search-cancel-button,#cq::-webkit-search-cancel-button{display:none}
+.ftog{display:none}
+.chip{cursor:pointer}.chip i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:.2rem;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-style:normal;font-size:.7rem;line-height:1}
+@media(max-width:860px){
+  .ftog{display:inline-flex;align-items:center;gap:.3rem}
+  .tbl.stack thead tr.frow{display:none}.tbl.stack.fopen thead tr.frow{display:grid}
+  .ftog[aria-expanded=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+}
+/* phones: smaller search bar, tabs, headings and quick filters; long rows scroll sideways instead of wrapping */
+@media(max-width:700px){
+  .bar{gap:.4rem;padding:.45rem .6rem}
+  .embed .bar{position:static}
+  .ask input{height:38px;font-size:.9rem;padding:0 4.6rem 0 36px}.ask-i{left:11px;width:16px;height:16px}.ask-go{height:30px;padding:0 .8rem;font-size:.8rem}
+  .when{display:flex;gap:.4rem}.mini{font-size:.7rem;gap:.15rem}.mini input,.mini select{height:34px;min-height:34px;font-size:.85rem;padding:0 .5rem}
+  .embed .vtabs{gap:.15rem;padding:.3rem .5rem 0;scrollbar-width:none}.embed .vtabs::-webkit-scrollbar{display:none}
+  .embed .vtabs .nav-i{min-height:34px;padding:.35rem .7rem;font-size:.88rem}
+  #content{padding-top:.7rem}
+  .page-h h1{font-size:1.2rem;line-height:1.2}.page-h .sub{font-size:.8rem}
+  .sugg,.ktabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-right:-.6rem;padding-right:.6rem}
+  .sugg::-webkit-scrollbar,.ktabs::-webkit-scrollbar{display:none}
+  .sugg button,.sugg .btn{flex:none;min-height:32px;padding:0 .7rem;font-size:.8rem;white-space:nowrap}
+  .ktabs button{flex:none;min-height:30px;padding:0 .65rem;font-size:.82rem;white-space:nowrap}
+  .tbl-top{padding:.5rem .6rem;gap:.4rem}.tbl-act{gap:.3rem}.tbl-act .btn.sm,.more>summary{min-height:30px;padding:0 .65rem;font-size:.78rem}
+}
+/* phones and tablets: campground cards use two columns so each one takes less scrolling */
+@media(max-width:860px){
+  .tbl.stack tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:.8rem;row-gap:.2rem;padding:.6rem .8rem}
+  .tbl.stack tbody th,.tbl.stack td{padding:.12rem 0;min-width:0;font-size:.88rem}
+  .tbl.stack tbody th,.tbl.stack td[data-l="Campground"],.tbl.stack td[data-l="How it opens"],.tbl.stack td.empty,.tbl.stack td[colspan]{grid-column:1/-1}
+  .tbl.stack tbody th .nm{font-size:.82rem;color:var(--ink-2)}.tbl.stack td[data-l="Campground"] .cg{font-size:1.02rem}
+  .tbl.stack td::before{font-size:.6rem;margin-bottom:.05rem}
+  .tbl.stack thead tr.frow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tbl.stack .frow select,.tbl.stack .frow input{min-width:0}
+  .tbl.stack thead tr.frow td.fxw{position:relative;top:auto}
+}
+@media(max-width:860px){
+  .card.flush,.card.flush>*{min-width:0;max-width:100%}
+  .tbl.stack{width:100%;max-width:100%;table-layout:fixed}
+  .tbl.stack td,.tbl.stack tbody th{white-space:normal!important;overflow-wrap:anywhere}
+}
+@media(max-width:700px){
+  .embed #vParks .page-h h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}   /* the "Parks" tab above already names the page */
+  #vParks .page-h{margin-bottom:0}
+}
+.tbl thead tr.frow button.fx,button.fx{position:absolute;left:auto;right:6px;top:50%;transform:translateY(-50%);width:22px;min-width:0;height:22px;min-height:0;padding:0;justify-content:center;border:0;border-radius:50%;background:var(--accent);color:var(--accent-ink)}
+select+button.fx,.tbl thead tr.frow select+button.fx{right:28px}
+.frow select.set,#filters select.set{padding-right:54px}
+label.fxw>button.fx{top:auto;bottom:5px;transform:none}
+@media(max-width:860px){.tbl.stack tbody th small{display:inline;margin-left:.45rem;font-size:.75rem}.tbl.stack tbody th .nm{display:inline}}
+@media(min-width:861px){.frow select.set{min-width:10rem}}
