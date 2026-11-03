@@ -184,6 +184,14 @@ for r in fed:
     for n in r.get("notices") or []:
         n = re.sub(r"\s+", " ", n).strip()
         if n and re.search(r"\b(?:is|are|will be|remains?|currently|temporarily) (?:temporarily |currently )?closed\b|\bclosed (?:for|until|due|through)\b|\bclosures? (?:of|for|until|due|through)\b|\breopen|until further notice|\bconstruction\b|\bdamage|\bno (?:potable |drinking )?water\b|water is (?:off|not available|unavailable)|potable water is not available", n[:200], re.I): note = n[:220] + ("…" if len(n) > 220 else ""); break
+    # an active Recreation.gov notice that says the campground is closed wins over any season phrase
+    for n in r.get("notices") or []:
+        n2 = re.sub(r"\s+", " ", n)
+        if re.search(r"\b(?:this|the) (?:campground|facility) (?:is|will be|remains) (?:currently |temporarily )*CLOSED\b", n2, re.I):
+            m = re.search(r"\b(?:as of|effective|beginning|starting)\s+(\d{1,2}/\d{1,2}/\d{4})", n2, re.I)
+            op, ev = "Closed" + (" from " + m.group(1) if m else "") + " (Recreation.gov notice)", n2.strip()[:160]
+            if n2 != note: note = n2.strip()[:300] + ("…" if len(n2.strip()) > 300 else "")
+            break
     sites = r.get("campsites_count")
     try: sites = int(sites) if sites not in (None, "", 0, "0") else None
     except Exception: sites = None
