@@ -9,6 +9,8 @@ information supports, and opens a pull request for the owner to review. Nothing 
    - every row whose season text names a year before the coming season (for example "Apr 21 – Oct 25, 2026" once 2027 dates could exist);
    - closures and reopenings (rows saying "Closed", "Not opening", "temporarily closed", "no reopening date");
    - permits and lotteries in `data/permits.js` (Half Dome preseason and daily lottery, Yosemite wilderness permits, North Pines early access);
+     official dates are in Recreation.gov's data: `www.recreation.gov/api/permitcontent/<permit id>` (`important_dates`; Half Dome 234652, wilderness 445859)
+     and, for campground lotteries such as North Pines, `www.recreation.gov/api/camps/campgrounds/232449` (`queue_lotteries`: application, early-access and stay dates, UTC);
    - about a quarter of the remaining rows in turn, so every campground is looked at once a month.
 3. **Look it up**, in this order of trust, and keep the page that settled each value:
    | Source | For |
