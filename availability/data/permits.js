@@ -29,23 +29,30 @@ window.PERMITS = [
     sources: [{ t: "Recreation.gov: Half Dome permit, important dates and quota (2026)", u: "https://www.recreation.gov/permits/234652" }, { t: "NPS: Half Dome permits for day hikers", u: "https://www.nps.gov/yose/planyourvisit/hdpermits.htm" }] },
 
   { id: "yose-wilderness", name: "Yosemite wilderness permits (overnight trailheads)", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/permits/445859",
-    summary: "Overnight trips from any trailhead, including Little Yosemite Valley (Mist Trail) and Cathedral Lakes. About 60% of permits go through a weekly lottery 24 weeks ahead; the rest release 7 days before the start date.",
-    fees: "$10 lottery or reservation fee, plus $5 per person for an awarded permit", group: "Trailhead quotas apply", conf: "check",
-    check: ["lottery open time (7 vs 9 AM)", "weekly lottery season start and end", "trailhead quotas", "Friday leftover release"],
-    phases: [
-      { id: "yw-lottery", label: "Weekly lottery", kind: "weekly", leadDays: 168, seasonStart: { m: 11, d: 15 }, seasonEnd: { m: 5, d: 7 }, valid: { from: "04-29", to: "10-23" },
-        results: "Monday after the lottery closes; winners accept and pay by Thursday; leftovers open Friday at 9:00 AM Pacific", what: "Apply in the week that is 24 weeks before your start date",
-        note: "Lotteries run each week from mid-November to early May. Sources give 7:00 AM and 9:00 AM for the leftover and 24-week release times; check the Recreation.gov page." },
-      { id: "yw-7day", label: "7-day release", kind: "days", days: 7, time: "07:00", valid: { from: "04-29", to: "10-23" },
-        results: "Instant: first-come booking", what: "About 40% of permits release 7 days before the start date", note: "Reservations can be made from 24 weeks to 3 days before the start date, April 29 - October 23 in 2026. Outside those dates, self-register at the permit station." }
+    summary: "", fees: "", group: "", conf: "good", check: [],
+    openingsYear: "2027 season (Recreation.gov)",
+    openings: [
+      { name: "Weekly lottery", open: "Every Sunday, 11/08/2026 – 05/07/2027", time: "12:01 AM", close: "Saturday, 11:59 PM", release: "Monday evening (accept by Thursday, 11:59 PM)", hike: "Start dates 24 weeks after the lottery week", permits: "60% of trailhead quota" },
+      { name: "Lottery leftovers", open: "Friday, 12 days after each lottery opens (from 11/20/2026)", time: "9:00 AM", close: "3 days before the start date", release: "Instant", hike: "Same start dates as that lottery", permits: "What the lottery did not award" },
+      { name: "7-day release", open: "7 days before the start date", time: "7:00 AM", close: "3 days before the start date", release: "Instant", hike: "Start dates to 10/24/2027", permits: "40% of trailhead quota" }
     ],
-    sources: [{ t: "NPS: Yosemite wilderness permit reservations", u: "https://www.nps.gov/yose/planyourvisit/wpres.htm" }, { t: "Big Dirty Hikes: Yosemite wilderness permit (2026)", u: "https://bigdirtyhikes.com/guides/yosemite-wilderness-permit" }, { t: "The Big Outside: Yosemite and High Sierra permits", u: "https://thebigoutside.com/how-to-get-a-yosemite-or-high-sierra-wilderness-permit/" }] },
+    phases: [
+      { id: "yw-lottery", label: "Weekly lottery", kind: "weekly", leadDays: 168, seasonStart: { m: 11, d: 8 }, seasonEnd: { m: 5, d: 7 }, valid: { from: "04-30", to: "10-24" },
+        results: "", what: "", note: "" },
+      { id: "yw-7day", label: "7-day release", kind: "days", days: 7, time: "07:00", valid: { from: "04-30", to: "10-24" },
+        results: "Instant", what: "", note: "" }
+    ],
+    sources: [{ t: "Recreation.gov: Yosemite wilderness permits, 2027 dates", u: "https://www.recreation.gov/permits/445859" }, { t: "NPS: Yosemite wilderness permit reservations", u: "https://www.nps.gov/yose/planyourvisit/wpres.htm" }] },
 
-  { id: "north-pines-early", name: "North Pines campground early-access lottery", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm",
-    summary: "A one-time lottery for the 2026 season (April 21 - October 25). Remaining sites went into the regular February 15 release. No 2027 lottery is announced.",
-    fees: "See the NPS page", group: "", conf: "check", check: ["whether a 2027 lottery is announced"],
-    phases: [
-      { id: "np-lottery", label: "Early-access lottery (2026 season)", kind: "oneTime", open: "2025-11-24T07:00", close: "2025-12-14T21:00", results: "Notified December 22, 2025; early-access booking January 2 - February 1, 2026", what: "Apply during the window", note: "Past. Check the NPS page for a 2027 version." }
+  { id: "north-pines-early", name: "North Pines campground early-access lottery", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/camping/campgrounds/232449",
+    summary: "", fees: "", group: "", conf: "good", check: [],
+    openingsYear: "2027 season (Recreation.gov)",
+    openings: [
+      { name: "Early-access lottery", open: "11/23/2026", time: "7:00 AM", close: "12/14/2026, 9:00 PM", release: "Booking 01/02/2027 – 02/01/2027", hike: "Stays 04/15/2027 – 10/31/2027", permits: "Whole 2027 season" },
+      { name: "Sites left after the lottery", open: "15th of each month", time: "7:00 AM", close: "Until booked", release: "Instant", hike: "Stays 5 months ahead", permits: "Unbooked sites" }
     ],
-    sources: [{ t: "NPS: North Pines early-access lottery", u: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm" }] }
+    phases: [
+      { id: "np-lottery", label: "Early-access lottery (2027 season)", kind: "oneTime", open: "2026-11-23T07:00", close: "2026-12-14T21:00", results: "Booking 01/02/2027 – 02/01/2027", what: "", note: "" }
+    ],
+    sources: [{ t: "Recreation.gov: North Pines Campground (2027 early-access lottery)", u: "https://www.recreation.gov/camping/campgrounds/232449" }, { t: "NPS: North Pines early-access lottery", u: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm" }] }
 ];

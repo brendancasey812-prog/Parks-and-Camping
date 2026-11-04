@@ -58,7 +58,7 @@ const dayT = d => CC.fmtDay(d), timeT = d => CC.fmtTime(d);
 function phaseRow(perm, p, D, now) {
   const r = compute(p, D, now), st = status(r, now);
   const stat = '<span class="st ' + (st.k === "open" ? "open" : st.k === "soon" ? "later" : "none") + '"' + (st.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(st.t) + "</span>";
-  const proj = r.projected ? '<span class="when-t">Projected from ' + p.announced + '; this year is not published</span>' : "";
+  const proj = r.projected ? '<span class="when-t">Projected</span>' : "";
   let opens = "", closes = "", more = "";
   if (r.na) { opens = '<span class="muted">' + esc(r.na) + "</span>"; }
   else {
@@ -88,7 +88,7 @@ function nextEvents(now) {
   const out = [], hd = PERMITS.find(x => x.id === "half-dome").phases[0], y = E.parseISO(CC.todayPT()).y;
   for (const Y of [y, y + 1]) {
     const o = at(Y + "-" + pad(hd.open.m) + "-" + pad(hd.open.d), hd.open.time || "00:00"), c = at(Y + "-" + pad(hd.close.m) + "-" + pad(hd.close.d), hd.close.time || "23:59");
-    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026; 2027 dates not published" : "Applications", open: o, close: c, rule: "Apply 03/01 - 03/31 (closes 4:59 PM Pacific). Results about 04/10.", url: PERMITS[0].url, park: "Yosemite" }); break; }
+    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Hiking 05/28 – 10/12 (projected)" : "", open: o, close: c, rule: "Apply 03/01 - 03/31 (closes 4:59 PM Pacific). Results about 04/10.", url: PERMITS[0].url, park: "Yosemite" }); break; }
   }
   const yw = PERMITS.find(x => x.id === "yose-wilderness").phases[0];
   let sun = CC.todayPT(); sun = E.addDays(sun, -dow(sun));
@@ -119,7 +119,7 @@ function render() {
   $("#pmAll tbody").innerHTML = rows.join("") || '<tr><td colspan="9" class="empty">No permits match. Clear the search or a filter.</td></tr>';
   $("#pmCount").textContent = rows.length + " of " + steps + " steps";
   events = nextEvents(now).filter(e => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return !perm || permOk(perm); });
-  $("#pmSoon tbody").innerHTML = events.map((e, i) => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return '<tr><th scope="row" data-l="Permit">' + esc(e.title) + '<span class="when-t">' + esc(e.sub) + '</span></th><td data-l="Location">' + (perm ? esc(loc(perm)) : "") + '</td><td data-l="Opens date"><b>' + esc(dayT(e.open)) + '</b><span class="when-t">' + esc(e.rule) + '</span></td><td data-l="Opens time">' + esc(timeT(e.open)) + '</td><td data-l="Closes">' + esc(when(e.close)) + '</td><td data-l="Starts in"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + '</span></td><td data-l=""><button type="button" class="btn sm" data-ev="' + i + '">Add reminder</button></td></tr>'; }).join("") || '<tr><td colspan="7" class="empty">Nothing coming up for this search.</td></tr>';
+  $("#pmSoon tbody").innerHTML = events.map((e, i) => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return '<tr><th scope="row" data-l="Permit">' + esc(e.title) + '<span class="when-t">' + esc(e.sub) + '</span></th><td data-l="Location">' + (perm ? esc(loc(perm)) : "") + '</td><td data-l="Opens date"><b>' + esc(dayT(e.open)) + '</b></td><td data-l="Opens time">' + esc(timeT(e.open)) + '</td><td data-l="Closes">' + esc(when(e.close)) + '</td><td data-l="Starts in"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + '</span></td><td data-l=""><button type="button" class="btn sm" data-ev="' + i + '">Add reminder</button></td></tr>'; }).join("") || '<tr><td colspan="7" class="empty">Nothing coming up for this search.</td></tr>';
   $("#pmList").innerHTML = PERMITS.filter(permOk).map(p => cardHtml(p, D, now)).join("");
 }
 document.addEventListener("click", e => {

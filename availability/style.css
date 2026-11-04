@@ -266,3 +266,4 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
 .pm-open caption{caption-side:top;text-align:left;padding:.6rem 1rem .2rem;color:var(--muted);font-size:.8rem}
 .pm-open td{white-space:nowrap;font-variant-numeric:tabular-nums}.pm-open th[scope=row]{font-weight:600}
 @media(max-width:860px){.pm-open td{white-space:normal}}
+.pm-open{font-size:.88rem}.pm-open td,.pm-open th{white-space:normal!important;vertical-align:top}.pm-open td{min-width:5.5rem}
