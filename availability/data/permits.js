@@ -9,29 +9,22 @@
    valid: {from:"MM-DD", to:"MM-DD"} trip dates the phase applies to */
 window.PERMITS = [
   { id: "half-dome", name: "Half Dome cables permit", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/permits/234652",
-    summary: "Needed for every hiker on the cables beyond the base of the subdome while the cables are up.",
+    summary: "",
     // key dates, one per row: event, next season (projected until Recreation.gov posts it), time Pacific, last season (official)
-    dateCols: ["2027 (projected)", "2026 (official)"],
-    dates: [
-      ["Preseason lottery opens", "03/01/2027", "12:00 AM", "03/01/2026"],
-      ["Preseason lottery closes", "03/31/2027", "4:59 PM", "03/31/2026"],
-      ["Preseason results", "about 04/10/2027", "5:00 PM", "04/10/2026"],
-      ["Accept and pay by", "about 05/17/2027", "", "05/17/2026"],
-      ["Daily lotteries start", "about 05/26/2027", "midnight - 4:00 PM", "05/13/2026"],
-      ["Cables up (first hiking day)", "05/28/2027", "", "05/15/2026"],
-      ["Last hiking day", "10/12/2027", "", "10/13/2026"],
-      ["Cables down", "10/13/2027", "", "10/14/2026"]
+    // one row per permit opening (2027 projected from the NPS rule until Recreation.gov posts it)
+    openingsYear: "2027 (projected)",
+    openings: [
+      { name: "Preseason lottery", open: "03/01/2027", time: "12:00 AM", close: "03/31/2027, 4:59 PM", release: "04/10/2027", hike: "05/28/2027 – 10/12/2027", permits: "225 a day" },
+      { name: "Daily lottery", open: "2 days before the hike", time: "12:00 AM", close: "Same day, 4:00 PM", release: "Same night", hike: "05/28/2027 – 10/12/2027", permits: "~50 a day" }
     ],
-    datesNote: "2027 follows the NPS rule (cables up the Friday before Memorial Day; last day the Tuesday after the second Monday in October). Recreation.gov put the 2026 cables up a week earlier than that rule, so watch for the 2027 posting.",
-    quota: [["Preseason lottery", "225", "per hiking day"], ["Daily lottery", "about 50", "per day, plus preseason permits not claimed"], ["Day-hike permits in all", "275", "per day (Recreation.gov)"], ["All hikers on the cables", "300", "per day, including about 75 backpackers (NPS)"]],
     fees: "$10 per application (not refundable); $10 per person if you win",
     group: "Up to 6 people; preseason: up to 7 date choices and an alternate; one application per person per lottery", conf: "good",
     check: ["2027 dates are projected until Recreation.gov posts them"],
     phases: [
       { id: "hd-pre", label: "Preseason lottery", kind: "annual", open: { m: 3, d: 1, time: "00:00" }, close: { m: 3, d: 31, time: "16:59" }, announced: 2026, valid: { from: "05-28", to: "10-12" },
-        results: "Results about 04/10; accept and pay by about 05/17", what: "225 permits per hiking day", note: "Closes 4:59 PM Pacific on 03/31." },
+        results: "Release 04/10", what: "", note: "" },
       { id: "hd-daily", label: "Daily lottery", kind: "daily", daysBefore: 2, open: "00:00", close: "16:00", valid: { from: "05-28", to: "10-12" },
-        results: "Emailed the same night", what: "About 50 permits a day; apply 2 days before your hike", note: "Permit holder only, no alternate. One Recreation.gov page says it closes at 1:00 PM, so apply early." }
+        results: "Release same night", what: "", note: "" }
     ],
     sources: [{ t: "Recreation.gov: Half Dome permit, important dates and quota (2026)", u: "https://www.recreation.gov/permits/234652" }, { t: "NPS: Half Dome permits for day hikers", u: "https://www.nps.gov/yose/planyourvisit/hdpermits.htm" }] },
 
