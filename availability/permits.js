@@ -69,10 +69,22 @@ function phaseRow(perm, p, D, now) {
   const rem = !r.na && st.k === "soon" ? '<button type="button" class="btn sm" data-rem="' + esc(perm.id + "|" + p.id) + '">Add reminder</button>' : "";
   return '<tr><th scope="row" data-l="Step">' + esc(p.label) + '<span class="when-t">' + esc(p.what) + '</span></th><td data-l="Status">' + stat + '</td><td data-l="Opens">' + opens + '</td><td data-l="Closes">' + closes + '</td><td data-l="Results">' + esc(p.results) + more + (p.note ? '<span class="when-t">' + esc(p.note) + "</span>" : "") + '</td><td data-l="">' + rem + "</td></tr>";
 }
+// key dates (one row per date, seasons side by side) and permits per day, when a permit lists them
+function datesHtml(perm) {
+  if (!perm.dates || !perm.dates.length) return "";
+  const c = perm.dateCols || ["Next", "Last"];
+  return '<h3 class="pm-h">Key dates</h3><div class="tw"><table class="tbl simple pm-dates"><thead><tr><th scope="col">Date</th><th scope="col">' + esc(c[0]) + '</th><th scope="col">Time (Pacific)</th><th scope="col">' + esc(c[1]) + "</th></tr></thead><tbody>" +
+    perm.dates.map(d => '<tr><th scope="row">' + esc(d[0]) + '</th><td class="dt">' + esc(d[1]) + "</td><td>" + (d[2] ? esc(d[2]) : "&mdash;") + '</td><td class="dt">' + esc(d[3]) + "</td></tr>").join("") +
+    "</tbody></table></div>" + (perm.datesNote ? '<p class="pm-note">' + esc(perm.datesNote) + "</p>" : "");
+}
+function quotaHtml(perm) {
+  if (!perm.quota || !perm.quota.length) return "";
+  return '<h3 class="pm-h">Permits per day</h3><table class="tbl simple pm-quota"><tbody>' + perm.quota.map(q => '<tr><th scope="row">' + esc(q[0]) + '</th><td class="num"><b>' + esc(q[1]) + "</b></td><td>" + esc(q[2]) + "</td></tr>").join("") + "</tbody></table>";
+}
 function cardHtml(perm, D, now) {
   const b = conf[perm.conf] || conf.check;
   return '<article class="card flush pm-card" tabindex="-1" id="' + esc(perm.id) + '"><div class="card-h"><div><h2>' + esc(perm.name) + '</h2><p class="sub">' + esc(perm.park) + " &middot; " + esc(perm.system) + '</p></div><span class="badge ' + b[1] + '">' + b[0] + "</span></div>" +
-    '<div class="pm-body"><p>' + esc(perm.summary) + '</p><table class="tbl simple"><tbody><tr><th scope="row">Fees</th><td>' + esc(perm.fees) + "</td></tr>" + (perm.group ? '<tr><th scope="row">Group</th><td>' + esc(perm.group) + "</td></tr>" : "") + (perm.check.length ? '<tr><th scope="row">To verify</th><td>' + perm.check.map(esc).join("; ") + "</td></tr>" : "") + "</tbody></table></div>" +
+    '<div class="pm-body"><p>' + esc(perm.summary) + '</p>' + datesHtml(perm) + quotaHtml(perm) + '<table class="tbl simple"><tbody><tr><th scope="row">Fees</th><td>' + esc(perm.fees) + "</td></tr>" + (perm.group ? '<tr><th scope="row">Group</th><td>' + esc(perm.group) + "</td></tr>" : "") + (perm.check.length ? '<tr><th scope="row">To verify</th><td>' + perm.check.map(esc).join("; ") + "</td></tr>" : "") + "</tbody></table></div>" +
     '<div class="tw" tabindex="-1"><table class="tbl stack"><thead><tr><th scope="col">Step</th><th scope="col">Status</th><th scope="col">Opens</th><th scope="col">Closes</th><th scope="col">Results and notes</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody>' + perm.phases.map(p => phaseRow(perm, p, D, now)).join("") + "</tbody></table></div>" +
     '<div class="pm-foot"><a class="btn" href="' + esc(perm.url) + '" target="_blank" rel="noopener">Open on the booking site</a><details><summary>Sources</summary><ul>' + perm.sources.map(s => '<li><a href="' + esc(s.u) + '" target="_blank" rel="noopener">' + esc(s.t) + "</a></li>").join("") + "</ul></details></div></article>";
 }
@@ -81,7 +93,7 @@ function nextEvents(now) {
   const out = [], hd = PERMITS.find(x => x.id === "half-dome").phases[0], y = E.parseISO(CC.todayPT()).y;
   for (const Y of [y, y + 1]) {
     const o = at(Y + "-" + pad(hd.open.m) + "-" + pad(hd.open.d), hd.open.time || "00:00"), c = at(Y + "-" + pad(hd.close.m) + "-" + pad(hd.close.d), hd.close.time || "23:59");
-    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026; 2027 dates not published" : "Applications", open: o, close: c, rule: "Apply March 1-31 (closes 4:59 PM Pacific on March 31). 225 permits a day. Results about April 10; accept by mid-May.", url: PERMITS[0].url, park: "Yosemite" }); break; }
+    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Projected from 2026; 2027 dates not published" : "Applications", open: o, close: c, rule: "Apply 03/01 - 03/31 (closes 4:59 PM Pacific). Results about 04/10.", url: PERMITS[0].url, park: "Yosemite" }); break; }
   }
   const yw = PERMITS.find(x => x.id === "yose-wilderness").phases[0];
   let sun = CC.todayPT(); sun = E.addDays(sun, -dow(sun));

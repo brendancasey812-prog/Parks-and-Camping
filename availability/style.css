@@ -255,3 +255,11 @@ select+button.fx,.tbl thead tr.frow select+button.fx{right:28px}
 label.fxw>button.fx{top:auto;bottom:5px;transform:none}
 @media(max-width:860px){.tbl.stack tbody th small{display:inline;margin-left:.45rem;font-size:.75rem}.tbl.stack tbody th .nm{display:inline}}
 @media(min-width:861px){.frow select.set{min-width:10rem}}
+
+/* permit cards: key dates and permits per day */
+.pm-h{margin:.9rem 0 .35rem;font-size:.95rem}
+.pm-dates td.dt{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600}.pm-dates th[scope=row],.pm-quota th[scope=row]{font-weight:500}
+.pm-quota td.num{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.pm-note{margin:.35rem 0 0;color:var(--muted);font-size:.82rem}
+@media(max-width:700px){.pm-dates th,.pm-dates td{padding:.35rem .4rem;font-size:.8rem}.pm-dates td.dt{white-space:normal}}
+.pm-quota th[scope=row]{width:12rem}
