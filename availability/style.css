@@ -267,3 +267,15 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
 .pm-open td{white-space:nowrap;font-variant-numeric:tabular-nums}.pm-open th[scope=row]{font-weight:600}
 @media(max-width:860px){.pm-open td{white-space:normal}}
 .pm-open{font-size:.88rem}.pm-open td,.pm-open th{white-space:normal!important;vertical-align:top}.pm-open td{min-width:5.5rem}
+
+/* phones: one Filters button (column filters plus season / month / peak) and one Clear all */
+@media(max-width:700px){
+  #csv,.more>summary{display:none}
+  .more{width:100%;order:5}.more-b{position:static;width:100%;box-shadow:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:.6rem 0 0;background:none}
+  .tbl-act{width:100%;margin-left:0;flex-wrap:wrap}
+  #fToggle{flex:1;justify-content:center;min-height:38px;font-size:.85rem}
+  #clear{min-height:38px;font-size:.85rem}
+  body.has-filt #clear{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+  #clear::before{content:"✕ ";font-size:.75rem}
+  #fToggle::before{content:"";width:15px;height:15px;margin-right:.35rem;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+}

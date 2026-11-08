@@ -630,12 +630,14 @@ function decorateFilters() {
     const on = el.type === "checkbox" ? false : String(el.value || "").trim() !== ""; el.classList.toggle("set", on); x.hidden = !on;
   });
   const n = ["fSaved", "fDes", "fRegion", "fSys", "fAvail", "fWalk", "fConf"].filter(id => $("#" + id) && $("#" + id).value).length + (st.q.trim() ? 1 : 0) + Object.keys(st.cf).filter(k => st.cf[k] && st.cf[k].length).length;
-  const c = $("#fhCount"); if (c) { c.hidden = !n; c.textContent = n; }
+  const m = ["fSeason", "fMonth", "fPeak"].filter(id => $("#" + id) && $("#" + id).value).length, c = $("#fhCount"); if (c) { c.hidden = !(n + m); c.textContent = n + m; }
+  document.body.classList.toggle("has-filt", n + m > 0 || !!st.kind);
 }
 document.addEventListener("click", e => { const x = e.target.closest(".fx"); if (!x) return; const el = x.previousElementSibling; if (!el) return;
   el.value = ""; el.dispatchEvent(new Event(el.tagName === "SELECT" ? "change" : "input", { bubbles: true })); decorateFilters(); });
 document.addEventListener("input", e => { if (e.target.matches && e.target.matches(FXSEL)) decorateFilters(); });
-$("#fToggle").addEventListener("click", () => { const t = $("#parksTable"), on = !t.classList.contains("fopen"); t.classList.toggle("fopen", on); $("#fToggle").setAttribute("aria-expanded", String(on)); });
+$("#fToggle").addEventListener("click", () => { const t = $("#parksTable"), on = !t.classList.contains("fopen"); t.classList.toggle("fopen", on); $("#fToggle").setAttribute("aria-expanded", String(on));
+  if (matchMedia("(max-width:700px)").matches) $("#filters").open = on; });   // phones: one Filters button opens every filter (column filters and season / month / peak)
 function render() {
   if (R.v === "parks") renderParks(); else if (R.v === "park") { renderPark(); renderSide(); } else if (R.v === "data") renderData(); else renderSide();
   decorateFilters();

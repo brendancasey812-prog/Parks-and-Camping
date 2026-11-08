@@ -46,6 +46,7 @@
 <div id="backupNag" class="nag" role="region" aria-label="Backup reminder" hidden><span id="nagText"></span><button type="button" id="nagSave">Save backup</button><button type="button" id="nagLater">Remind me in a week</button></div>
 
 <section class="filters" id="filters" aria-label="Search and filters">
+  <div class="fs-head"><h2>Filters</h2><button id="fsClose" type="button" class="fs-x" aria-label="Close filters">✕</button></div>
   <input id="q" type="search" placeholder="Search parks, cities, highlights…  ( / )" aria-label="Search">
   <div id="fVisited"></div>
   <button id="moreBtn" type="button" class="ghost morebtn" aria-expanded="false" aria-controls="moreFilters">Filters <span class="ms-badge" id="moreBadge" hidden></span></button>
@@ -54,7 +55,7 @@
     <div id="fUnit"></div>
     <div id="fDesig"></div>
   </div>
-  <button id="clear" type="button" class="ghost">Clear filters</button>
+  <button id="clear" type="button" class="ghost">Clear filters</button><span id="fsSlot" class="fs-slot"></span>
   <button id="mmFiltDone" type="button" class="ghost mmdone">Done</button>
   <div class="seg panesw" id="paneSeg" role="group" aria-label="Show"><button type="button" data-pane="table" class="on" aria-pressed="true">Table</button><button type="button" data-pane="map" aria-pressed="false">Map</button></div>
   <span id="count" class="count" role="status" aria-live="polite"></span>
@@ -224,6 +225,7 @@
 </main>
 
 <div id="cellLive" class="sr" aria-live="polite" aria-atomic="true"></div>
+<nav id="bnav" class="bnav" aria-label="Sections"><button type="button" data-bt="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Home</span></button><button type="button" data-bt="explore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19l6-12 4 7 2-3 6 8z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Parks</span></button><button type="button" data-bt="camping"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4L3 20h18zM12 4v16M9 20l3-6 3 6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Camping</span></button><button type="button" data-bt="trips"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Trips</span></button><button type="button" data-bt="more" id="bnavMore" aria-controls="mainNav" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>More</span></button></nav>
 <div id="mmBar" class="mmbar" hidden>
   <div class="seg exseg" id="exSegM" role="group" aria-label="Explore view"><button type="button" data-m="list" aria-pressed="false">≡ List</button><button type="button" data-m="map" aria-pressed="false">◉ Map</button></div>
   <button id="mmSearchBtn" type="button" aria-label="Search parks"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>

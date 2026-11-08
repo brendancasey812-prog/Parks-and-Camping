@@ -107,7 +107,7 @@ function showTab(t){
   if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
   if(!TAB_SECTION[t])t="explore";currentTab=t;const sec=TAB_SECTION[t],grp=TAB_GROUP[t];
   toggleDrawer(false);setNav(false);clearTimeout(hintT);if($("#toast")&&/Tap empty map/.test($("#toast").textContent))$("#toast").hidden=true;
-  $("#navCur").textContent=TAB_LABEL[t]||"Menu";setHd(false);
+  $("#navCur").textContent=TAB_LABEL[t]||"Menu";setHd(false);setFS(false);syncBnav(t);
   $$(".tabitem").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
@@ -127,20 +127,40 @@ function showTab(t){
 // ---------- phone header: one compact row; the tabs open from a menu button and the bar hides while you scroll down ----------
 const TAB_LABEL={dashboard:"Dashboard",explore:"Table + Map",trips:"Trip Planner",camping:"Camping",grid:"Park Info",list:"Park List",map:"Park Map",passes:"Passes",visited:"Visited"};
 const phoneMQ=matchMedia("(max-width:700px)");let hintT=0;
-function setNav(on){document.body.classList.toggle("navopen",on);const b=$("#navBtn");if(b)b.setAttribute("aria-expanded",String(on));if(on)setHd(false)}
+function setNav(on){document.body.classList.toggle("navopen",on);const b=$("#navBtn");if(b)b.setAttribute("aria-expanded",String(on));$("#bnavMore")?.setAttribute("aria-expanded",String(on));if(on){setHd(false);setFS(false)}}
+// phones: bottom tab bar
+const BT_OF={dashboard:"dashboard",explore:"explore",grid:"explore",list:"explore",map:"explore",camping:"camping",trips:"trips"};
+function syncBnav(t){$$("#bnav [data-bt]").forEach(b=>{const on=b.dataset.bt===(BT_OF[t]||"more");b.classList.toggle("on",on);on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current")})}
+$("#bnav")?.addEventListener("click",e=>{const b=e.target.closest("[data-bt]");if(!b)return;e.stopPropagation();const t=b.dataset.bt;
+  if(t==="more"){setNav(!document.body.classList.contains("navopen"));return}setNav(false);
+  if(t==="explore"&&phoneMQ.matches){store.set("pane","table")}showTab(t);if(t==="explore"&&phoneMQ.matches)setPane("table");scrollTo(0,0)});
+// phones: one filter sheet for everything (status, state, park type, designation, which list, sort) with one Clear all
+function setFS(on){document.body.classList.toggle("fsheet",on);$("#moreBtn")?.setAttribute("aria-expanded",String(on))}
+$("#moreBtn")?.addEventListener("click",e=>{if(!phoneMQ.matches||mmOn())return;e.stopImmediatePropagation();e.preventDefault();setFS(!document.body.classList.contains("fsheet"))},true);
+$("#fsClose")?.addEventListener("click",()=>{setFS(false);document.body.classList.remove("mm-filters")});
+$("#mmFiltDone")?.addEventListener("click",()=>setFS(false));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")setFS(false)});
+document.addEventListener("click",e=>{if(document.body.classList.contains("fsheet")&&!e.target.closest("#filters,#moreBtn,.ms-pop,.ms-menu,.colmenu"))setFS(false)});
+// on phones the list's own settings (which list, sort) live in that sheet too
+{const ds=$("#dataset"),sortL=$("#cardSort")?.closest("label"),dsHome=document.createComment("dataset"),soHome=document.createComment("sort");
+  ds?.before(dsHome);sortL?.before(soHome);
+  const place=()=>{const slot=$("#fsSlot");if(!slot)return;if(phoneMQ.matches){if(ds)slot.append(ds);if(sortL)slot.append(sortL)}else{if(ds)dsHome.after(ds);if(sortL)soHome.after(sortL)}};
+  place();phoneMQ.addEventListener("change",place)}
 $("#navBtn")?.addEventListener("click",e=>{e.stopPropagation();setNav(!document.body.classList.contains("navopen"))});
-document.addEventListener("click",e=>{if(document.body.classList.contains("navopen")&&!e.target.closest("#mainNav,#navBtn"))setNav(false)});
+document.addEventListener("click",e=>{if(document.body.classList.contains("navopen")&&!e.target.closest("#mainNav,#navBtn,#bnav"))setNav(false)});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")setNav(false)});
 function headTrack(getY){let last=getY(),acc=0;return()=>{if(!phoneMQ.matches||document.body.classList.contains("navopen"))return;const y=getY(),d=y-last;last=y;
   if(y<40){acc=0;setHd(false);return}if(Math.sign(d)!==Math.sign(acc))acc=0;acc+=d;if(acc>24)setHd(true);else if(acc<-24)setHd(false)}}
 function setHd(on){const b=document.body,top=$(".top");if(!top||b.classList.contains("hd")===on)return;top.style.setProperty("--toph",top.offsetHeight+"px");b.classList.toggle("hd",on);
   if(b.classList.contains("camping")){sizeCamping();setTimeout(sizeCamping,260)}}
-addEventListener("scroll",headTrack(()=>scrollY),{passive:true});
+// any scroll on the page (the page itself, a list, a table) folds the header away on phones
+{const tr=new WeakMap();document.addEventListener("scroll",e=>{const t=e.target===document?document.scrollingElement:e.target;if(!t||t.nodeType!==1)return;
+  if(t.closest&&t.closest(".tabs,.filters,.mmsheet,.tabmenu,dialog,.drawer"))return;let f=tr.get(t);if(!f){f=headTrack(()=>t.scrollTop);tr.set(t,f)}f()},{capture:true,passive:true})}
 $("#campFrame").addEventListener("load",()=>{try{const w=$("#campFrame").contentWindow;w.addEventListener("scroll",headTrack(()=>w.scrollY),{passive:true})}catch(e){}});
 // Camping tab: the campsite tracker (availability/) shown inside the page, sized to the space under the header
 function showCamping(){const f=$("#campFrame");if(!f.src)f.src=f.dataset.src;requestAnimationFrame(sizeCamping)}
 function sizeCamping(){const f=$("#campFrame");if(!document.body.classList.contains("camping"))return;
-  const hd=phoneMQ.matches&&document.body.classList.contains("hd");f.style.height=Math.max(320,innerHeight-(hd?0:Math.max(0,f.getBoundingClientRect().top)))+"px"}
+  const hd=phoneMQ.matches&&document.body.classList.contains("hd");const bn=phoneMQ.matches?($("#bnav")?.offsetHeight||0):0;f.style.height=Math.max(320,innerHeight-bn-(hd?0:Math.max(0,f.getBoundingClientRect().top)))+"px"}
 window.addEventListener("resize",sizeCamping);
 // Settings / backup / edits / about live in a side drawer so the table + map stay on screen
 function toggleDrawer(open){
@@ -996,7 +1016,7 @@ function renderChips(){
   filt.d.forEach(v=>out.push(["d",v,desc[v]||v]));
   filt.v.forEach(v=>out.push(["v",v,v==="1"?"Checked":"Unchecked"]));
   $("#chips").innerHTML=out.map(([k,v,t])=>`<button type="button" class="chip" data-k="${k}" data-v="${esc(v)}" aria-label="Remove filter: ${esc(t)}">${esc(t)} <span aria-hidden="true">✕</span></button>`).join("");
-  $("#chips").hidden=!out.length;
+  $("#chips").hidden=!out.length;document.body.classList.toggle("has-filt",out.length>0);
   const m=filt.st.size+filt.u.size+filt.d.size;$("#moreBadge").hidden=!m;$("#moreBadge").textContent=m;
   const np=parks.filter(p=>p.np63),vn=np.filter(p=>checked.has(p.id)).length;
   $("#progress").textContent=`${vn} of ${np.length} national parks visited`;

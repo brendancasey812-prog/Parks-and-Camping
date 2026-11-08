@@ -728,3 +728,75 @@ body.camping .filters{display:none}
   .top .progress{display:none}
   body.camping .top{position:relative}
 }
+
+/* ================= phones: bottom tab bar, a header that folds away, one filter sheet ================= */
+.bnav,.fs-head,.fs-slot{display:none}
+@media(max-width:700px){
+  :root{--bnav:calc(56px + env(safe-area-inset-bottom))}
+  body{padding-bottom:var(--bnav)}
+  .navbtn{display:none!important}
+  .top{padding:.35rem .8rem;padding-top:calc(.35rem + env(safe-area-inset-top))}.top h1{font-size:.98rem}
+  .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5000;height:var(--bnav);padding-bottom:env(safe-area-inset-bottom);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 24px -16px rgba(0,0,0,.5)}
+  .bnav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;border:0;background:none;color:var(--muted);font:600 .66rem var(--font-body);letter-spacing:.01em;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .bnav svg{width:23px;height:23px}
+  .bnav button.on,.bnav button[aria-expanded=true]{color:var(--accent)}
+  .bnav button.on svg{stroke-width:2.3}
+  /* the "More" menu opens just above the tab bar */
+  .tabs{position:fixed;top:auto;bottom:calc(var(--bnav) + 8px);left:.6rem;right:.6rem;max-height:calc(100dvh - var(--bnav) - 40px);z-index:5100}
+  .toast{bottom:calc(var(--bnav) + 10px)}
+  /* map view keeps its controls above the tab bar */
+  body.mm .mmpill:not([hidden]){bottom:calc(var(--bnav) + 10px)}
+  body.mm .mmsheet:not([hidden]){bottom:var(--bnav)}
+  body.mm .mmfabs:not([hidden]){bottom:calc(var(--mm-sheet,96px) + var(--bnav) + 64px)}
+  body.mm .leaflet-bottom{margin-bottom:calc(var(--mm-sheet,96px) + var(--bnav))}
+  body.mm main{bottom:var(--bnav)}
+  body.camping #campFrame{display:block}
+  /* lists: the page scrolls (not a small box inside it), so the header can fold away */
+  body.map-mode.explore:not(.mm){height:auto;overflow:visible}
+  body.explore:not(.mm) main,body.explore:not(.mm) #tab-list{height:auto!important;max-height:none!important;overflow:visible!important;display:block}
+  body.explore:not(.mm) .cardlist{overflow:visible;flex:none;padding-bottom:1rem}
+  body.explore:not(.mm) #exBar,#tab-list>.toolbar,#tab-list .cardbar,#listHint{display:none!important}
+  /* search bar: one row with a Filters button; active filters as chips with one Clear all */
+  .filters{position:sticky;top:0;z-index:1100;display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;padding:.5rem .7rem;background:var(--bg);border-bottom:1px solid var(--line);transition:top .22s ease}
+  body:not(.hd) .filters{top:var(--toph,44px)}
+  .filters>*{display:none}
+  .filters #q{display:block;flex:1;min-width:0;height:40px;padding:0 .8rem;border-radius:12px;font-size:16px}
+  .filters .morebtn{display:inline-flex;align-items:center;gap:.35rem;height:40px;padding:0 .85rem;border-radius:12px;font-weight:600}
+  .filters .morebtn::before{content:"";width:16px;height:16px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+  .filters .panesw{display:flex;height:40px}.filters .panesw button{padding:0 .7rem;font-size:.8rem}
+  .filters #count{display:block;order:10;flex-basis:100%;margin:0;font-size:.75rem;color:var(--muted)}
+  .filters #chips:not([hidden]){display:flex;order:11;flex:1;flex-wrap:nowrap;overflow-x:auto;gap:.35rem;scrollbar-width:none}.filters #chips::-webkit-scrollbar{display:none}
+  .filters #chips .chip{flex:none;min-height:30px;font-size:.78rem}
+  body.has-filt .filters #clear{display:inline-flex;align-items:center;order:12;flex:none;min-height:30px;padding:0 .75rem;border-radius:999px;font-size:.78rem;font-weight:700;border:0;background:var(--accent);color:#fff}
+  body.has-filt .filters #clear::before{content:"✕";margin-right:.35rem;font-size:.7rem}
+  /* the sheet itself */
+  body.fsheet::after{content:"";position:fixed;inset:0;z-index:5150;background:rgba(0,0,0,.45)}
+  body.fsheet .filters,body.mm.mm-filters .filters{position:fixed;top:auto;left:0;right:0;bottom:var(--bnav);z-index:5200;max-height:calc(88dvh - var(--bnav));overflow:auto;overscroll-behavior:contain;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.8rem;padding:.9rem 1rem 1rem;border-radius:20px 20px 0 0;border:0;background:var(--surface);box-shadow:0 -20px 40px -10px rgba(0,0,0,.5)}
+  body.fsheet .filters>*,body.mm.mm-filters .filters>*{display:flex}
+  body.fsheet .fs-head,body.mm.mm-filters .fs-head{display:flex;align-items:center;justify-content:space-between}
+  .fs-head h2{margin:0;font-size:1.1rem}.fs-x{width:36px;height:36px;border:0;border-radius:50%;background:var(--mist);color:var(--ink);font-size:.9rem;cursor:pointer}
+  body.fsheet .filters #q,body.mm.mm-filters .filters #q{height:44px}
+  body.fsheet .filters .morebtn,body.fsheet .filters .panesw,body.fsheet .filters #chips,body.fsheet .filters #count,body.mm.mm-filters .filters #chips{display:none}
+  body.fsheet .morefilters,body.mm.mm-filters .morefilters{display:flex;flex-direction:column;gap:.8rem}
+  body.fsheet .filters .ms,body.fsheet .filters .ms-btn,body.mm.mm-filters .filters .ms-btn{width:100%}
+  body.fsheet .filters .ms-btn,body.mm.mm-filters .filters .ms-btn{min-height:46px;justify-content:space-between}
+  .fs-slot{flex-direction:column;gap:.8rem}
+  .fs-slot .seg{display:flex;width:100%}.fs-slot .seg button{flex:1;min-height:44px}
+  .fs-slot label{display:flex;align-items:center;justify-content:space-between;gap:.6rem;font-weight:600;color:var(--ink)}.fs-slot select{flex:1;max-width:60%;min-height:44px;padding:0 .6rem;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px}
+  body.fsheet .filters #clear,body.mm.mm-filters .filters #clear{order:20;justify-content:center;min-height:48px;border-radius:12px;font-weight:700;background:none;border:1px solid var(--line);color:var(--ink)}
+  body.fsheet .filters #clear::before{content:none}
+  body.fsheet .filters .mmdone,body.mm.mm-filters .filters .mmdone{order:21;justify-content:center;min-height:48px;border-radius:12px;font-weight:700;background:var(--accent);color:#fff;border:0}
+  body.fsheet .filters .mmdone{display:flex}
+}
+@media(max-width:700px){
+  body.explore:not(.mm) .filters{position:sticky}
+  .tabs .tab.active,.tabs .tabitem.active{color:var(--ink);background:var(--mist);box-shadow:inset 3px 0 0 var(--accent)}
+  .fs-slot .seg button{background:var(--surface);color:var(--ink);border-color:var(--line)}.fs-slot .seg button.on,.fs-slot .seg button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  body.mm .mmfabs:not([hidden]){bottom:calc(var(--mm-sheet,96px) + var(--bnav) + 96px)}
+  body.mm .leaflet-control-attribution{max-width:58vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px}
+}
+@media(max-width:700px){
+  body.mm.mm-layers #tab-map .toolbar{bottom:var(--bnav)}
+  body.explore:not(.mm) .filters .panesw{display:flex}
+  .filters .panesw button[data-pane=table]{font-size:0}.filters .panesw button[data-pane=table]::after{content:"List";font-size:.8rem}
+}
