@@ -327,7 +327,9 @@ function activeFilters() { const o = Object.keys(LAB).filter(k => st[k] && Strin
 const colName = (tbl, k) => $(tbl + ' thead th[data-k="' + k + '"] button').textContent;
 function renderChips() {
   const a = activeFilters();
-  $("#chips").innerHTML = a.map(x => '<button type="button" class="chip" data-k="' + x.k + '" aria-label="Remove filter: ' + esc(x.t) + '">' + esc(x.t) + " <i aria-hidden=\"true\">x</i></button>").join(""); $("#chips").hidden = !a.length;
+  $("#chips").innerHTML = a.map(x => '<button type="button" class="chip" data-k="' + x.k + '" aria-label="Remove filter: ' + esc(x.t) + '">' + esc(x.t) + " <i aria-hidden=\"true\">x</i></button>").join("") +
+    (a.length ? '<button type="button" class="chip clrall" data-k="__all">Clear all</button>' : ""); $("#chips").hidden = !a.length;
+  const fc = $("#fsCount"); if (fc) { const k = a.filter(x => x.k !== "q").length; fc.hidden = !k; fc.textContent = k; }
   const n = a.filter(x => x.k !== "q").length; $("#fCount").hidden = !n; $("#fCount").textContent = n;
 }
 const SUGG = [["avail", "30d", "Opening within 30 days"], ["walk", "any", "Walk-up available"], ["season", "on", "Open on my date"], ["peak", "on", "Peak season on my date"], ["walk", "none", "Reservation only"], ["conf", "good", "Verified data"]];
@@ -487,7 +489,7 @@ function applyAsk(text) {
 $("#ask").addEventListener("submit", e => { e.preventDefault(); applyAsk($("#q").value); });
 $("#q").addEventListener("input", e => { if (!e.target.value.trim() && st.q) { st.q = ""; persist(); render(); } });
 $("#sugg").addEventListener("click", e => { const b = e.target.closest(".sg"); if (!b) return; const k = b.dataset.f; st[k] = st[k] === b.dataset.v ? "" : b.dataset.v; persist(); syncFields(); render(); });
-$("#chips").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; if (c.dataset.k.startsWith("cf:")) { delete st.cf[c.dataset.k.slice(3)]; persist(); render(); return; } st[c.dataset.k] = ""; if (c.dataset.k === "q") $("#q").value = ""; syncFields(); persist(); render(); });
+$("#chips").addEventListener("click", e => { const c = e.target.closest(".chip"); if (!c) return; if (c.dataset.k === "__all") { $("#clear").click(); return; } if (c.dataset.k.startsWith("cf:")) { delete st.cf[c.dataset.k.slice(3)]; persist(); render(); return; } st[c.dataset.k] = ""; if (c.dataset.k === "q") $("#q").value = ""; syncFields(); persist(); render(); });
 $("#sideGroups").addEventListener("click", e => { const a = e.target.closest("[data-side]"); if (!a) return; e.preventDefault(); const [k, v] = a.dataset.side.split(":"); st.kind = k === "kind" ? (st.kind === v ? "" : v) : st.kind; st.region = k === "region" ? (st.region === v ? "" : v) : st.region; syncFields(); persist(); nav("#/"); });
 const FIELD = { fSaved: "saved", fDes: "des", fSys: "sys", fRegion: "region", fAvail: "avail", fSeason: "season", fMonth: "month", fPeak: "peak", fWalk: "walk", fConf: "conf" };
 Object.keys(FIELD).forEach(id => { $("#" + id).onchange = e => { st[FIELD[id]] = e.target.value; persist(); render(); }; });
@@ -619,7 +621,7 @@ $("#campBody").addEventListener("keydown", e => { const td = e.target.closest("t
 // ---------- setup and render ----------
 function syncFields() { Object.keys(FIELD).forEach(id => $("#" + id).value = st[FIELD[id]] || ""); $("#fName").value = st.q; $("#fUnk").checked = st.unk !== false; $("#q").value = st.q; }
 // filters: every filter box gets a clear (x) button while it is set, and on phones the column filters fold behind a "Column filters" button
-const FXSEL = ".frow select, .frow input, #filters select, #cq";
+const FXSEL = ".frow select, .frow input, #filters select, #fsheet select, #cq";
 function decorateFilters() {
   $$(FXSEL).forEach(el => {
     let x = el.nextElementSibling; if (!x || !x.classList.contains("fx")) {
@@ -638,9 +640,34 @@ document.addEventListener("click", e => { const x = e.target.closest(".fx"); if 
 document.addEventListener("input", e => { if (e.target.matches && e.target.matches(FXSEL)) decorateFilters(); });
 $("#fToggle").addEventListener("click", () => { const t = $("#parksTable"), on = !t.classList.contains("fopen"); t.classList.toggle("fopen", on); $("#fToggle").setAttribute("aria-expanded", String(on));
   if (matchMedia("(max-width:700px)").matches) $("#filters").open = on; });   // phones: one Filters button opens every filter (column filters and season / month / peak)
+// ---------- phones: one Filters sheet ----------
+// The trip date, park type tabs, quick picks, every column filter and the season filters are moved into #fsheet on phones,
+// and back to their places on wider screens. Their own event handlers keep working because the elements themselves move.
+const PHONE = matchMedia("(max-width:700px)");
+const FS_PARTS = [];
+function fsPart(el, sec, label) { if (!el) return; const home = document.createComment("fs-home"); el.before(home); FS_PARTS.push({ el, home, sec, label }); }
+fsPart($(".bar .when"), "when"); fsPart($("#kindTabs"), "type"); fsPart($("#sugg"), "quick");
+["fSaved", "fDes", "fRegion", "fSys", "fAvail", "fWalk", "fConf"].forEach(id => { const el = $("#" + id); if (el) fsPart(el.parentElement, "cols", el.getAttribute("aria-label")); });
+fsPart($("#filters .more-b"), "more");
+function fsPlace() {
+  FS_PARTS.forEach(p => {
+    if (PHONE.matches) {
+      const sec = $('#fsheet [data-s="' + p.sec + '"]'), host = p.sec === "cols" ? sec.querySelector(".fs-grid") : sec;
+      if (p.label && !p.wrap) { p.wrap = document.createElement("label"); p.wrap.className = "fs-field"; p.wrap.innerHTML = "<span>" + esc(p.label) + "</span>"; }
+      if (p.wrap) { p.wrap.append(p.el); host.append(p.wrap); } else host.append(p.el);
+    } else p.home.after(p.el);
+  });
+}
+fsPlace(); PHONE.addEventListener("change", () => { fsPlace(); fsOpen(false); });
+function fsOpen(on) { $("#fsheet").hidden = !on; $("#fsScrim").hidden = !on; document.documentElement.classList.toggle("fs-on", on); $("#fsBtn").setAttribute("aria-expanded", String(on)); if (on) $("#fsX").focus(); }
+$("#fsBtn").addEventListener("click", () => fsOpen(true));
+["#fsX", "#fsDone", "#fsScrim"].forEach(id => $(id).addEventListener("click", () => fsOpen(false)));
+$("#fsClear").addEventListener("click", () => $("#clear").click());
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#fsheet").hidden) fsOpen(false); });
+function fsDoneText() { const t = $("#parksCount") ? $("#parksCount").textContent : ""; const m = t.match(/^(\d[\d,]*) campgrounds?/); $("#fsDone").textContent = m ? "Show " + m[1] + " campground" + (m[1] === "1" ? "" : "s") : "Done"; }
 function render() {
   if (R.v === "parks") renderParks(); else if (R.v === "park") { renderPark(); renderSide(); } else if (R.v === "data") renderData(); else renderSide();
-  decorateFilters();
+  decorateFilters(); fsDoneText();
   CC.subs.forEach(f => { try { f(); } catch (e) {} });
 }
 const CC = { subs: [], st, fmtAt, fmtShort, fmtDate, fmtDay, fmtTime, splitName, countdown, ics, download, toast, todayPT, esc };

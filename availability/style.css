@@ -279,3 +279,39 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
   #clear::before{content:"✕ ";font-size:.75rem}
   #fToggle::before{content:"";width:15px;height:15px;margin-right:.35rem;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
 }
+
+/* ---------- phones: one search row with one Filters button; everything else in the Filters sheet ---------- */
+.fsbtn,.fsheet,.fs-scrim{display:none}
+@media(max-width:700px){
+  .bar{flex-wrap:nowrap}
+  .bar .ask{flex:1;min-width:0;flex-basis:auto;order:0}
+  .fsbtn{display:inline-flex;align-items:center;gap:.35rem;flex:none;height:38px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink);font:600 .85rem var(--font);cursor:pointer}
+  .fsbtn::before{content:"";width:15px;height:15px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8v6l-4-2v-4z' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+  .ask-go{display:none}.ask input{padding-right:.9rem}
+  /* nothing filter-like left in the page itself, apart from the active-filter chips */
+  #vParks .tbl-top,#parksTable thead tr.frow,#parksTable.fopen thead tr.frow{display:none!important}
+  #vParks .page-h .sub{font-size:.78rem}
+  #chips:not([hidden]){display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:.35rem;margin:.2rem -.6rem 0 0;padding-right:.6rem}#chips::-webkit-scrollbar{display:none}
+  #chips .chip{flex:none;min-height:30px;font-size:.78rem}
+  #chips .chip.clrall{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+  /* the sheet */
+  .fs-scrim:not([hidden]){display:block;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.45)}
+  .fsheet:not([hidden]){display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:100;max-height:88vh;background:var(--panel);color:var(--ink);border-radius:18px 18px 0 0;box-shadow:0 -20px 40px -10px rgba(0,0,0,.5)}
+  html.fs-on,html.fs-on body{overflow:hidden}
+  .fs-h{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem .4rem}.fs-h h2{margin:0;font-size:1.1rem}
+  .fs-x{width:36px;height:36px;border:0;border-radius:50%;background:var(--hover);color:var(--ink);cursor:pointer}
+  .fs-b{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 1rem .6rem}
+  .fs-s{padding:.7rem 0;border-top:1px solid var(--line)}.fs-s:first-child{border-top:0}
+  .fs-s h3{margin:0 0 .5rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .fs-s .when{display:flex;gap:.6rem}.fs-s .mini{flex:1;font-size:.75rem}
+  .fs-s .ktabs,.fs-s .sugg{flex-wrap:wrap;overflow:visible;margin:0;padding:0;gap:.4rem}
+  .fs-s .ktabs button,.fs-s .sugg button{min-height:34px;font-size:.82rem;white-space:normal}
+  .fs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
+  .fs-field{display:flex;flex-direction:column;gap:.25rem;position:relative;font-size:.72rem;font-weight:600;color:var(--muted)}
+  .fs-field select{width:100%;min-width:0;min-height:40px;padding:0 .5rem;border:1px solid var(--line-2);border-radius:10px;background:var(--bg);color:var(--ink);font:.88rem var(--font)}
+  .fs-field .fx{top:auto;bottom:9px;transform:none}
+  .fs-s .more-b{position:static;display:grid;gap:.6rem;width:100%;padding:0;border:0;box-shadow:none;background:none}
+  .fs-f{display:flex;gap:.6rem;padding:.7rem 1rem calc(.7rem + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .fs-f .btn{flex:1;min-height:46px;justify-content:center;font-weight:700}
+}
+@media(max-width:860px){.tbl.stack td *{white-space:normal!important}}
