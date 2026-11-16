@@ -58,6 +58,15 @@
    ["seki-dorst", 1], ["seki-cold-springs", 1], [SEKI + "buckeye-flat", 1], [SEKI + "sunset", 1], [SEKI + "sheep-creek", 1], [SEKI + "moraine", 1]]
     .forEach(([id, m]) => fix(id, { rule: { kind: "rolling", months: m, time: "07:00" }, check: ["rule"] }));
 
+  // booking windows measured on the Recreation.gov booking calendar (read 11/09/2026: the last night open for booking vs the first not yet released)
+  const CAL = (id, rg, note) => [{ t: "Recreation.gov booking calendar, read 11/09/2026: " + note, u: "https://www.recreation.gov/camping/campgrounds/" + rg }];
+  const calFix = (id, rule, rg, note, o) => { const r = S.find(s => s.id === id); if (!r) return; Object.assign(r, { rule, check: r.check.filter(c => c !== "rule") }, o || {}); r.sources = CAL(id, rg, note).concat(r.sources); };
+  calFix("pinn-campground", { kind: "rolling", months: 12, time: "07:00" }, "234015", "open for booking a full year ahead (through 11/08/2027)");
+  calFix("nps-golden-gate-national-recreation-area-kirby-cove", { kind: "rolling", months: 6, time: "07:00" }, "232491", "open for booking 6 months ahead (through 05/09/2027)");
+  calFix("deva-furnace-creek", { kind: "rolling", months: 12, time: "07:00" }, "232496", "open for booking through 11/21/2027 (about 12 months ahead)");
+  ["moja-fcfs--mid-hills", "moja-fcfs--hole-in-the-wall"].forEach((id, i) => calFix(id, { kind: "rolling", months: 6, time: "07:00" }, ["10332703", "10332664"][i],
+    "sites can be reserved 6 months ahead (open through 05/08/2027)", { system: "rec", walkup: "some", walkupNote: "Some sites may still be first-come; check the campground page" }));
+
   // ---------- state parks ----------
   // campgrounds named on each park's parks.ca.gov page that were missing, and rows that carried the park's name instead of the campground's (2026-11-02)
   const PCS = (pid, park) => [{ t: "parks.ca.gov: " + park, u: "https://www.parks.ca.gov/?page_id=" + pid }];

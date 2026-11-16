@@ -48,6 +48,16 @@ information supports, and opens a pull request for the owner to review. Nothing 
 In the pull request, list campgrounds that were added or dropped and any that changed site count, booking window or closure notice (`git diff data/federal.js`).
 A campground that Recreation.gov lists twice under different names goes in the `SAME` table in `tools/build_federal.py`, not in the data.
 
+## Booking windows (Recreation.gov), re-measured each run
+Recreation.gov does not publish most campgrounds' booking window, so it is read from each campground's availability calendar:
+the last night already open for booking against the first night "not yet released" (NYR). Run from `availability/`:
+`python3 -I tools/measure_windows.py data/federal.js <tmp>/windows.json`, then
+`python3 -I tools/booking_windows.py <tmp>/windows.json.jsonl data/windows.js YYYY-MM-DD <last release day>`
+(the last release day is today if it is after 7:00 AM Pacific, otherwise yesterday). Campgrounds whose next season is not
+released yet keep the 6-month default marked "(assumed)"; they become measurable as their season comes inside the window.
+List in the pull request any campground whose window changed. State parks: ReserveCalifornia's rule (6 months to the day,
+8:00 AM) is stated on parks.ca.gov/?page_id=29676; check it is unchanged.
+
 ## State parks not on ReserveCalifornia's public pages
 ReserveCalifornia's full facility list is served by a separate booking service that the scheduled task does not use. New state campgrounds come from each park's
 parks.ca.gov page (`place(...)` in `data/campgrounds.js`, with the page as the source). Parks run by a county or district (Dockweiler, Castaic Lake, Placerita Canyon,
