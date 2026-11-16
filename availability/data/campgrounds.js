@@ -124,19 +124,19 @@
   ST(502, "Auburn State Recreation Area", "Sierra Nevada", [["Mineral Bar"], ["Ruck-A-Chucky"], ["Lower Lake Clementine Boat-In", null, "", "boat-in; count not found"]]);
   ST(642, "Bolsa Chica State Beach", "Southern California", [["Bolsa Chica RV Campground", 50, "Year-round", "RV only, electric and water hookups; max 40 ft"]]);
   ST(557, "Caswell Memorial State Park", "Central Valley", [["Caswell Memorial", 64, "", "plus group and hike-and-bike sites"]]);
-  ST(604, "Emma Wood State Beach", "Southern California", [["North Beach", 90, "Year-round (park page lists an upcoming closure)", "fully self-contained vehicles only; no tents, water or restrooms"],
+  ST(604, "Emma Wood State Beach", "Southern California", [["North Beach", 90, "Closed since Aug 25, 2025 (construction); no reopening date", "fully self-contained vehicles only; no tents, water or restrooms"],
     ["Ventura River Group Camp", 5, "Year-round (reservations required)", "group sites, up to 30 people each", GRP]]);
   ST(585, "Fort Tejon State Historic Park", "Southern California", [["Group Campground", null, "Year-round (water Apr 16 – Nov 14)", "group camping only; 2 RV spaces with hookups", GRP]]);
   ST(556, "George J. Hatfield State Recreation Area", "Central Valley", [["Hatfield Walk-in", null, "Year-round", "tent-only, short walk from parking; count not found", FC], ["Hatfield Group Site", 1, "Year-round", "up to 25 people", GRP]]);
   ST(421, "Grizzly Creek Redwoods State Park", "North Coast", [["Grizzly Creek Redwoods", 28, "Summer only", "max camper 24 ft; plus group and hike-and-bike sites"]]);
   ST(553, "Indian Grinding Rock State Historic Park", "Sierra Nevada", [["Indian Grinding Rock", null]]);
-  ST(437, "Manchester State Park", "North Coast", [["Manchester", null, "Closed for the season", "first-come in season; environmental sites permanently closed", FC], ["Manchester Group Camp", null, "", "group camp", GRP]]);
+  ST(437, "Manchester State Park", "North Coast", [["Manchester", null, "Closed for winter; reopens Memorial Day weekend 2027", "first-come in season; environmental sites permanently closed", FC], ["Manchester Group Camp", null, "", "group camp", GRP]]);
   ST(554, "McConnell State Recreation Area", "Central Valley", [["McConnell", null, "Year-round", "max camper 30 ft; plus group sites"]]);
   ST(435, "Navarro River Redwoods State Park", "North Coast", [["Navarro Beach", null], ["Paul Dimmick", null, "Closed for the season; open May 28 – Sep 7, 2027", "max camper 30 ft"]]);
   ST(637, "Palomar Mountain State Park", "Southern California", [["Doane Valley", 31, "Year-round (reservations Apr 1 – Nov 30; first-come Dec 1 – Mar 31)", "sites 1–31; max camper 24 ft"]]);
   ST(504, "Tahoe State Recreation Area", "Sierra Nevada", [["Tahoe State Recreation Area", 23, "Summer; closed for the 2026 season", "trailers to 15 ft, RVs to 18 ft"]]);
   ST(666, "The Forest of Nisene Marks State Park", "Bay Area", [["West Ridge Trail Camp", null, "Closed (no camping in the park)", "backcountry trail camp"]]);
-  ST(440, "Westport-Union Landing State Beach", "North Coast", [["Abalone Point and the other bluff campgrounds", 86, "Abalone Point closed until Apr 15, 2027", "86 sites in three bluff campgrounds"]]);
+  ST(440, "Westport-Union Landing State Beach", "North Coast", [["Abalone Point and the other bluff campgrounds", 86, "Open now, first-come only (cash or check); Abalone Point closed until Apr 15, 2027", "86 sites in three bluff campgrounds", { walkup: "some", walkupNote: "First-come camping now (cash or check only)" }]]);
   ST(538, "Castle Rock State Park", "Bay Area", [["Castle Rock Trail Camp", null, "Open (no campfires)", "backcountry; reservation or registration required"]]);
   ST(583, "Colonel Allensworth State Historic Park", "Central Valley", [["Colonel Allensworth", 17, "Year-round", "RVs or tents; sites 16 and 17 have hookups"]]);
   ST(461, "Colusa-Sacramento River State Recreation Area", "Central Valley", [["Colusa-Sacramento River", null, "", "plus en route sites"], ["Group Campsites", null, "", "not reservable online; call Colusa City Hall (530) 329-9198", GRP]]);

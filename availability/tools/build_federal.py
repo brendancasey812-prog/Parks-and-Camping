@@ -183,6 +183,7 @@ for r in fed:
     note = ""
     for n in r.get("notices") or []:
         n = re.sub(r"\s+", " ", n).strip()
+        if re.match(r"(Trees|Group Capacity|No Show Policy|Don't Move Firewood|Leave No Trace)\b", n, re.I): continue   # standard boilerplate, not about this campground
         if n and re.search(r"\b(?:is|are|will be|remains?|currently|temporarily) (?:temporarily |currently )?closed\b|\bclosed (?:for|until|due|through)\b|\bclosures? (?:of|for|until|due|through)\b|\breopen|until further notice|\bconstruction\b|\bdamage|\bno (?:potable |drinking )?water\b|water is (?:off|not available|unavailable)|potable water is not available", n[:200], re.I): note = n[:220] + ("…" if len(n) > 220 else ""); break
     # an active Recreation.gov notice that says the campground is closed wins over any season phrase
     for n in r.get("notices") or []:
