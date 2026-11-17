@@ -819,3 +819,6 @@ body.camping .filters{display:none}
   .hamb{z-index:5200}
   .hamb-menu{position:fixed;left:0;right:0;bottom:var(--bnav,0px);top:auto;width:auto;max-height:calc(100dvh - var(--bnav,0px) - 60px);overflow:auto;border-radius:20px 20px 0 0;padding:.6rem .7rem .8rem;box-shadow:0 0 0 100vmax #0006}
 }
+.cm-foot{display:flex;gap:.4rem}.cm-foot .cm-done{background:var(--pine);color:#fff;border-color:var(--pine)}
+@media(max-width:700px){.colmenu{left:0!important;right:0;top:auto!important;bottom:var(--bnav,0px);width:auto;max-height:calc(100dvh - var(--bnav,0px) - 60px);border-radius:20px 20px 0 0;z-index:5200;box-shadow:0 0 0 100vmax #0006}.colmenu .cm-list{max-height:none}}
+@media(max-width:700px){.colmenu .cm-foot{position:sticky;bottom:-.7rem;background:var(--surface);padding:.5rem 0 .7rem;margin-bottom:-.7rem}}

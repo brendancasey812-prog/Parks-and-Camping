@@ -22,7 +22,7 @@ function colMenu(o){
    <label class="cm-l">Filter by condition</label><input type="search" class="cm-text" placeholder="Text contains…" value="${esc(f.text||"")}">
    <label class="cm-l">Filter by values</label><input type="search" class="cm-search" placeholder="Search values…">
    <div class="ms-actions"><button type="button" data-a="all">Select shown</button><button type="button" data-a="none">Clear</button></div>
-   <ul class="ms-list cm-list"></ul><div class="cm-foot"><button type="button" data-a="reset">Clear this filter</button></div>`;
+   <ul class="ms-list cm-list"></ul><div class="cm-foot"><button type="button" data-a="reset">Clear this filter</button><button type="button" data-a="done" class="cm-done">Done</button></div>`;
   const list=m.querySelector(".cm-list"),search=m.querySelector(".cm-search"),text=m.querySelector(".cm-text");
   const allowed=new Set(f.vals||all);
   const draw=()=>{list.innerHTML=all.filter(v=>(v||"(Blanks)").toLowerCase().includes(search.value.toLowerCase())).map(v=>
@@ -33,7 +33,8 @@ function colMenu(o){
     if(a==="asc"||a==="desc"){o.onSort(a==="asc"?1:-1);close()}
     else if(a==="all"){[...list.querySelectorAll("input")].forEach(i=>allowed.add(i.value));draw();commit()}
     else if(a==="none"){allowed.clear();draw();commit()}
-    else if(a==="reset"){o.onFilter(undefined);close()}};
+    else if(a==="reset"){o.onFilter(undefined);close()}
+    else if(a==="done")close()};
   list.onchange=e=>{e.target.checked?allowed.add(e.target.value):allowed.delete(e.target.value);commit()};
   search.oninput=draw;text.oninput=commit;
   const b=o.anchor.getBoundingClientRect();m.hidden=false;
