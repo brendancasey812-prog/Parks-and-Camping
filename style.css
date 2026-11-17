@@ -652,7 +652,7 @@ body.passes .filters{display:none}
 .pass-filters .pchk input{accent-color:var(--pine)}
 .pass-filters button:disabled{opacity:.5;cursor:default}
 .passtable{max-height:calc(100vh - 220px)}
-@media(max-width:700px){#tab-passes .tablewrap.passtable{display:block;max-height:70vh}.lt.pt th:nth-child(2),.lt.pt td:nth-child(2){display:none}.lt.pt td.nm{min-width:150px}}
+@media(max-width:700px){#tab-passes .tablewrap.passtable{display:block;max-height:70vh}.lt.pt td.nm{min-width:150px}}
 .lt.pt{user-select:text}.lt.pt td,.lt.pt th{cursor:default;-webkit-user-select:text;user-select:text}
 .lt.pt td.nm a{color:inherit}.lt.pt td.nm a:hover{color:var(--link,var(--pine))}
 .lt.pt td.ps{font-weight:700;min-width:84px}.lt.pt td.ps small{display:block;font-weight:400;font-size:.7rem;color:var(--muted);max-width:150px;margin:0 auto}
@@ -799,4 +799,23 @@ body.camping .filters{display:none}
   body.mm.mm-layers #tab-map .toolbar{bottom:var(--bnav)}
   body.explore:not(.mm) .filters .panesw{display:flex}
   .filters .panesw button[data-pane=table]{font-size:0}.filters .panesw button[data-pane=table]::after{content:"List";font-size:.8rem}
+}
+
+/* ---- one table pattern (tablekit.js): filters in the headings, one gear settings button per tab ---- */
+.hamb-btn{flex-direction:row;align-items:center;gap:0;position:relative}
+.hamb-btn .gear{width:20px;height:20px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linejoin:round;transition:transform .3s}
+.hamb:hover .hamb-btn .gear,.hamb-btn[aria-expanded="true"] .gear{stroke:#fff;transform:rotate(45deg)}
+.hm-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--seaglass);color:#052018;font:700 .66rem/17px var(--font-body);text-align:center}
+.hm-badge[hidden]{display:none}
+.hm-title{display:flex;align-items:center;justify-content:space-between}
+.hamb-menu .hm-x{width:auto!important;min-height:30px!important;padding:.2rem .5rem!important;color:var(--muted);flex:0 0 auto}
+.hm-search{margin:.15rem .4rem .3rem;width:calc(100% - .8rem);padding:.45rem .6rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+.tk-clear{padding:.3rem .7rem;border-radius:999px;font-size:.82rem}
+.tk-clear[hidden]{display:none}
+.ptool{margin-bottom:.6rem}
+.lt.pt th[data-k]{cursor:pointer;touch-action:auto}
+@media(min-width:701px){.hamb-menu .hm-x{display:none}}
+@media(max-width:700px){
+  .hamb{z-index:5200}
+  .hamb-menu{position:fixed;left:0;right:0;bottom:var(--bnav,0px);top:auto;width:auto;max-height:calc(100dvh - var(--bnav,0px) - 60px);overflow:auto;border-radius:20px 20px 0 0;padding:.6rem .7rem .8rem;box-shadow:0 0 0 100vmax #0006}
 }

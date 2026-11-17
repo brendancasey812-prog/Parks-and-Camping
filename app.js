@@ -517,6 +517,7 @@ function renderList(keep){
   rows=computeRows();
   const total=baseSrc().length;
   $("#lcount").textContent=`${rows.length} of ${total} rows · ${dataset==="ca"?"California State Parks":"National Park Service"}`;
+  $("#lClearCols").hidden=!Object.values(colFilt).some(Boolean);
   $$("#ltable th[data-k]").forEach(th=>{const k=th.dataset.k,f=colFilt[k];
     th.querySelector(".fbtn").classList.toggle("on",!!f&&(!!f.vals||!!f.text));
     th.dataset.dir=k===sortKey?(sortDir>0?"▲":"▼"):"";if(k===sortKey)th.setAttribute("aria-sort",sortDir>0?"ascending":"descending");else th.removeAttribute("aria-sort")});
@@ -703,43 +704,16 @@ wrap.addEventListener("paste",e=>{
   finish(b);
 });
 
-// ----- column filter / sort menu
-const menu=$("#colmenu");let menuK=null;
-function closeMenu(){menu.hidden=true;menuK=null}
+// ----- column filter / sort menu (shared with every table on the site: tablekit.js)
 function openMenu(k,btn){
-  menuK=k;const f=colFilt[k]||{vals:null,text:""};
-  const counts=new Map();visible(baseSrc()).forEach(p=>{const v=cellVal(p,k);counts.set(v,(counts.get(v)||0)+1)});
-  const all=[...counts.keys()].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-  menu.innerHTML=`<div class="cm-sort"><button data-a="asc">Sort A → Z</button><button data-a="desc">Sort Z → A</button></div>
-   <label class="cm-l">Filter by condition</label><input type="search" class="cm-text" placeholder="Text contains…" value="${esc(f.text)}">
-   <label class="cm-l">Filter by values</label><input type="search" class="cm-search" placeholder="Search values…">
-   <div class="ms-actions"><button data-a="all">Select shown</button><button data-a="none">Clear</button></div>
-   <ul class="ms-list cm-list"></ul><div class="cm-foot"><button data-a="reset">Clear this filter</button></div>`;
-  const list=menu.querySelector(".cm-list"),search=menu.querySelector(".cm-search");
-  const allowed=new Set(f.vals||all);
-  const draw=()=>{list.innerHTML=all.filter(v=>(v||"(Blanks)").toLowerCase().includes(search.value.toLowerCase())).map(v=>
-     `<li><label><input type="checkbox" value="${esc(v)}" ${allowed.has(v)?"checked":""}><span>${esc(v||"(Blanks)")}</span><em>${counts.get(v)}</em></label></li>`).join("")||"<li class='ms-empty'>No matches</li>"};
-  const commit=()=>{const text=menu.querySelector(".cm-text").value;const vals=allowed.size===all.length?null:new Set(allowed);
-    colFilt[k]=(vals||text)?{vals,text}:undefined;renderList(true)};
-  draw();
-  menu.onclick=e=>{e.stopPropagation();const a=e.target.dataset?.a;if(!a)return;
-    if(a==="asc"||a==="desc"){sortKey=k;sortDir=a==="asc"?1:-1;renderList(true);closeMenu()}
-    else if(a==="all"){[...list.querySelectorAll("input")].forEach(i=>allowed.add(i.value));draw();commit()}
-    else if(a==="none"){allowed.clear();draw();commit()}
-    else if(a==="reset"){colFilt[k]=undefined;renderList(true);closeMenu()}};
-  list.onchange=e=>{e.target.checked?allowed.add(e.target.value):allowed.delete(e.target.value);commit()};
-  search.oninput=draw;menu.querySelector(".cm-text").oninput=commit;
-  const b=btn.getBoundingClientRect();menu.hidden=false;
-  menu.style.top=(b.bottom+4)+"px";menu.style.left=Math.min(b.left,innerWidth-menu.offsetWidth-8)+"px";
-  menu.querySelector(".cm-text").focus();
+  TableKit.colMenu({key:"list:"+k,anchor:btn,values:TableKit.values(visible(baseSrc()),p=>cellVal(p,k)),filter:colFilt[k],
+    onFilter:f=>{colFilt[k]=f;renderList(true)},onSort:d=>{sortKey=k;sortDir=d;renderList(true)}});
 }
 $("#ltable thead").addEventListener("click",e=>{
   const th=e.target.closest("th[data-k]");if(!th||justDragged)return;e.stopPropagation();const k=th.dataset.k;
-  if(e.target.closest(".fbtn")){menuK===k?closeMenu():openMenu(k,e.target.closest(".fbtn"))}
+  if(e.target.closest(".fbtn"))openMenu(k,e.target.closest(".fbtn"));
   else{sortDir=sortKey===k?-sortDir:1;sortKey=k;renderList(true)}});
-document.addEventListener("click",e=>{if(!menu.hidden&&!menu.contains(e.target))closeMenu()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
-$("#clearColFilters").onclick=()=>{colFilt={};renderList(true)};
+$("#clearColFilters").onclick=$("#lClearCols").onclick=()=>{colFilt={};renderList(true)};
 
 
 // ----- drag headers to reorder columns (mouse, trackpad and touch)
@@ -780,18 +754,7 @@ document.addEventListener("pointerup",()=>{
 });
 
 
-// ----- list settings menu (hamburger): opens on hover, click pins it open, tap works on touch
-{
-  const hamb=$("#hamb"),hb=hamb.querySelector(".hamb-btn"),hm=hamb.querySelector(".hamb-menu");let timer=0,pinned=false;
-  const open=()=>{clearTimeout(timer);hm.hidden=false;hb.setAttribute("aria-expanded","true")};
-  const close=(d=0)=>{clearTimeout(timer);timer=setTimeout(()=>{hm.hidden=true;pinned=false;hb.setAttribute("aria-expanded","false")},d)};
-  hamb.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")open()});
-  hamb.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse"&&!pinned)close(450)});
-  hb.addEventListener("click",()=>{if(hm.hidden){open();pinned=true}else if(!pinned){pinned=true}else close(0)});
-  document.addEventListener("click",e=>{if(!hamb.contains(e.target)&&!hm.hidden)close(0)});
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!hm.hidden){close(0);hb.focus()}});
-  hm.addEventListener("click",e=>{const b=e.target.closest("button,label");if(!b||b.hasAttribute("data-keep")||b.disabled)return;close(120)});
-}
+// ----- list settings menu (⚙): wired by tablekit.js
 
 // ----- toolbar
 const COL_TITLES={parks:{name:"Name",d:"Designation",city:"Nearest City / Community",state:"State",visited:"Visited",year:"Year Last Visited",hl:"Highlights",pass:"State Park Passes"}};
