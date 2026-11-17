@@ -19,16 +19,25 @@
     const tot = y * 12 + (m - 1) + delta, ny = Math.floor(tot / 12), nm = tot - ny * 12 + 1;
     return { y: ny, m: nm, d: Math.min(d, dim(ny, nm)) };
   }
+  // A rolling window of N months releases arrival date A on the first day D whose "D + N months" reaches A. When A's day does not
+  // exist N months earlier (Aug 29-31 -> no Feb 29-31), that is the 1st of the next month: ReserveCalifornia's published example
+  // opens Aug 28 on Feb 28 and Aug 29-31 together on Mar 1 (parks.ca.gov/29676).
+  function rollingReleaseDay(y, m, d, months) {
+    const r = addMonths(y, m, 1, -months);
+    return d <= dim(r.y, r.m) ? { y: r.y, m: r.m, d } : addMonths(r.y, r.m, 1, 1);
+  }
   function addDays(isoStr, n) { const p = parseISO(isoStr), t = new Date(Date.UTC(p.y, p.m - 1, p.d + n)); return iso(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()); }
 
   // When does the booking for `arrival` (YYYY-MM-DD) open? -> { at: Date, from, to } or null
   function releaseFor(rule, arrival) {
     const a = parseISO(arrival), [h, mi] = rule.time ? hm(rule.time) : [0, 0];
-    if (rule.kind === "rolling") { const r = addMonths(a.y, a.m, a.d, -rule.months); return { at: ptInstant(r.y, r.m, r.d, h, mi), from: arrival, to: arrival }; }
+    if (rule.kind === "rolling") { const r = rollingReleaseDay(a.y, a.m, a.d, rule.months); return { at: ptInstant(r.y, r.m, r.d, h, mi), from: arrival, to: arrival }; }
     if (rule.kind === "days") { const r = parseISO(addDays(arrival, -rule.days)); return { at: ptInstant(r.y, r.m, r.d, h, mi), from: arrival, to: arrival }; }
     if (rule.kind === "monthly") {
       let by = a.y, bm = a.m; if (a.d < rule.blockStart) { const p = addMonths(a.y, a.m, 1, -1); by = p.y; bm = p.m; }
-      const r = addMonths(by, bm, rule.blockStart, -rule.monthsAhead), n = addMonths(by, bm, rule.blockStart, 1);
+      // "released N months in advance on the 15th": each release opens one month of arrivals whose last night is N months out
+      // (Yosemite, measured: the 10/15 release opened arrivals through 3/14, the 11/15 release through 4/14)
+      const r = addMonths(by, bm, rule.blockStart, -(rule.monthsAhead - 1)), n = addMonths(by, bm, rule.blockStart, 1);
       return { at: ptInstant(r.y, r.m, r.d, h, mi), from: iso(by, bm, rule.blockStart), to: addDays(iso(n.y, n.m, n.d), -1) };
     }
     return null;
@@ -43,10 +52,14 @@
     for (let guard = 0; out.length < count && guard < 800; guard++, day = addDays(day, 1)) {
       const dd = parseISO(day), at = ptInstant(dd.y, dd.m, dd.d, h, mi);
       if (at < from) continue;
-      if (rule.kind === "rolling") { const t = addMonths(dd.y, dd.m, dd.d, rule.months); const arr = iso(t.y, t.m, t.d); out.push({ at, from: arr, to: arr }); }
+      if (rule.kind === "rolling") {                                             // the nights this day opens: after (yesterday + N months) up to (today + N months)
+        const t = addMonths(dd.y, dd.m, dd.d, rule.months), y = parseISO(addDays(day, -1)), u = addMonths(y.y, y.m, y.d, rule.months);
+        const hi = iso(t.y, t.m, t.d), lo = addDays(iso(u.y, u.m, u.d), 1);
+        if (lo <= hi) out.push({ at, from: lo, to: hi });
+      }
       else if (rule.kind === "days") { const arr = addDays(day, rule.days); out.push({ at, from: arr, to: arr }); }
       else if (rule.kind === "monthly" && dd.d === rule.blockStart) {
-        const t = addMonths(dd.y, dd.m, rule.blockStart, rule.monthsAhead), n = addMonths(t.y, t.m, rule.blockStart, 1);
+        const t = addMonths(dd.y, dd.m, rule.blockStart, rule.monthsAhead - 1), n = addMonths(t.y, t.m, rule.blockStart, 1);
         out.push({ at, from: iso(t.y, t.m, rule.blockStart), to: addDays(iso(n.y, n.m, n.d), -1) });
       }
     }
@@ -64,9 +77,11 @@
     const t = rule.time ? (() => { const [h, mi] = hm(rule.time); return (h % 12 || 12) + ":" + pad(mi) + " " + (h < 12 ? "AM" : "PM") + " PT"; })() : "";
     if (rule.kind === "rolling") return rule.months + " months ahead, new day opens daily at " + t;
     if (rule.kind === "days") return rule.days + " days ahead, daily at " + t;
-    if (rule.kind === "monthly") return "Monthly on the " + rule.blockStart + "th at " + t + ": a month opens " + rule.monthsAhead + " month" + (rule.monthsAhead > 1 ? "s" : "") + " ahead";
+    if (rule.kind === "block" && !rule.through) return "Released in blocks: next season not released yet; release date not published";
+    if (rule.kind === "block") { const [y, m, d] = rule.through.split("-"); return (rule.season ? "Whole season released at once: open through " : "Released in blocks: open through ") + m + "/" + d + "/" + y + "; next release not published"; }
+    if (rule.kind === "monthly") return "Monthly on the " + rule.blockStart + "th at " + t + ": opens a month of arrivals reaching " + rule.monthsAhead + " month" + (rule.monthsAhead > 1 ? "s" : "") + " ahead (to the " + (rule.blockStart - 1) + "th)";
     return "No advance booking / rule not known";
   }
-  const api = { TZ, ptInstant, releaseFor, nextReleases, addMonths, addDays, monthsLabel, ruleText, iso, parseISO, tzOffsetMin };
+  const api = { TZ, ptInstant, releaseFor, nextReleases, addMonths, addDays, rollingReleaseDay, monthsLabel, ruleText, iso, parseISO, tzOffsetMin };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== "undefined" ? window : globalThis);

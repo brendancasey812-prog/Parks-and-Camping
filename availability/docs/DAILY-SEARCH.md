@@ -48,15 +48,21 @@ information supports, and opens a pull request for the owner to review. Nothing 
 In the pull request, list campgrounds that were added or dropped and any that changed site count, booking window or closure notice (`git diff data/federal.js`).
 A campground that Recreation.gov lists twice under different names goes in the `SAME` table in `tools/build_federal.py`, not in the data.
 
-## Booking windows (Recreation.gov), re-measured each run
-Recreation.gov does not publish most campgrounds' booking window, so it is read from each campground's availability calendar:
-the last night already open for booking against the first night "not yet released" (NYR). Run from `availability/`:
-`python3 -I tools/measure_windows.py data/federal.js <tmp>/windows.json`, then
-`python3 -I tools/booking_windows.py <tmp>/windows.json.jsonl data/windows.js YYYY-MM-DD <last release day>`
-(the last release day is today if it is after 7:00 AM Pacific, otherwise yesterday). Campgrounds whose next season is not
-released yet keep the 6-month default marked "(assumed)"; they become measurable as their season comes inside the window.
-List in the pull request any campground whose window changed. State parks: ReserveCalifornia's rule (6 months to the day,
-8:00 AM) is stated on parks.ca.gov/?page_id=29676; check it is unchanged.
+## Release patterns (Recreation.gov), re-measured every run
+Recreation.gov does not publish most campgrounds' booking rules, so they are read from each campground's booking calendar and
+compared with the previous week's reading (kept in `tools/readings/<release day>.jsonl`). Run from `availability/`:
+1. `python3 -I tools/measure_windows.py data/federal.js <tmp>/w.json` (writes `<tmp>/w.json.jsonl`, ~10 minutes).
+   Copy it to `tools/readings/<release day>.jsonl` (release day = today if it is after 7:00 AM Pacific, otherwise yesterday).
+2. `python3 -I tools/classify_releases.py tools/readings/<previous>.jsonl <previous day> tools/readings/<today>.jsonl <today> <tmp>/classes.json`
+3. `python3 -I tools/release_rules.py <tmp>/classes.json data/windows.js <previous day> <today>`
+4. Re-run the audit (the calendar edge must sit 1-15 nights past the last arrival the site says is open) and list in the pull request
+   every campground whose pattern changed: a block that moved (note the day it released: that is the block's release date), a
+   season that started releasing, a window that changed length.
+Patterns: rolling N months (the edge moves one night per day), Yosemite monthly blocks (the 15th opens arrivals through the 14th,
+N months out), fixed blocks (the edge stays put until the next block drops), whole season already open, not reservable.
+State parks: ReserveCalifornia opens each arrival 6 months to the day at 8:00 AM, a missing day rolling to the 1st of the next month
+(parks.ca.gov/29676); drawings for select sites at Malibu Creek, Morro Bay, McArthur-Burney Falls and the Steep Ravine cabins
+(apply up to 8 months ahead, drawing 7 months ahead; parks.ca.gov/31271). Check both pages are unchanged.
 
 ## State parks not on ReserveCalifornia's public pages
 ReserveCalifornia's full facility list is served by a separate booking service that the scheduled task does not use. New state campgrounds come from each park's
