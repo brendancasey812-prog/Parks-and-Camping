@@ -39,4 +39,14 @@ eq('Rule text',E.ruleText(RC),'6 months ahead, new day opens daily at 8:00 AM PT
 eq('Block rule text',E.ruleText({kind:'block',through:'2027-11-21'}),'Released in blocks: open through 11/21/2027; next release not published');
 eq('Block rule with nothing released',E.ruleText({kind:'block',through:null}),'Released in blocks: next season not released yet; release date not published');
 eq('Block rule has no computed release',String(E.releaseFor({kind:'block',through:'2027-11-21'},'2027-12-15')),'null');
+// "Bookable now through" (measured on Recreation.gov 11/16/2026 at 8:30 PM PT: 6-month rolling open through 5/16, Yosemite through 4/14)
+const t1=new Date('2026-11-17T04:30:00Z'),t2=new Date('2026-11-17T14:59:00Z'),t3=new Date('2026-11-17T15:00:00Z');
+eq('Bookable now: 6-month rolling on 11/16 evening is through May 16 2027',E.bookableThrough(R6,t1),'2027-05-16');
+eq('Bookable now: one minute before 7:00 AM still May 16',E.bookableThrough(R6,t2),'2027-05-16');
+eq('Bookable now: at 7:00 AM PST May 17 opens',E.bookableThrough(R6,t3),'2027-05-17');
+eq('Bookable now: ReserveCalifornia 8:00 AM release not yet at 7:00 AM',E.bookableThrough(RC,t3),'2027-05-16');
+eq('Bookable now: Yosemite after the 11/15 release is through Apr 14 2027',E.bookableThrough(Y,t1),'2027-04-14');
+eq('Bookable now: 7 days ahead',E.bookableThrough({kind:'days',days:7,time:'07:00'},t1),'2026-11-23');
+eq('Bookable now: fixed block',E.bookableThrough({kind:'block',through:'2027-11-21'},t1),'2027-11-21');
+eq('Bookable now: no rule',String(E.bookableThrough({kind:'none'},t1)),'null');
 console.log(n-f+'/'+n+' passed');process.exit(f?1:0);

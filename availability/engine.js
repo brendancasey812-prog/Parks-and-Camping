@@ -65,6 +65,22 @@
     }
     return out;
   }
+  // The furthest arrival date the public can book right now under `rule` (YYYY-MM-DD), or null when nothing is bookable ahead
+  function bookableThrough(rule, now) {
+    if (!rule) return null;
+    if (rule.kind === "block") return rule.through || null;
+    if (!["rolling", "days", "monthly"].includes(rule.kind)) return null;
+    const [h, mi] = rule.time ? hm(rule.time) : [0, 0], g = {};
+    fmtPT.formatToParts(now).forEach(x => g[x.type] = +x.value);
+    let day = iso(g.year, g.month, g.day);
+    if (now < ptInstant(g.year, g.month, g.day, h, mi)) day = addDays(day, -1);          // today's release has not happened yet
+    const d = parseISO(day);
+    if (rule.kind === "rolling") { const t = addMonths(d.y, d.m, d.d, rule.months); return iso(t.y, t.m, t.d); }
+    if (rule.kind === "days") return addDays(day, rule.days);
+    const rm = d.d >= rule.blockStart ? { y: d.y, m: d.m } : addMonths(d.y, d.m, 1, -1);    // the last monthly release (the 15th)
+    const e = addMonths(rm.y, rm.m, rule.blockStart, rule.monthsAhead);
+    return addDays(iso(e.y, e.m, e.d), -1);
+  }
   const monthName = m => ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
   function monthsLabel(arr) {                                                    // [10,11,12,1,2,3,4] -> "Oct–Apr"; [1..12] -> "Year-round"
     if (!arr) return ""; if (!arr.length) return "Closed"; if (arr.length === 12) return "Year-round";
@@ -82,6 +98,6 @@
     if (rule.kind === "monthly") return "Monthly on the " + rule.blockStart + "th at " + t + ": opens a month of arrivals reaching " + rule.monthsAhead + " month" + (rule.monthsAhead > 1 ? "s" : "") + " ahead (to the " + (rule.blockStart - 1) + "th)";
     return "No advance booking / rule not known";
   }
-  const api = { TZ, ptInstant, releaseFor, nextReleases, addMonths, addDays, rollingReleaseDay, monthsLabel, ruleText, iso, parseISO, tzOffsetMin };
+  const api = { TZ, ptInstant, releaseFor, nextReleases, addMonths, addDays, rollingReleaseDay, bookableThrough, monthsLabel, ruleText, iso, parseISO, tzOffsetMin };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== "undefined" ? window : globalThis);

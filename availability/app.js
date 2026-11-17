@@ -24,9 +24,10 @@ function fmtAt(date, withTime = true) {
 }
 const tzOpt = o => (st.tz === "pt" ? Object.assign(o, { timeZone: E.TZ }) : o);
 const fmtWd = d => d.toLocaleDateString([], tzOpt({ weekday: "short" }));
-const fmtDOnly = d => d.toLocaleDateString([], tzOpt({ month: "short", day: "numeric", year: "numeric" }));
+const fmtDOnly = d => d.toLocaleDateString("en-US", tzOpt({ month: "2-digit", day: "2-digit", year: "numeric" }));   // MM/DD/YYYY
+const isoMdy = iso => { const [y, m, d] = iso.split("-"); return m + "/" + d + "/" + y; };
 const fmtDay = d => d.toLocaleDateString([], tzOpt({ weekday: "short", month: "short", day: "numeric", year: "numeric" }));
-const fmtTime = d => d.toLocaleTimeString([], tzOpt({ hour: "numeric", minute: "2-digit", timeZoneName: "short" }));
+const fmtTime = d => d.toLocaleTimeString("en-US", tzOpt({ hour: "numeric", minute: "2-digit", timeZoneName: "short" }));   // 7:00 AM PST
 const timeKey = d => d.toLocaleTimeString("en-GB", tzOpt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }));
 const dateOf = iso => { const p = E.parseISO(iso); return new Date(p.y, p.m - 1, p.d, 12); };
 const fmtShort = iso => dateOf(iso).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
@@ -128,6 +129,23 @@ function calc(s) {
   const rel = E.releaseFor(s.rule, arrival); r.at = rel.at; r.from = rel.from; r.to = rel.to;
   r.status = rel.at <= now ? "open" : "later"; return r;
 }
+// how far ahead the public can book right now (the released dates), for one campground
+function thruOf(s) {
+  if (s.status === "closed") return { k: "closed", t: "Closed" };
+  if (s.system === "fcfs" || s.rule.kind === "none") return { k: "none", t: s.system === "fcfs" ? "No reservations (first-come)" : "Not known" };
+  const d = E.bookableThrough(s.rule, new Date());
+  if (!d) return { k: "none", t: "Not released yet" };
+  return { k: "date", d, t: isoMdy(d), assumed: s.check.includes("rule") };
+}
+// the next arrival date(s) to open, and when
+function nextOf(s) {
+  if (s.status === "closed" || s.system === "fcfs" || !["rolling", "days", "monthly"].includes(s.rule.kind)) return null;
+  const n = E.nextReleases(s.rule, new Date(), 1)[0]; return n || null;
+}
+const nextCell = s => { const n = nextOf(s); if (!n) return '<span class="nv">' + (s.rule.kind === "block" ? "Not published" : "—") + "</span>";
+  return "<b>" + esc(n.from === n.to ? isoMdy(n.from) : isoMdy(n.from) + " – " + isoMdy(n.to)) + "</b><small>opens " + esc(fmtDOnly(n.at) + " " + fmtTime(n.at)) + "</small>"; };
+const thruCell = s => { const x = thruOf(s); return x.k !== "date" ? '<span class="nv">' + esc(x.t) + "</span>" :
+  "<b>" + esc(x.t) + "</b><small>" + ({ block: s.rule.season ? "whole season released" : "released block", monthly: "monthly block; next on the " + s.rule.blockStart + "th", days: "moves daily" }[s.rule.kind] || "moves daily") + (x.assumed ? " (assumed rule)" : "") + "</small>"; };
 const hoursUntil = at => (at - new Date()) / 36e5;
 const STATUS_TEXT = { blockopen: "Open now (released in a block)", notyet: "Not released yet; next release date not published", past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
 function matches(s, c) {
@@ -208,7 +226,7 @@ function opensCell(s, c) {
 const NV = '<span class="nv">Not researched</span>', NF = '<span class="nv">Not found</span>';
 // ---------- column filters (Google Sheets style): per column, the values you untick are hidden ----------
 function opensBucket(c) { if (c.at) { if (c.status === "open") return "Open now"; const h = hoursUntil(c.at); return h <= 168 ? "Opens within 7 days" : h <= 720 ? "Opens within 30 days" : "Opens later"; } return STATUS_TEXT[c.status] || ""; }
-const PCOL = { name: x => splitName(x.p.name).name, camp: x => x.r.name, city: x => x.r.city || "Not found", des: x => splitName(x.p.name).des || "—", region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0],
+const PCOL = { name: x => splitName(x.p.name).name, camp: x => x.r.name, city: x => x.r.city || "Not found", thru: x => thruOf(x.r).t, next: x => { const n = nextOf(x.r); return n ? isoMdy(n.from) : "—"; }, des: x => splitName(x.p.name).des || "—", region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0],
   days: x => opensBucket((x.first || x.calcs[0]).c), wday: x => x.first ? fmtWd(x.first.c.at) : "—", date: x => x.first ? fmtDOnly(x.first.c.at) : "—", time: x => x.first ? fmtTime(x.first.c.at) : "—",
   openD: x => x.openD || "Not found", peakD: x => x.peakD ? peakDatesTxt(x.peakD) : "Not found", sites: x => x.sites == null ? "Not found" : String(x.sites),
   walk: x => x.walk || "Not researched", conf: x => confLabel(x.r) };
@@ -268,6 +286,8 @@ function opensParkCell(x) {
 const atOf = x => x.first ? x.first.c.at.getTime() : Infinity;
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], wdOf = x => x.first ? WD.indexOf(fmtWd(x.first.c.at).slice(0, 3)) : 9;
 const SORTP = {
+  next: (a, b) => { const k = x => { const n = nextOf(x.r); return n ? n.at.getTime() : Infinity; }; return k(a) - k(b) || a.r.name.localeCompare(b.r.name); },
+  thru: (a, b) => { const k = x => { const t = thruOf(x.r); return t.k === "date" ? t.d : "~"; }; return k(b).localeCompare(k(a)) || a.r.name.localeCompare(b.r.name); },
   name: (a, b) => splitName(a.p.name).name.localeCompare(splitName(b.p.name).name) || a.r.name.localeCompare(b.r.name), camp: (a, b) => a.r.name.localeCompare(b.r.name) || a.p.name.localeCompare(b.p.name), city: (a, b) => (a.r.city || "~").localeCompare(b.r.city || "~") || a.r.name.localeCompare(b.r.name), des: (a, b) => desOf(a.p.name).localeCompare(desOf(b.p.name)) || a.p.name.localeCompare(b.p.name),
   wday: (a, b) => wdOf(a) - wdOf(b) || atOf(a) - atOf(b), openD: (a, b) => (a.openD || "~").localeCompare(b.openD || "~"), peakD: (a, b) => { const k = x => { const r = peakDates(x.peakD); return r ? r[0].a.getTime() : Infinity; }; return k(a) - k(b) || (a.peakD || "~").localeCompare(b.peakD || "~"); },
   sites: (a, b) => (b.sites ?? -1) - (a.sites ?? -1),
@@ -301,10 +321,17 @@ function renderParks() {
       "</th>" + '<td data-l="Campground" class="cgc">' + starHtml(x.r) + '<a class="cg link-cell" href="#/park/' + esc(x.p.key) + "/" + esc(x.r.id) + '">' + esc(x.r.name) + "</a>" + (x.r.edited ? '<span class="tag edit">Edited</span>' : "") + "</td>" +
       '<td data-l="City">' + (x.r.city ? esc(x.r.city) : NF) + "</td>" +
       '<td data-l="Type">' + (nm.des ? '<abbr class="des" title="' + esc(DES_FULL[nm.des] || "Statewide") + '">' + esc(nm.des) + "</abbr>" : "") + '</td><td data-l="Region">' + esc(x.p.region) + '</td>' +
-      '<td data-l="Open season">' + (x.openD ? openCell(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? peakCell(x.peakD) : NF) + '</td><td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + '</td><td data-l="Booking site">' + esc(x.sys) + '</td><td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
-      '<td data-l="Days out">' + oc[0] + '</td><td data-l="Day">' + oc[1] + '</td><td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + '</td><td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td>' +
+      '<td data-l="Currently available through">' + thruCell(x.r) + "</td>" +
+      '<td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + "</td>" +
+      '<td data-l="Next date available">' + nextCell(x.r) + "</td>" +
+      '<td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
+      '<td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + "</td>" +
+      '<td data-l="Booking site">' + esc(x.sys) + "</td>" +
+      '<td data-l="Days out">' + oc[0] + '</td><td data-l="Day">' + oc[1] + "</td>" +
+      '<td data-l="Open season">' + (x.openD ? openCell(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? peakCell(x.peakD) : NF) + "</td>" +
+      '<td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td>' +
       '<td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(x.r)) + "</span></td></tr>";
-  }).join("") || '<tr><td colspan="16" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
+  }).join("") || '<tr><td colspan="18" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
   markFiltered("#parksTable", st.cf);
   $("#parksTable").classList.add("stack");
   $$("#parksTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; if (on) th.setAttribute("aria-sort", st.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
@@ -398,7 +425,7 @@ function renderPanel(x) {
   const dl = [
     ["Saved", starHtml(s).replace("data-star", 'data-star data-sid="' + esc(s.id) + '"') + (window.Saved && Saved.isCamp(s.id) ? "On your saved list (dashboard)" : "Star to add to your saved list")],
     ["Nearest city", s.city ? esc(s.city) : NF],
-    ["Opens for your date", opensCell(s, c)], ["Booking site", esc(sys.name)], ["How it opens", esc(ruleTxt(s))],
+    ["Opens for your date", opensCell(s, c)], ["Booking site", esc(sys.name)], ["How it opens", esc(ruleTxt(s))], ["Currently available through", thruCell(s)], ["Next date available", nextCell(s)],
     ["Season", openTxt(s) ? openCell(openTxt(s)) + (s.openNote ? "<small>" + esc(s.openNote) + "</small>" : "") : NV],
     ["Peak season", peakTxt(s) ? peakCell(peakTxt(s)) + (s.peakNote ? "<small>" + esc(s.peakNote) + "</small>" : "") : NV],
     ["Sites", s.sites == null ? NF + (s.sitesNote ? "<small>" + esc(s.sitesNote) + "</small>" : "") : esc(s.sites) + (s.sitesNote ? "<small>" + esc(s.sitesNote) + "</small>" : "")],
