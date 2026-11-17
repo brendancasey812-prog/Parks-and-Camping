@@ -69,6 +69,20 @@
 
   { const jc = S.find(s => s.id === "nps-joshua-tree-national-park-cottonwood"); if (jc) { jc.check = jc.check.filter(c => c !== "rule");
       jc.sources = [{ t: "Recreation.gov: Cottonwood (Joshua Tree): reservations \"can be made the same day or up to 6 months in advance\"; calendar open through mid-May 2027 on 11/17/2026", u: "https://www.recreation.gov/camping/campgrounds/272299" }].concat(jc.sources); } }
+  // audit 2026-11-17 (docs/AUDIT-2026-11-17-columns.md): each campground's own Recreation.gov record publishes its reservation window
+  const RGW = (rg, w) => ({ t: "Recreation.gov campground record: reservation window " + w + " (read 11/17/2026)", u: "https://www.recreation.gov/camping/campgrounds/" + rg });
+  [["seki-dorst", "232460", 1], ["nps-sequoia-kings-canyon-national-parks-atwell-mill", "10044710", 1], ["nps-sequoia-kings-canyon-national-parks-buckeye-flat", "249982", 1],
+   [SEKI + "moraine", "10044761", 1], [SEKI + "sheep-creek", "10044765", 1], [SEKI + "sunset", "234752", 1],
+   ["seki-lodgepole", "232461", 4], ["seki-azalea", "10124502", 4], [SEKI + "sentinel", "253917", 4]].forEach(([id, rg, m]) => {
+    const r = S.find(s => s.id === id); if (!r || r.rule.kind !== "rolling" || r.rule.months !== m) return;
+    r.check = r.check.filter(c => c !== "rule"); r.sources = [RGW(rg, m + (m === 1 ? " month" : " months"))].concat(r.sources); });
+  { const cs = S.find(s => s.id === "seki-cold-springs"); if (cs) { Object.assign(cs, { system: "rec", rule: { kind: "rolling", months: 1, time: "07:00" }, walkup: undefined, walkupNote: "" });
+      cs.check = cs.check.filter(c => c !== "rule"); if (!cs.check.includes("walkup")) cs.check.push("walkup"); cs.sources = [RGW("246864", "1 month; the 2027 calendar lists every night from 07/01/2027 as not yet released")].concat(cs.sources); } }
+  { const np = S.find(s => s.id === "yose-north-pines"); if (np) { np.rule = Object.assign({}, np.rule, { holdUntil: "2027-02-15", holdFrom: "2027-04-16" });
+      np.sources = [{ t: "NPS North Pines early access lottery: lottery 11/23-12/14/2026, early access 01/02-02/01/2027, remaining sites on general sale 02/15/2027 (arrivals through 07/14/2027), then 03/15, 04/15 and 05/15", u: "https://www.nps.gov/yose/planyourvisit/lottery.htm" }].concat(np.sources); } }
+  [["yose-camp4", "Camp 4: one week ahead on a rolling daily window (7 days before arrival), mid-April to late November"],
+   ["yose-tuolumne", "Tuolumne Meadows: half the sites released two months ahead on the 15th, the other half on a rolling 14-day window"]].forEach(([id, t]) => {
+    const r = S.find(s => s.id === id); if (r) { r.check = r.check.filter(c => c !== "rule"); r.sources = [{ t: "NPS Yosemite campground reservations (read 11/17/2026): " + t, u: "https://www.nps.gov/yose/planyourvisit/camping.htm" }].concat(r.sources); } });
   { const c4 = S.find(s => s.id === "yose-camp4"); if (c4) { c4.resMonths = [4, 5, 6, 7, 8, 9, 10, 11]; c4.walkupNote = "Reservations one week ahead from mid-April through mid to late November; first-come the rest of the year (NPS)"; } }
 
   // ---------- state parks ----------

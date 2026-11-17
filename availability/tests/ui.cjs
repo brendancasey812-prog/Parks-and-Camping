@@ -97,6 +97,13 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
    return hs.slice(i+1,i+9).join('|')==='thru|date|time|next|rule|sites|sys|days'});
  await check('dates are MM/DD/YYYY and the next date to open is shown with when it opens',async()=>{const r=await prow(h,'nps-joshua-tree-national-park-ryan');
    return /^\d\d\/\d\d\/20\d\d/.test(r['Currently available through'])&&/^\d\d\/\d\d\/20\d\dopens \d\d\/\d\d\/20\d\d \d{1,2}:00 [AP]M P[SD]T$/.test(r['Next date available'])});
+ await check('a campground closed for the season says so instead of a bookable date',async()=>{const r=await prow(h,'nps-yosemite-national-park-crane-flat');
+   return /^Closed for the season/.test(r['Currently available through'])&&/^Closed for the season/.test(r['Next date available'])});
+ await check('North Pines: nothing on general sale until the 02/15/2027 release after the lottery',async()=>{const r=await prow(h,'yose-north-pines');
+   return r['Currently available through']==='Not released yet'&&/^04\/16\/2027 – 07\/14\/2027opens 02\/15\/2027 7:00 AM PST$/.test(r['Next date available'])});
+ await check('sorting by Open time puts campgrounds with no time last',async()=>{const q=await open();await q.click('#parksTable thead th[data-k="time"] button');await q.waitForTimeout(150);
+   const t=await q.$$eval('#parksBody tr[data-id] td[data-l="Open time"]',a=>a.map(x=>x.textContent.trim()));const i=t.indexOf('—');await q.context().close();
+   return i>0&&t.slice(i).every(x=>x==='—')});
  await check('sort by Sites puts the biggest first',async()=>{await h.click('#parksTable th[data-k=sites] .fb');await h.click('.cmenu [data-cm=asc]');await h.waitForTimeout(150);const n=await h.$$eval('#parksBody td[data-l=Sites]',a=>a.slice(0,3).map(x=>parseInt(x.childNodes[0].textContent.replace(/,/g,''))));
    await h.click('#parksTable th[data-k=name] .fb');await h.click('.cmenu [data-cm=asc]');return n[0]>=n[1]&&n[1]>=n[2]&&n[0]>300});
  await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);

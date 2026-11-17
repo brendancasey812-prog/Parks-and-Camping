@@ -49,4 +49,12 @@ eq('Bookable now: Yosemite after the 11/15 release is through Apr 14 2027',E.boo
 eq('Bookable now: 7 days ahead',E.bookableThrough({kind:'days',days:7,time:'07:00'},t1),'2026-11-23');
 eq('Bookable now: fixed block',E.bookableThrough({kind:'block',through:'2027-11-21'},t1),'2027-11-21');
 eq('Bookable now: no rule',String(E.bookableThrough({kind:'none'},t1)),'null');
+// North Pines 2027: no general sale before 02/15/2027; that release opens 04/16 through 07/14/2027 (NPS lottery page)
+{const NP=Object.assign({},Y,{holdUntil:'2027-02-15',holdFrom:'2027-04-16'});const n=E.nextReleases(NP,t1,2);
+eq('Hold: nothing bookable before the general sale',String(E.bookableThrough(NP,t1)),'null');
+eq('Hold: first release is 02/15/2027 7:00 AM PT for 04/16-07/14/2027',n[0].at.toISOString()+' '+n[0].from+' '+n[0].to,'2027-02-15T15:00:00.000Z 2027-04-16 2027-07-14');
+eq('Hold: then the 03/15 release as usual',n[1].from+' '+n[1].to,'2027-07-15 2027-08-14');
+eq('Hold: a May arrival opens on 02/15/2027',E.releaseFor(NP,'2027-05-20').at.toISOString(),'2027-02-15T15:00:00.000Z');
+eq('Hold: after the hold, through the normal block edge',E.bookableThrough(NP,new Date('2027-03-16T20:00:00Z')),'2027-08-14');
+eq('Rule text: 1 month is singular',E.ruleText({kind:'rolling',months:1,time:'07:00'}).slice(0,13),'1 month ahead');}
 console.log(n-f+'/'+n+' passed');process.exit(f?1:0);

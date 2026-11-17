@@ -135,16 +135,25 @@ function thruOf(s) {
   if (s.system === "fcfs" || s.rule.kind === "none") return { k: "none", t: s.system === "fcfs" ? "No reservations (first-come)" : "Not known" };
   const d = E.bookableThrough(s.rule, new Date());
   if (!d) return { k: "none", t: "Not released yet" };
-  return { k: "date", d, t: isoMdy(d), assumed: s.check.includes("rule") };
+  return { k: "date", d, t: isoMdy(d), assumed: s.check.includes("rule"), off: offSeason(s, d) };
+}
+// true when every month from today through `thru` is outside the campground's open months: the window reaches those dates but nothing can be booked
+function offSeason(s, thru) {
+  if (!s.open || !s.open.length || s.open.length === 12) return false;
+  const months = s.resMonths || s.open, t = E.parseISO(thru), g = {}; new Intl.DateTimeFormat("en-US", tzOpt({ year: "numeric", month: "numeric" })).formatToParts(new Date()).forEach(x => g[x.type] = +x.value);
+  for (let y = g.year, m = g.month; y < t.y || (y === t.y && m <= t.m); m === 12 ? (y++, m = 1) : m++) if (months.includes(m)) return false;
+  return true;
 }
 // the next arrival date(s) to open, and when
 function nextOf(s) {
   if (s.status === "closed" || s.system === "fcfs" || !["rolling", "days", "monthly"].includes(s.rule.kind)) return null;
   const n = E.nextReleases(s.rule, new Date(), 1)[0]; return n || null;
 }
-const nextCell = s => { const n = nextOf(s); if (!n) return '<span class="nv">' + (s.rule.kind === "block" ? "Not published" : "—") + "</span>";
+const reopens = s => E.monthsLabel(s.resMonths || s.open).split(/[–,]/)[0];
+const nextCell = s => { const n = nextOf(s), x = n && thruOf(s); if (x && x.off) return '<span class="nv">Closed for the season</span><small>reopens ' + esc(reopens(s)) + "</small>"; if (!n) return '<span class="nv">' + (s.rule.kind === "block" ? "Not published" : "—") + "</span>";
   return "<b>" + esc(n.from === n.to ? isoMdy(n.from) : isoMdy(n.from) + " – " + isoMdy(n.to)) + "</b><small>opens " + esc(fmtDOnly(n.at) + " " + fmtTime(n.at)) + "</small>"; };
 const thruCell = s => { const x = thruOf(s); return x.k !== "date" ? '<span class="nv">' + esc(x.t) + "</span>" :
+  x.off ? '<span class="nv">Closed for the season</span><small>window reaches ' + esc(x.t) + "; reopens " + esc(reopens(s)) + "</small>" :
   "<b>" + esc(x.t) + "</b><small>" + ({ block: s.rule.season ? "whole season released" : "released block", monthly: "monthly block; next on the " + s.rule.blockStart + "th", days: "moves daily" }[s.rule.kind] || "moves daily") + (x.assumed ? " (assumed rule)" : "") + "</small>"; };
 const hoursUntil = at => (at - new Date()) / 36e5;
 const STATUS_TEXT = { blockopen: "Open now (released in a block)", notyet: "Not released yet; next release date not published", past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
@@ -216,7 +225,7 @@ const peakText = s => s.peak ? E.monthsLabel(s.peak) : "";
 const ruleTxt = s => E.ruleText(s.rule) + (s.check.includes("rule") && s.rule.kind !== "none" ? " (assumed)" : "");
 function opensCell(s, c) {
   if (c.at) {
-    const span = c.from !== c.to ? '<span class="when-t">Dates ' + esc(fmtShort(c.from)) + " to " + esc(fmtShort(c.to)) + "</span>" : "";
+    const span = c.from !== c.to ? '<span class="when-t">Dates ' + esc(isoMdy(c.from)) + " to " + esc(isoMdy(c.to)) + "</span>" : "";
     if (c.status === "open") return '<span class="st open">Open now</span><span class="when-t">Opened ' + esc(fmtAt(c.at)) + "</span>" + span;
     return '<span class="st later" data-cd="' + c.at.getTime() + '" data-pre="Opens ">Opens ' + esc(countdown(c.at)) + '</span><span class="when-t">' + esc(fmtAt(c.at)) + "</span>" + span;
   }
@@ -275,7 +284,7 @@ function opensCells(x) {          // days out | date | time, for the first campg
   const varies = x.varies ? '<span class="when-t">Varies by campground</span>' : "";
   if (!x.first) { const c = x.calcs[0].c; return ['<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>", '<span class="nv">—</span>', '<span class="nv">—</span>', '<span class="nv">—</span>']; }
   const c = x.first.c, d = c.status === "open" ? '<span class="st open">Open now</span>' : '<span class="st later" data-cd="' + c.at.getTime() + '" data-bare>' + esc(countdown(c.at).replace(/^in /, "")) + "</span>";
-  const span = c.from !== c.to ? '<span class="when-t">Dates ' + esc(fmtShort(c.from)) + " to " + esc(fmtShort(c.to)) + "</span>" : "";
+  const span = c.from !== c.to ? '<span class="when-t">Dates ' + esc(isoMdy(c.from)) + " to " + esc(isoMdy(c.to)) + "</span>" : "";
   return [d + varies, esc(fmtWd(c.at)), esc(fmtDOnly(c.at)) + span, esc(fmtTime(c.at))];
 }
 function opensParkCell(x) {
@@ -292,7 +301,7 @@ const SORTP = {
   wday: (a, b) => wdOf(a) - wdOf(b) || atOf(a) - atOf(b), openD: (a, b) => (a.openD || "~").localeCompare(b.openD || "~"), peakD: (a, b) => { const k = x => { const r = peakDates(x.peakD); return r ? r[0].a.getTime() : Infinity; }; return k(a) - k(b) || (a.peakD || "~").localeCompare(b.peakD || "~"); },
   sites: (a, b) => (b.sites ?? -1) - (a.sites ?? -1),
   days: (a, b) => atOf(a) - atOf(b) || a.p.name.localeCompare(b.p.name), date: (a, b) => atOf(a) - atOf(b) || a.p.name.localeCompare(b.p.name),
-  time: (a, b) => (a.first ? timeKey(a.first.c.at) : "~").localeCompare(b.first ? timeKey(b.first.c.at) : "~") || atOf(a) - atOf(b), region: (a, b) => a.p.region.localeCompare(b.p.region) || a.p.name.localeCompare(b.p.name), sys: (a, b) => a.sys.localeCompare(b.sys) || a.p.name.localeCompare(b.p.name),
+  time: (a, b) => { const k = x => x.first ? timeKey(x.first.c.at) : null, ka = k(a), kb = k(b); return (ka === null) - (kb === null) || (ka && kb ? ka.localeCompare(kb) : 0) || atOf(a) - atOf(b); }, region: (a, b) => a.p.region.localeCompare(b.p.region) || a.p.name.localeCompare(b.p.name), sys: (a, b) => a.sys.localeCompare(b.sys) || a.p.name.localeCompare(b.p.name),
   rule: (a, b) => a.rules[0].localeCompare(b.rules[0]), opens: (a, b) => (a.first ? a.first.c.at.getTime() : Infinity) - (b.first ? b.first.c.at.getTime() : Infinity) || a.p.name.localeCompare(b.p.name),
   walk: (a, b) => a.walk.localeCompare(b.walk), n: (a, b) => b.n - a.n, conf: (a, b) => b.researched / b.n - a.researched / a.n
 };

@@ -38,10 +38,15 @@
       // "released N months in advance on the 15th": each release opens one month of arrivals whose last night is N months out
       // (Yosemite, measured: the 10/15 release opened arrivals through 3/14, the 11/15 release through 4/14)
       const r = addMonths(by, bm, rule.blockStart, -(rule.monthsAhead - 1)), n = addMonths(by, bm, rule.blockStart, 1);
-      return { at: ptInstant(r.y, r.m, r.d, h, mi), from: iso(by, bm, rule.blockStart), to: addDays(iso(n.y, n.m, n.d), -1) };
+      let at = ptInstant(r.y, r.m, r.d, h, mi);
+      const hold = holdAt(rule); if (hold && at < hold) at = hold;              // no general sale before the hold date (North Pines lottery year)
+      return { at, from: iso(by, bm, rule.blockStart), to: addDays(iso(n.y, n.m, n.d), -1) };
     }
     return null;
   }
+  // rule.holdUntil (YYYY-MM-DD): the monthly releases before that date do not happen; that day's release opens every arrival
+  // from rule.holdFrom through its normal block (Yosemite North Pines 2027: early-access lottery first, general sale from Feb 15)
+  function holdAt(rule) { if (!rule.holdUntil) return null; const p = parseISO(rule.holdUntil), [h, mi] = rule.time ? hm(rule.time) : [0, 0]; return ptInstant(p.y, p.m, p.d, h, mi); }
   // Next `count` release moments at or after `from` (a Date), and which arrival dates each one opens
   function nextReleases(rule, from, count) {
     const out = [], [h, mi] = rule.time ? hm(rule.time) : [0, 0];
@@ -59,8 +64,9 @@
       }
       else if (rule.kind === "days") { const arr = addDays(day, rule.days); out.push({ at, from: arr, to: arr }); }
       else if (rule.kind === "monthly" && dd.d === rule.blockStart) {
+        const hold = holdAt(rule); if (hold && at < hold) continue;
         const t = addMonths(dd.y, dd.m, rule.blockStart, rule.monthsAhead - 1), n = addMonths(t.y, t.m, rule.blockStart, 1);
-        out.push({ at, from: iso(t.y, t.m, rule.blockStart), to: addDays(iso(n.y, n.m, n.d), -1) });
+        out.push({ at, from: hold && at.getTime() === hold.getTime() && rule.holdFrom ? rule.holdFrom : iso(t.y, t.m, rule.blockStart), to: addDays(iso(n.y, n.m, n.d), -1) });
       }
     }
     return out;
@@ -77,6 +83,7 @@
     const d = parseISO(day);
     if (rule.kind === "rolling") { const t = addMonths(d.y, d.m, d.d, rule.months); return iso(t.y, t.m, t.d); }
     if (rule.kind === "days") return addDays(day, rule.days);
+    const hold = holdAt(rule); if (hold && now < hold) return null;              // nothing on general sale yet
     const rm = d.d >= rule.blockStart ? { y: d.y, m: d.m } : addMonths(d.y, d.m, 1, -1);    // the last monthly release (the 15th)
     const e = addMonths(rm.y, rm.m, rule.blockStart, rule.monthsAhead);
     return addDays(iso(e.y, e.m, e.d), -1);
@@ -91,11 +98,12 @@
   }
   function ruleText(rule) {
     const t = rule.time ? (() => { const [h, mi] = hm(rule.time); return (h % 12 || 12) + ":" + pad(mi) + " " + (h < 12 ? "AM" : "PM") + " PT"; })() : "";
-    if (rule.kind === "rolling") return rule.months + " months ahead, new day opens daily at " + t;
+    if (rule.kind === "rolling") return rule.months + (rule.months === 1 ? " month" : " months") + " ahead, new day opens daily at " + t;
     if (rule.kind === "days") return rule.days + " days ahead, daily at " + t;
     if (rule.kind === "block" && !rule.through) return "Released in blocks: next season not released yet; release date not published";
     if (rule.kind === "block") { const [y, m, d] = rule.through.split("-"); return (rule.season ? "Whole season released at once: open through " : "Released in blocks: open through ") + m + "/" + d + "/" + y + "; next release not published"; }
-    if (rule.kind === "monthly") return "Monthly on the " + rule.blockStart + "th at " + t + ": opens a month of arrivals reaching " + rule.monthsAhead + " month" + (rule.monthsAhead > 1 ? "s" : "") + " ahead (to the " + (rule.blockStart - 1) + "th)";
+    if (rule.kind === "monthly") return "Monthly on the " + rule.blockStart + "th at " + t + ": opens a month of arrivals reaching " + rule.monthsAhead + " month" + (rule.monthsAhead > 1 ? "s" : "") + " ahead (to the " + (rule.blockStart - 1) + "th)" +
+      (rule.holdUntil ? "; this season's general sale starts " + rule.holdUntil.slice(5, 7) + "/" + rule.holdUntil.slice(8) + "/" + rule.holdUntil.slice(0, 4) + " (after the early-access lottery)" : "");
     return "No advance booking / rule not known";
   }
   const api = { TZ, ptInstant, releaseFor, nextReleases, addMonths, addDays, rollingReleaseDay, bookableThrough, monthsLabel, ruleText, iso, parseISO, tzOffsetMin };

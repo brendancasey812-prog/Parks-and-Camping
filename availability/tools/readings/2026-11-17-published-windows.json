@@ -1,0 +1,522 @@
+{
+"10004152": {
+"name": "Camp 4",
+"reservationWindow": [
+{
+"value": 7,
+"units": "Days",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10044710": {
+"name": "Atwell Mill Campground",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10044761": {
+"name": "Moraine Campground (CA)",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10044765": {
+"name": "Sheep Creek Campground",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10083567": {
+"name": "White Wolf Campground",
+"reservationWindow": [
+{
+"value": 14,
+"units": "Days",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10083831": {
+"name": "Porcupine Flat Campground",
+"reservationWindow": [
+{
+"value": 14,
+"units": "Days",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10083840": {
+"name": "Yosemite Creek Campground",
+"reservationWindow": [
+{
+"value": 14,
+"units": "Days",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10083845": {
+"name": "Tamarack Flat Campground",
+"reservationWindow": [
+{
+"value": 14,
+"units": "Days",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10124445": {
+"name": "Crystal Springs Campground (CA)",
+"reservationWindow": [
+{
+"value": 2,
+"units": "Days",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10124502": {
+"name": "Azalea Campground",
+"reservationWindow": [
+{
+"value": 4,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10124953": {
+"name": "Wolverton Stock Campsites",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10220609": {
+"name": "Wawona Horse Campsites",
+"reservationWindow": [
+{
+"value": 5,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10220612": {
+"name": "Meeks Bay Resort",
+"reservationWindow": [
+{
+"value": 11,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10305353": {
+"name": "Badgers Den at Camp Richardson Resort",
+"reservationWindow": [
+{
+"value": 12,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10305438": {
+"name": "Eagles Nest at Camp Richardson Resort",
+"reservationWindow": [
+{
+"value": 12,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10305470": {
+"name": "RV Village Campground at Camp Richardson Resort",
+"reservationWindow": [
+{
+"value": 12,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10309566": {
+"name": "Gold Lake 4 X 4 Campground",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10346420": {
+"name": "Tuolumne Horse Campsites",
+"reservationWindow": [
+{
+"value": 2,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10386715": {
+"name": "Cedar Grove Stock Campsite",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"10390880": {
+"name": "Bridalveil Creek Horse Campsites",
+"reservationWindow": [
+{
+"value": 2,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"232446": {
+"name": "Wawona Campground",
+"reservationWindow": [
+{
+"value": 5,
+"units": "",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232447": {
+"name": "Upper Pines Campground",
+"reservationWindow": [
+{
+"value": 5,
+"units": "",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232448": {
+"name": "Tuolumne Meadows Campground",
+"reservationWindow": [
+{
+"value": 2,
+"units": "",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232449": {
+"name": "North Pines Campground",
+"reservationWindow": [
+{
+"value": 5,
+"units": "",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232450": {
+"name": "Lower Pines Campground",
+"reservationWindow": [
+{
+"value": 5,
+"units": "",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232451": {
+"name": "Hodgdon Meadow Campground",
+"reservationWindow": [
+{
+"value": 5,
+"units": "",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232452": {
+"name": "Crane Flat Campground",
+"reservationWindow": [
+{
+"value": 14,
+"units": "Days",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232453": {
+"name": "Bridalveil Creek Campground",
+"reservationWindow": [
+{
+"value": 14,
+"units": "Days",
+"secondary_value": "",
+"start_date": "2016-01-01T00:00:00Z",
+"end_date": "2099-01-01T00:00:00Z",
+"description": "5 months to be released at a time"
+}
+]
+},
+"232460": {
+"name": "Dorst Creek Campground-Sequoia and Kings Canyon National Park",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"232461": {
+"name": "Lodgepole Campground-Sequoia and Kings Canyon National Park",
+"reservationWindow": [
+{
+"value": 4,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"232498": {
+"name": "SANTA CRUZ ISLAND SCORPION",
+"reservationWindow": [
+{
+"value": 6,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"233359": {
+"name": "Point Reyes National Seashore Campground",
+"reservationWindow": [
+{
+"value": 3,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"234752": {
+"name": "SUNSET CAMPGROUND (CA)",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"234753": {
+"name": "CANYON VIEW GROUP SITES",
+"reservationWindow": [
+{
+"value": 4,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"246864": {
+"name": "Cold Springs Campground (CA)",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"249979": {
+"name": "POTWISHA CAMPGROUND",
+"reservationWindow": [
+{
+"value": 4,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"249982": {
+"name": "BUCKEYE FLAT CAMPGROUND",
+"reservationWindow": [
+{
+"value": 1,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"251008": {
+"name": "Crystal Springs Campground Mid-Sized Group Sites",
+"reservationWindow": [
+{
+"value": 4,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"253917": {
+"name": "Sentinel Campground",
+"reservationWindow": [
+{
+"value": 4,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+},
+"258815": {
+"name": "Hawk Campground",
+"reservationWindow": [
+{
+"value": 6,
+"units": "Months",
+"secondary_value": "",
+"start_date": "0001-01-01T00:00:00Z",
+"end_date": "0001-01-01T00:00:00Z",
+"description": ""
+}
+]
+}
+}
