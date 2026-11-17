@@ -55,4 +55,16 @@ window.PERMITS = [
       { id: "np-lottery", label: "Early-access lottery (2027 season)", kind: "oneTime", open: "2026-11-23T07:00", close: "2026-12-14T21:00", results: "Booking 01/02/2027 – 02/01/2027", what: "", note: "" }
     ],
     sources: [{ t: "Recreation.gov: North Pines Campground (2027 early-access lottery)", u: "https://www.recreation.gov/camping/campgrounds/232449" }, { t: "NPS: North Pines early-access lottery", u: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm" }] }
+,
+  { id: "ca-drawings", name: "California State Parks reservation drawings", park: "California State Parks", system: "ReserveCalifornia", url: "https://www.reservecalifornia.com/",
+    summary: "", fees: "", group: "", conf: "good", check: ["exact drawing dates for each arrival date are listed on ReserveCalifornia"],
+    openingsYear: "Every arrival date (California State Parks)",
+    openings: [
+      { name: "Reservation drawing", open: "Up to 8 months before arrival", time: "—", close: "Drawing held 7 months before arrival", release: "Email after the drawing; winners pay within 30 days", hike: "Select sites at Malibu Creek, Morro Bay, Burney Falls (mid-May – Labor Day); Steep Ravine cabins", permits: "Select sites" },
+      { name: "Unclaimed sites", open: "6 months before arrival", time: "8:00 AM", close: "Until booked", release: "Instant", hike: "Same sites", permits: "Whatever the drawing left" }
+    ],
+    phases: [
+      { id: "cad-draw", label: "Reservation drawing", kind: "monthsBefore", openMonths: 8, closeMonths: 7, release: { months: 6, time: "08:00" }, results: "Email after the drawing; 30 days to pay", what: "", note: "" }
+    ],
+    sources: [{ t: "parks.ca.gov: Reservation Drawing FAQs", u: "https://www.parks.ca.gov/31271" }, { t: "parks.ca.gov: Steep Ravine drawing pilot (news release)", u: "https://www.parks.ca.gov/NewsRelease/1235" }] }
 ];

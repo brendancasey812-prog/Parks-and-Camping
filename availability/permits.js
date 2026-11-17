@@ -30,6 +30,10 @@ function compute(p, D, now) {
     r.approx = true;
   } else if (p.kind === "days") {
     r.open = at(E.addDays(D, -p.days), p.time);
+  } else if (p.kind === "monthsBefore") {                                         // e.g. a drawing: apply from N months before arrival until M months before
+    const a = E.parseISO(D.slice(0, 10)), o = E.rollingReleaseDay(a.y, a.m, a.d, p.openMonths), c = E.rollingReleaseDay(a.y, a.m, a.d, p.closeMonths);
+    r.open = at(E.iso(o.y, o.m, o.d), p.time || "00:00"); r.close = at(E.iso(c.y, c.m, c.d), p.time || "00:00"); r.approx = true;
+    if (p.release) { const l = E.rollingReleaseDay(a.y, a.m, a.d, p.release.months); r.extra = [["Unclaimed sites open", at(E.iso(l.y, l.m, l.d), p.release.time), false]]; }
   } else if (p.kind === "oneTime") {
     const f = s => { const [d, t] = s.split("T"); return at(d, t); }; r.open = f(p.open); r.close = f(p.close);
   }

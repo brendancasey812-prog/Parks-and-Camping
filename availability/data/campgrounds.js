@@ -58,6 +58,19 @@
    ["seki-dorst", 1], ["seki-cold-springs", 1], [SEKI + "buckeye-flat", 1], [SEKI + "sunset", 1], [SEKI + "sheep-creek", 1], [SEKI + "moraine", 1]]
     .forEach(([id, m]) => fix(id, { rule: { kind: "rolling", months: m, time: "07:00" }, check: ["rule"] }));
 
+  // booking windows measured on the Recreation.gov booking calendar (read 11/09 and 11/17/2026: the last night open for booking vs the first not yet released, and whether that edge moved day by day)
+  const CAL = (id, rg, note) => [{ t: "Recreation.gov booking calendar, read 11/09 and 11/17/2026: " + note, u: "https://www.recreation.gov/camping/campgrounds/" + rg }];
+  const calFix = (id, rule, rg, note, o) => { const r = S.find(s => s.id === id); if (!r) return; Object.assign(r, { rule, check: r.check.filter(c => c !== "rule") }, o || {}); r.sources = CAL(id, rg, note).concat(r.sources); };
+  calFix("pinn-campground", { kind: "rolling", months: 12, time: "07:00" }, "234015", "rolling 12 months, a new night each day (open through 11/08/2027 on 11/09 and through 11/16/2027 on 11/17)");
+  calFix("nps-golden-gate-national-recreation-area-kirby-cove", { kind: "rolling", months: 6, time: "07:00" }, "232491", "rolling 6 months, a new night each day (the edge moved forward day by day between 11/09 and 11/17)");
+  calFix("deva-furnace-creek", { kind: "block", through: "2027-11-21" }, "232496", "released in a block: open through 11/21/2027 on both 11/09 and 11/17/2026, so the edge does not move daily; the date the next block (from 11/22/2027) opens is not published");
+  ["moja-fcfs--mid-hills", "moja-fcfs--hole-in-the-wall"].forEach((id, i) => calFix(id, { kind: "rolling", months: 6, time: "07:00" }, ["10332703", "10332664"][i],
+    "sites can be reserved 6 months ahead (open through 05/08/2027)", { system: "rec", walkup: "some", walkupNote: "Some sites may still be first-come; check the campground page" }));
+
+  { const jc = S.find(s => s.id === "nps-joshua-tree-national-park-cottonwood"); if (jc) { jc.check = jc.check.filter(c => c !== "rule");
+      jc.sources = [{ t: "Recreation.gov: Cottonwood (Joshua Tree): reservations \"can be made the same day or up to 6 months in advance\"; calendar open through mid-May 2027 on 11/17/2026", u: "https://www.recreation.gov/camping/campgrounds/272299" }].concat(jc.sources); } }
+  { const c4 = S.find(s => s.id === "yose-camp4"); if (c4) { c4.resMonths = [4, 5, 6, 7, 8, 9, 10, 11]; c4.walkupNote = "Reservations one week ahead from mid-April through mid to late November; first-come the rest of the year (NPS)"; } }
+
   // ---------- state parks ----------
   // campgrounds named on each park's parks.ca.gov page that were missing, and rows that carried the park's name instead of the campground's (2026-11-02)
   const PCS = (pid, park) => [{ t: "parks.ca.gov: " + park, u: "https://www.parks.ca.gov/?page_id=" + pid }];
@@ -72,6 +85,8 @@
   const more = (likeId, pid, park, list) => list.forEach(([n, note, open]) => add(likeId, n, {}, { openDates: open || "", peakDates: SP, sites: null, sitesNote: note || "count not found", src: PCS(pid, park) }));
   more("sp-monta-a-de-oro-state-park-monta-a-de-oro", 592, "Montaña de Oro State Park", [["Hazard Canyon Horse Camp", "equestrian sites"]]);
   more("sp-borrego-palm", 638, "Anza-Borrego Desert State Park", [["Vern Whitaker Horse Camp", "equestrian sites"], ["Blair Valley", "primitive, first-come"], ["Culp Valley", "primitive, first-come"], ["Mountain Palm Springs", "primitive, first-come"], ["Sheep Canyon", "primitive, first-come"]]);
+  ["blair-valley", "culp-valley", "mountain-palm-springs", "sheep-canyon"].forEach(k => { const r = S.find(s => s.id === "sp-borrego-palm-" + k) || S.find(s => s.id.endsWith("-" + k) && /Anza-Borrego/.test(s.park));
+    if (r) Object.assign(r, { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: "Primitive camp: first-come, no reservations (parks.ca.gov)", check: r.check.filter(c => c !== "rule" && c !== "walkup") }); });
   more("sp-butano-state-park-butano", 536, "Butano State Park", [["Butano Trail Camp", "8 backcountry sites"]]);
   more("sp-cuyamaca-rancho-state-park-paso-picacho-green-valley--paso-picacho", 667, "Cuyamaca Rancho State Park", [["Los Caballos Horse Camp", "equestrian sites"]]);
   more("sp-emerald-bay-state-park-eagle-point", 506, "Emerald Bay State Park", [["Boat-in Campground", "boat-in only", "Summer (closed for the 2026 season)"]]);
@@ -152,5 +167,15 @@
   ST(555, "Turlock Lake State Recreation Area", "Central Valley", [["Turlock Lake", null, "Year-round (reservations late Mar – mid-Sep; walk-in the rest of the year)", "plus hike-and-bike sites", { check: ["peak"] }]]);
   ST(537, "Lake Del Valle State Recreation Area", "Bay Area", [["Del Valle", null, "", "RV hookups, group sites", COUNTY("East Bay Regional Park District", "https://www.ebparks.org/parks/del-valle")]]);
   ST(430, "Tolowa Dunes State Park", "North Coast", [["Tolowa Dunes", null, "Closed until further notice"]]);
+  // reservation drawings and reservation-only seasons (parks.ca.gov, read 11/17/2026)
+  const DRAW = { t: "parks.ca.gov: Reservation Drawing FAQs", u: "https://www.parks.ca.gov/31271" };
+  const drawNote = "Select sites go to a reservation drawing: apply up to 8 months ahead, drawing about 7 months ahead, winners pay within 30 days; unclaimed sites open in the usual 6-month window at 8:00 AM.";
+  ["sp-malibu-creek-state-park-malibu-creek", "sp-morro-bay-state-park-morro-bay", "sp-mcarthur-burney-falls-memorial-state-park-mcarthur-burney-falls", "sp-mount-tamalpais-state-park-pantoll-steep-ravine--steep-ravine"].forEach(id => {
+    const r = S.find(s => s.id === id); if (!r) return; r.notes = (r.notes ? r.notes + " " : "") + (id.endsWith("steep-ravine") ? drawNote.replace("Select sites go", "The 10 cabins go") : drawNote); r.sources = [DRAW].concat(r.sources); });
+  const resSeason = (id, months, note, src) => { const r = S.find(s => s.id === id); if (!r) return; r.resMonths = months; r.walkupNote = note; r.sources = [src].concat(r.sources); };
+  resSeason("sp-mcarthur-burney-falls-memorial-state-park-mcarthur-burney-falls", [5, 6, 7, 8, 9], "Advance reservations generally mid-May to Labor Day; first-come the rest of the year", DRAW);
+  resSeason("sp-cuyamaca-rancho-state-park-paso-picacho-green-valley--paso-picacho", [4, 5, 6, 7, 8, 9, 10, 11], "Reservations Apr 1 – Nov 30; first-come Dec 1 – Mar 31", PCS(667, "Cuyamaca Rancho State Park")[0]);
+  resSeason("sp-palomar-mountain-state-park-doane-valley", [4, 5, 6, 7, 8, 9, 10, 11], "Reservations Apr 1 – Nov 30; first-come Dec 1 – Mar 31", PCS(637, "Palomar Mountain State Park")[0]);
+  resSeason("sp-turlock-lake-state-recreation-area-turlock-lake", [3, 4, 5, 6, 7, 8, 9], "Reservations late March to mid-September (6 months ahead); walk-in the rest of the year", PCS(555, "Turlock Lake State Recreation Area")[0]);
   ST(519, "Candlestick Point State Recreation Area", "Bay Area", [["Sunrise Point Campground", null, "", "named on the park page; details not found"]]);
 })();

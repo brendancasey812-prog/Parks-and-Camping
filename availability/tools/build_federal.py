@@ -142,6 +142,7 @@ SAME = {"232460": ["seki-dorst"], "232461": ["seki-lodgepole"], "232498": ["chis
   "272248": ["nps-whiskeytown-national-recreation-area-brandy-creek-dry-creek-peltier-bridge"], "272243": ["nps-whiskeytown-national-recreation-area-brandy-creek-dry-creek-sheep-camp"],
   "259181": ["sp-prairie-creek-redwoods-state-park-gold-bluffs-beach"], "259179": ["sp-jedediah-smith"], "10172170": ["nps-golden-gate-national-recreation-area-rob-hill-campground-presidio"],
   "233381": ["nps-santa-monica-mountains-national-recreation-area-circle-x-ranch-group-camp"],
+  "272299": ["nps-joshua-tree-national-park-cottonwood"],
   "233359": ["pore-backcountry--coast-camp", "pore-backcountry--glen-camp", "pore-backcountry--sky-camp", "pore-backcountry--wildcat-camp"]}
 NOTCAMP = re.compile(r"picnic|day use|anchoring", re.I)
 FOREST_REGION = {c["name"]: c["region"] for c in cur if c["park"].startswith("All campgrounds in the forest")}
@@ -173,7 +174,8 @@ for r in fed:
     k = nkey(r["name"])
     hit = None
     for c in have.get(k, []):
-        if (r.get("parent_name") or "")[:8].lower() in c["park"].lower() or c["park"][:8].lower() in (r.get("parent_name") or "").lower(): hit = c; break
+        pn = (r.get("parent_name") or "").lower()
+        if pn and (pn[:8] in c["park"].lower() or c["park"][:8].lower() in pn): hit = c; break   # an empty park name matches nothing
     if hit: matched[hit["id"]] = eid; continue
     ag = agency(r); rl, known = rule(r)
     reservable = bool(r.get("reservable"))

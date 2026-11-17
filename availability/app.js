@@ -124,11 +124,12 @@ function calc(s) {
   if (s.status === "closed") { r.status = "closed"; return r; }
   if (s.resMonths && !s.resMonths.includes(monthOf(arrival))) { r.status = "walk"; return r; }
   if (s.rule.kind === "none") { r.status = s.system === "fcfs" ? "fcfs" : "unknown"; return r; }
+  if (s.rule.kind === "block") { r.status = s.rule.through && arrival <= s.rule.through ? "blockopen" : "notyet"; r.through = s.rule.through; return r; }   // released in fixed blocks
   const rel = E.releaseFor(s.rule, arrival); r.at = rel.at; r.from = rel.from; r.to = rel.to;
   r.status = rel.at <= now ? "open" : "later"; return r;
 }
 const hoursUntil = at => (at - new Date()) / 36e5;
-const STATUS_TEXT = { past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
+const STATUS_TEXT = { blockopen: "Open now (released in a block)", notyet: "Not released yet; next release date not published", past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
 function matches(s, c) {
   const q = st.q.trim().toLowerCase();
   if (q && !(s.name + " " + s.park + " " + s.region + " " + s.agency + " " + (s.city || "") + " " + SYSTEMS[s.system].name).toLowerCase().includes(q)) return false;
@@ -140,7 +141,7 @@ function matches(s, c) {
   const m = monthOf(st.target);
   if (st.avail) {
     const a = st.avail;
-    if (a === "open" && c.status !== "open") return false;
+    if (a === "open" && c.status !== "open" && c.status !== "blockopen") return false;
     if (a === "7d" && !(c.status === "later" && hoursUntil(c.at) <= 168)) return false;
     if (a === "30d" && !(c.status === "later" && hoursUntil(c.at) <= 720)) return false;
     if (a === "later" && c.status !== "later") return false;
@@ -201,6 +202,7 @@ function opensCell(s, c) {
     if (c.status === "open") return '<span class="st open">Open now</span><span class="when-t">Opened ' + esc(fmtAt(c.at)) + "</span>" + span;
     return '<span class="st later" data-cd="' + c.at.getTime() + '" data-pre="Opens ">Opens ' + esc(countdown(c.at)) + '</span><span class="when-t">' + esc(fmtAt(c.at)) + "</span>" + span;
   }
+  if (c.status === "blockopen") return '<span class="st open">Open now</span><span class="when-t">Released in a block through ' + esc(fmtShort(c.through)) + "</span>";
   return '<span class="st none">' + esc(STATUS_TEXT[c.status] || "") + "</span>";
 }
 const NV = '<span class="nv">Not researched</span>', NF = '<span class="nv">Not found</span>';
