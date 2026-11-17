@@ -15,13 +15,23 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('overview loads without errors',async()=>(await parks(p)).length>=30&&p.errs.length===0);
  await check('no emoji or pictographs on any view',async()=>{let ok=true;for(const h of ['#/','#/permits','#/data',PARK]){await p.goto(URL_+h);await p.waitForTimeout(250);const t=await p.evaluate(()=>document.body.innerText);if(/[\u{1F300}-\u{1FAFF}☀-➿⭐⏰]/u.test(t))ok=false}return ok});
  await p.goto(URL_);await p.waitForTimeout(300);await p.evaluate(()=>document.getElementById('filters').open=true);
- await check('walk-up filter keeps only parks with walk-up',async()=>{await p.uncheck('#fUnk');await p.selectOption('#fWalk','any');await p.waitForTimeout(150);const r=await parks(p);return r.length>0&&r.every(t=>/walk-up/i.test(t))});
- await check('clear filters restores all',async()=>{const a=(await parks(p)).length;await p.click('#clear');await p.waitForTimeout(150);return (await parks(p)).length>a});
+ // extra filters live behind the settings (gear) button; column filters stay in the headings
+ const gear=async q=>{if(await q.$eval('#fsheet',e=>e.hidden))await q.click('#fsBtn');await q.waitForTimeout(120)};
+ const ungear=async q=>{if(!(await q.$eval('#fsheet',e=>e.hidden)))await q.click('#fsDone');await q.waitForTimeout(120)};
+ const clearAll=async q=>{await gear(q);await q.click('#fsClear');await ungear(q)};
+ const find=async(q,t)=>{await q.fill('#q',t);await q.press('#q','Enter');await q.waitForTimeout(150)};
+ const unfind=async q=>{await q.fill('#q','');await q.waitForTimeout(120)};
+ await check('one settings (gear) button holds the extra filters; no filter row or filter bar in the page',async()=>{
+   const page=!(await p.isVisible('#parksTable tr.frow'))&&!(await p.isVisible('#fWalk'))&&!(await p.isVisible('#vParks .tbl-top'));await gear(p);
+   const inPanel=await p.isVisible('#fsheet #fWalk')&&await p.isVisible('#fsheet #kindTabs')&&await p.isVisible('#fsheet #sugg')&&await p.isVisible('#fsheet #csv')&&!(await p.isVisible('#fsheet #target'));await ungear(p);
+   return page&&inPanel&&await p.isVisible('#target')});
+ await check('walk-up filter keeps only parks with walk-up',async()=>{await gear(p);await p.uncheck('#fUnk');await p.selectOption('#fWalk','any');await ungear(p);await p.waitForTimeout(150);const r=await parks(p);return r.length>0&&r.every(t=>/walk-up/i.test(t))});
+ await check('clear filters restores all',async()=>{const a=(await parks(p)).length;await clearAll(p);await p.waitForTimeout(150);return (await parks(p)).length>a});
  await check('search text filters parks',async()=>{await p.fill('#q','yosemite');await p.press('#q','Enter');await p.waitForTimeout(200);const r=await parks(p);return r.length>=1&&r.every(t=>/yosemite/i.test(t))});
  await check('natural-language search sets filters',async()=>{await p.fill('#q','walk-up sites in July');await p.press('#q','Enter');await p.waitForTimeout(200);return (await p.inputValue('#fWalk'))==='any'&&(await p.$$('#chips *')).length>0});
- await p.click('#clear');
+ await clearAll(p);
  await check('column sort toggles',async()=>{await p.click('#parksTable th[data-k=name] button');await p.waitForTimeout(100);return (await p.getAttribute('#parksTable th[data-k=name]','aria-sort'))==='descending'||(await p.getAttribute('#parksTable th[data-k=name]','aria-sort'))==='ascending'});
- await check('CSV export downloads',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),p.click('#csv')]);return /\.csv$/.test(d.suggestedFilename())});
+ await check('CSV export downloads',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),(async()=>{await gear(p);await p.click('#csv')})()]);await ungear(p);return /\.csv$/.test(d.suggestedFilename())});
  await p.goto(URL_+PARK);await p.waitForTimeout(300);
  await check('park page lists campgrounds in a table',async()=>(await camps(p)).length>=8&&/Yosemite/.test(await p.textContent('#parkName')));
  await check('campground name filter',async()=>{await p.fill('#cq','pines');await p.waitForTimeout(150);const r=await camps(p);return r.length>=2&&r.every(t=>/pines/i.test(t))});
@@ -82,11 +92,11 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
    const f=await h.$eval('#parksBody tr[data-id^="rg-"] td[data-l=City]',x=>x.textContent.trim());return b.City==='Boulder Creek'&&f.length>1&&f!=='Not found'});
  await check('every Recreation.gov campground is listed (800+ campgrounds; BLM & Army Corps tab; forest-wide rows gone)',async()=>{const t=await h.textContent('#parksSub'),k=await h.textContent('#kindTabs');
    return +t.match(/with (\d+) campground/)[1]>=800&&/BLM & Army Corps/.test(k)&&!(await h.$('#parksBody tr[data-id^="usfs-all-campgrounds"]'))});
- await check('star saves a campground; "Saved only" shows the saved list; star again removes it',async()=>{await h.fill('#fName','pinnacles');await h.waitForTimeout(150);
+ await check('star saves a campground; "Saved only" shows the saved list; star again removes it',async()=>{await find(h,'pinnacles');
    const was=(await h.evaluate(()=>JSON.parse(localStorage.getItem('savedCamps')||'[]').length));await h.click('#parksBody tr[data-id=pinn-campground] [data-star]');await h.waitForTimeout(100);
    const on=await h.getAttribute('#parksBody tr[data-id=pinn-campground] [data-star]','aria-pressed'),n1=await h.evaluate(()=>JSON.parse(localStorage.getItem('savedCamps')).length);
-   await h.fill('#fName','');await h.selectOption('#fSaved','1');await h.waitForTimeout(150);const ids=await h.$$eval('#parksBody tr[data-id]',a=>a.map(r=>r.dataset.id));
-   await h.click('#parksBody tr[data-id=pinn-campground] [data-star]');await h.waitForTimeout(100);const gone=!(await h.$('#parksBody tr[data-id=pinn-campground]'));await h.selectOption('#fSaved','');await h.waitForTimeout(100);
+   await unfind(h);await gear(h);await h.selectOption('#fSaved','1');await ungear(h);await h.waitForTimeout(150);const ids=await h.$$eval('#parksBody tr[data-id]',a=>a.map(r=>r.dataset.id));
+   await h.click('#parksBody tr[data-id=pinn-campground] [data-star]');await h.waitForTimeout(100);const gone=!(await h.$('#parksBody tr[data-id=pinn-campground]'));await gear(h);await h.selectOption('#fSaved','');await ungear(h);await h.waitForTimeout(100);
    return on==='true'&&n1===was+1&&ids.includes('pinn-campground')&&ids.includes('chis-scorpion')&&gone});
  await check('Bookable now through: furthest bookable date per campground (rolling moves daily; Furnace Creek block through Nov 21 2027; first-come says no reservations)',async()=>{
    const v=await h.evaluate(()=>{const g=id=>{const c=document.querySelector('#parksBody tr[data-id="'+id+'"] td[data-l="Currently available through"]');return c?c.textContent:null};return [g('deva-furnace-creek'),g('nps-joshua-tree-national-park-ryan'),g('jotr-fcfs--belle')]});
@@ -106,15 +116,15 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
    return i>0&&t.slice(i).every(x=>x==='—')});
  await check('sort by Sites puts the biggest first',async()=>{await h.click('#parksTable th[data-k=sites] .fb');await h.click('.cmenu [data-cm=asc]');await h.waitForTimeout(150);const n=await h.$$eval('#parksBody td[data-l=Sites]',a=>a.slice(0,3).map(x=>parseInt(x.childNodes[0].textContent.replace(/,/g,''))));
    await h.click('#parksTable th[data-k=name] .fb');await h.click('.cmenu [data-cm=asc]');return n[0]>=n[1]&&n[1]>=n[2]&&n[0]>300});
- await check('type tabs: State parks shows only state designations',async()=>{await h.click('#kindTabs [data-kind=state]');await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);
-   const ok=t.length>0&&t.every(x=>/^S/.test(x)||x==='NP & SP');await h.click('#kindTabs [data-kind=""]');return ok&&await h.getAttribute('#kindTabs [data-kind=""]','aria-pressed')==='true'});
- await check('header filter row: Region select narrows rows',async()=>{await h.selectOption('#fRegion','Bay Area');await h.waitForTimeout(150);const r=await h.$$eval('#parksBody td[data-l=Region]',a=>[...new Set(a.map(x=>x.textContent))]);await h.selectOption('#fRegion','');return JSON.stringify(r)==='["Bay Area"]'});
- await check('header filter row: Type select (NF) and park text filter',async()=>{await h.selectOption('#fDes','NF');await h.waitForTimeout(150);const n=(await parks(h)).length;await h.selectOption('#fDes','');
-   await h.fill('#fName','pinnacles');await h.waitForTimeout(150);const m=await parks(h);await h.fill('#fName','');await h.waitForTimeout(100);return n>=1&&m.length===1&&/Pinnacles/.test(m[0])});
+ await check('type tabs (in settings): State parks shows only state designations',async()=>{await gear(h);await h.click('#kindTabs [data-kind=state]');await ungear(h);await h.waitForTimeout(150);const t=await h.$$eval('#parksBody td[data-l=Type]',a=>[...new Set(a.map(x=>x.textContent))]);
+   const ok=t.length>0&&t.every(x=>/^S/.test(x)||x==='NP & SP');await gear(h);await h.click('#kindTabs [data-kind=""]');await ungear(h);return ok&&await h.getAttribute('#kindTabs [data-kind=""]','aria-pressed')==='true'});
+ await check('settings: Region narrows rows',async()=>{await gear(h);await h.selectOption('#fRegion','Bay Area');await ungear(h);await h.waitForTimeout(150);const r=await h.$$eval('#parksBody td[data-l=Region]',a=>[...new Set(a.map(x=>x.textContent))]);await gear(h);await h.selectOption('#fRegion','');await ungear(h);return JSON.stringify(r)==='["Bay Area"]'});
+ await check('settings: Type (NF), and the search box',async()=>{await gear(h);await h.selectOption('#fDes','NF');await ungear(h);await h.waitForTimeout(150);const n=(await parks(h)).length;await gear(h);await h.selectOption('#fDes','');await ungear(h);
+   await find(h,'pinnacles');const m=await parks(h);await unfind(h);return n>=1&&m.length===1&&/Pinnacles/.test(m[0])});
  await check('campground table: researched dates and sites; panel lists the sources',async()=>{await h.goto(URL_+'#/park/yosemite-national-park/yose-camp4');await h.waitForTimeout(300);
    const r=await h.$eval('#campBody tr[data-id=yose-camp4]',r=>[...r.children].map(c=>c.textContent));const pn=await h.textContent('#panel');await h.goto(URL_+'#/');await h.waitForTimeout(250);
    return /Apr 15 – Nov 29/.test(r[2])&&/^61/.test(r[5])&&/Sites61/.test(pn.replace(/\s/g,''))&&/NPS Yosemite campgrounds table/.test(pn)});
- await check('More filters opens Season / month / peak',async()=>{await h.click('#filters summary');return await h.isVisible('#fSeason')&&await h.isVisible('#fMonth')});
+ await check('settings has Season / month / peak',async()=>{await gear(h);const ok=await h.isVisible('#fSeason')&&await h.isVisible('#fMonth');await ungear(h);return ok});
  // ---- permits: search, location, status
  await h.goto(URL_+'#/permits');await h.waitForTimeout(300);
  const pm=()=>h.$$eval('#pmAll tbody tr',a=>a.map(r=>r.textContent));

@@ -659,7 +659,7 @@ $("#campBody").addEventListener("keydown", e => { const td = e.target.closest("t
 // ---------- setup and render ----------
 function syncFields() { Object.keys(FIELD).forEach(id => $("#" + id).value = st[FIELD[id]] || ""); $("#fName").value = st.q; $("#fUnk").checked = st.unk !== false; $("#q").value = st.q; }
 // filters: every filter box gets a clear (x) button while it is set, and on phones the column filters fold behind a "Column filters" button
-const FXSEL = ".frow select, .frow input, #filters select, #fsheet select, #cq";
+const FXSEL = ".frow select, .frow input, #filters select, #fsheet select:not(#tz), #cq";
 function decorateFilters() {
   $$(FXSEL).forEach(el => {
     let x = el.nextElementSibling; if (!x || !x.classList.contains("fx")) {
@@ -678,7 +678,7 @@ document.addEventListener("click", e => { const x = e.target.closest(".fx"); if 
 document.addEventListener("input", e => { if (e.target.matches && e.target.matches(FXSEL)) decorateFilters(); });
 $("#fToggle").addEventListener("click", () => { const t = $("#parksTable"), on = !t.classList.contains("fopen"); t.classList.toggle("fopen", on); $("#fToggle").setAttribute("aria-expanded", String(on));
   if (matchMedia("(max-width:700px)").matches) $("#filters").open = on; });   // phones: one Filters button opens every filter (column filters and season / month / peak)
-// ---------- phones: one Filters sheet ----------
+// ---------- one settings panel (gear) on every screen size ----------
 // The trip date, park type tabs, quick picks, every column filter and the season filters are moved into #fsheet on phones,
 // and back to their places on wider screens. Their own event handlers keep working because the elements themselves move.
 const PHONE = matchMedia("(max-width:700px)");
@@ -686,10 +686,10 @@ const FS_PARTS = [];
 function fsPart(el, sec, label) { if (!el) return; const home = document.createComment("fs-home"); el.before(home); FS_PARTS.push({ el, home, sec, label }); }
 fsPart($(".bar .when"), "when"); fsPart($("#kindTabs"), "type"); fsPart($("#sugg"), "quick");
 ["fSaved", "fDes", "fRegion", "fSys", "fAvail", "fWalk", "fConf"].forEach(id => { const el = $("#" + id); if (el) fsPart(el.parentElement, "cols", el.getAttribute("aria-label")); });
-fsPart($("#filters .more-b"), "more");
+fsPart($("#filters .more-b"), "more"); fsPart($("#csv"), "data");
 function fsPlace() {
   FS_PARTS.forEach(p => {
-    if (PHONE.matches) {
+    if (PHONE.matches || p.sec !== "when") {          // desktops keep the trip date in the top bar; everything else lives in the settings panel
       const sec = $('#fsheet [data-s="' + p.sec + '"]'), host = p.sec === "cols" ? sec.querySelector(".fs-grid") : sec;
       if (p.label && !p.wrap) { p.wrap = document.createElement("label"); p.wrap.className = "fs-field"; p.wrap.innerHTML = "<span>" + esc(p.label) + "</span>"; }
       if (p.wrap) { p.wrap.append(p.el); host.append(p.wrap); } else host.append(p.el);

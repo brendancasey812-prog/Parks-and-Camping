@@ -315,3 +315,37 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
   .fs-f .btn{flex:1;min-height:46px;justify-content:center;font-weight:700}
 }
 @media(max-width:860px){.tbl.stack td *{white-space:normal!important}}
+
+/* ---------- settings panel (gear) on desktops too: same pieces as the phone sheet, as a panel at the top right ---------- */
+.fsbtn .gear{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;transition:transform .3s}
+.fsbtn[aria-expanded=true] .gear,.fsbtn:hover .gear{transform:rotate(45deg)}
+.fsbtn .count-pill{margin-left:.15rem}
+@media(max-width:700px){.fsbtn::before{display:none!important}.fsbtn{padding:0 .7rem}}
+@media(min-width:701px){
+  .fsbtn{display:inline-flex;align-items:center;gap:.3rem;flex:none;height:44px;padding:0 .8rem;border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--ink);font:600 .85rem var(--font);cursor:pointer}
+  .fsbtn:hover,.fsbtn[aria-expanded=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  #vParks .tbl-top,#vParks > .sugg,#parksTable thead tr.frow,#parksTable.fopen thead tr.frow{display:none!important}
+  .fsheet:not([hidden]){display:flex;flex-direction:column;position:fixed;top:70px;right:16px;width:400px;z-index:100;max-height:calc(100vh - 90px);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 48px -16px rgba(0,0,0,.45)}
+  /* the sheet */
+  .fs-scrim:not([hidden]){display:block;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.18)}
+  .fs-h{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem .4rem}.fs-h h2{margin:0;font-size:1.1rem}
+  .fs-x{width:36px;height:36px;border:0;border-radius:50%;background:var(--hover);color:var(--ink);cursor:pointer}
+  .fs-b{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 1rem .6rem}
+  .fs-s{padding:.7rem 0;border-top:1px solid var(--line)}.fs-s:first-child{border-top:0}
+  .fs-s h3{margin:0 0 .5rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .fs-s .when{display:flex;gap:.6rem}.fs-s .mini{flex:1;font-size:.75rem}
+  .fs-s .ktabs,.fs-s .sugg{flex-wrap:wrap;overflow:visible;margin:0;padding:0;gap:.4rem}
+  .fs-s .ktabs button,.fs-s .sugg button{min-height:34px;font-size:.82rem;white-space:normal}
+  .fs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
+  .fs-field{display:flex;flex-direction:column;gap:.25rem;position:relative;font-size:.72rem;font-weight:600;color:var(--muted)}
+  .fs-field select{width:100%;min-width:0;min-height:40px;padding:0 .5rem;border:1px solid var(--line-2);border-radius:10px;background:var(--bg);color:var(--ink);font:.88rem var(--font)}
+  .fs-field .fx{top:auto;bottom:9px;transform:none}
+  .fs-s .more-b{position:static;display:grid;gap:.6rem;width:100%;padding:0;border:0;box-shadow:none;background:none}
+  .fs-f{display:flex;gap:.6rem;padding:.7rem 1rem calc(.7rem + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .fs-f .btn{flex:1;min-height:46px;justify-content:center;font-weight:700}
+
+  .fs-f{padding:.7rem 1rem}
+  .fs-s #csv{width:100%;justify-content:center}
+}
+.fs-s #csv{min-height:40px}
+@media(min-width:701px){.fs-s[data-s=when]{display:none}.fs-s[data-s=type]{border-top:0}}
