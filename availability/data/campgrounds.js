@@ -37,7 +37,7 @@
   split("lavo-summit", [["Summit Lake North", 46, "Summer (about late Jun – Sep)", "", "NPS 2026"], ["Summit Lake South", 48, "", "", "NPS 2026"]]);
   add("nps-lassen-volcanic-national-park-butte-lake", "Juniper Lake", {}, { openDates: "Closed; work in progress to reopen", peakDates: "Jul – Aug", sites: 18, sitesNote: "plus 2 group sites (also closed)", src: [{ t: "NPS Lassen campgrounds", u: "https://www.nps.gov/lavo/planyourvisit/camping-in-campgrounds.htm" }] });
   add("nps-yosemite-national-park-white-wolf", "Tamarack Flat", { rule: { kind: "days", days: 14, time: "07:00" }, conf: "good", check: [] }, { openDates: "Jun 22 – Oct 12, 2026", peakDates: "Jul – Aug", sites: 52, sitesNote: "tent-only; booked 2 weeks ahead", src: [{ t: "NPS Yosemite campgrounds table (2026)", u: "https://www.nps.gov/yose/planyourvisit/campgrounds.htm" }] });
-  add("nps-sequoia-kings-canyon-national-parks-sentinel", "Atwell Mill", { rule: { kind: "rolling", months: 1, time: "07:00" } }, { openDates: "May 20 – Oct 13, 2026", peakDates: "Jun – Aug", sites: 19, sitesNote: "tent-only; Mineral King; Recreation.gov inventory", src: [{ t: "Recreation.gov: Atwell Mill", u: "https://www.recreation.gov/camping/campgrounds/10044710" }, { t: "thedyrt sequoia kings canyon guide" }] });
+  add("nps-sequoia-kings-canyon-national-parks-sentinel", "Atwell Mill", { rule: { kind: "rolling", months: 1, time: "05:00" } }, { openDates: "May 20 – Oct 13, 2026", peakDates: "Jun – Aug", sites: 19, sitesNote: "tent-only; Mineral King; Recreation.gov inventory", src: [{ t: "Recreation.gov: Atwell Mill", u: "https://www.recreation.gov/camping/campgrounds/10044710" }, { t: "thedyrt sequoia kings canyon guide" }] });
   add("nps-channel-islands-national-park-santa-barbara-island-landing-cove", "Anacapa Island", { park: "Channel Islands National Park (Anacapa Island)" }, { openDates: "Year-round", peakDates: "Jun – Sep", sites: 7, sitesNote: "no water", src: [{ t: "hipcamp channel islands" }] });
   split("nps-whiskeytown-national-recreation-area-brandy-creek-dry-creek-group", [["Brandy Creek RV", 15, "Year-round", "", "all reservable"], ["Brandy Creek Primitive", 2, "Mid-Apr – Oct", "", "tent-only"], ["Dry Creek Group", 2, "Early Apr – Oct", "", "group sites for 20–50 people"]]);
 
@@ -52,19 +52,19 @@
   ["crane-flat", "white-wolf", "yosemite-creek", "porcupine-flat", "bridalveil-creek"].forEach(k =>
     fix("nps-yosemite-national-park-" + k, { rule: { kind: "days", days: 14, time: "07:00" }, conf: "good", check: [], sources: [{ t: "NPS Yosemite campgrounds table (2026)", u: "https://www.nps.gov/yose/planyourvisit/campgrounds.htm" }] }));
   ["yose-upper-pines", "yose-lower-pines", "yose-north-pines", "yose-wawona", "yose-hodgdon", "yose-tuolumne", "yose-camp4"].forEach(id => { const r = S.find(s => s.id === id); if (r) { r.conf = "good"; r.check = r.check.filter(c => c !== "season"); r.sources = [{ t: "NPS Yosemite campgrounds table (2026)", u: "https://www.nps.gov/yose/planyourvisit/campgrounds.htm" }].concat(r.sources); } });
-  // Sequoia & Kings Canyon: Recreation.gov booking windows (rolling; release time assumed 7:00 AM Pacific)
+  // Sequoia & Kings Canyon: Recreation.gov booking windows (rolling; release time 5:00 AM Pacific, measured 11/18/2026)
   const SEKI = "nps-sequoia-kings-canyon-national-parks-";
   [["seki-lodgepole", 4], [SEKI + "potwisha", 4], ["seki-azalea", 4], [SEKI + "canyon-view", 4], [SEKI + "sentinel", 4],
    ["seki-dorst", 1], ["seki-cold-springs", 1], [SEKI + "buckeye-flat", 1], [SEKI + "sunset", 1], [SEKI + "sheep-creek", 1], [SEKI + "moraine", 1]]
-    .forEach(([id, m]) => fix(id, { rule: { kind: "rolling", months: m, time: "07:00" }, check: ["rule"] }));
+    .forEach(([id, m]) => fix(id, { rule: { kind: "rolling", months: m, time: "05:00" }, check: ["rule"] }));
 
   // booking windows measured on the Recreation.gov booking calendar (read 11/09 and 11/17/2026: the last night open for booking vs the first not yet released, and whether that edge moved day by day)
   const CAL = (id, rg, note) => [{ t: "Recreation.gov booking calendar, read 11/09 and 11/17/2026: " + note, u: "https://www.recreation.gov/camping/campgrounds/" + rg }];
   const calFix = (id, rule, rg, note, o) => { const r = S.find(s => s.id === id); if (!r) return; Object.assign(r, { rule, check: r.check.filter(c => c !== "rule") }, o || {}); r.sources = CAL(id, rg, note).concat(r.sources); };
-  calFix("pinn-campground", { kind: "rolling", months: 12, time: "07:00" }, "234015", "rolling 12 months, a new night each day (open through 11/08/2027 on 11/09 and through 11/16/2027 on 11/17)");
-  calFix("nps-golden-gate-national-recreation-area-kirby-cove", { kind: "rolling", months: 6, time: "07:00" }, "232491", "rolling 6 months, a new night each day (the edge moved forward day by day between 11/09 and 11/17)");
+  calFix("pinn-campground", { kind: "rolling", months: 12, time: "05:00" }, "234015", "rolling 12 months, a new night each day (open through 11/08/2027 on 11/09 and through 11/16/2027 on 11/17)");
+  calFix("nps-golden-gate-national-recreation-area-kirby-cove", { kind: "rolling", months: 6, time: "05:00" }, "232491", "rolling 6 months, a new night each day (the edge moved forward day by day between 11/09 and 11/17)");
   calFix("deva-furnace-creek", { kind: "block", through: "2027-11-21" }, "232496", "released in a block: open through 11/21/2027 on both 11/09 and 11/17/2026, so the edge does not move daily; the date the next block (from 11/22/2027) opens is not published");
-  ["moja-fcfs--mid-hills", "moja-fcfs--hole-in-the-wall"].forEach((id, i) => calFix(id, { kind: "rolling", months: 6, time: "07:00" }, ["10332703", "10332664"][i],
+  ["moja-fcfs--mid-hills", "moja-fcfs--hole-in-the-wall"].forEach((id, i) => calFix(id, { kind: "rolling", months: 6, time: "05:00" }, ["10332703", "10332664"][i],
     "sites can be reserved 6 months ahead (open through 05/08/2027)", { system: "rec", walkup: "some", walkupNote: "Some sites may still be first-come; check the campground page" }));
 
   { const jc = S.find(s => s.id === "nps-joshua-tree-national-park-cottonwood"); if (jc) { jc.check = jc.check.filter(c => c !== "rule");
@@ -76,7 +76,7 @@
    ["seki-lodgepole", "232461", 4], ["seki-azalea", "10124502", 4], [SEKI + "sentinel", "253917", 4]].forEach(([id, rg, m]) => {
     const r = S.find(s => s.id === id); if (!r || r.rule.kind !== "rolling" || r.rule.months !== m) return;
     r.check = r.check.filter(c => c !== "rule"); r.sources = [RGW(rg, m + (m === 1 ? " month" : " months"))].concat(r.sources); });
-  { const cs = S.find(s => s.id === "seki-cold-springs"); if (cs) { Object.assign(cs, { system: "rec", rule: { kind: "rolling", months: 1, time: "07:00" }, walkup: undefined, walkupNote: "" });
+  { const cs = S.find(s => s.id === "seki-cold-springs"); if (cs) { Object.assign(cs, { system: "rec", rule: { kind: "rolling", months: 1, time: "05:00" }, walkup: undefined, walkupNote: "" });
       cs.check = cs.check.filter(c => c !== "rule"); if (!cs.check.includes("walkup")) cs.check.push("walkup"); cs.sources = [RGW("246864", "1 month; the 2027 calendar lists every night from 07/01/2027 as not yet released")].concat(cs.sources); } }
   { const np = S.find(s => s.id === "yose-north-pines"); if (np) { np.rule = Object.assign({}, np.rule, { holdUntil: "2027-02-15", holdFrom: "2027-04-16" });
       np.sources = [{ t: "NPS North Pines early access lottery: lottery 11/23-12/14/2026, early access 01/02-02/01/2027, remaining sites on general sale 02/15/2027 (arrivals through 07/14/2027), then 03/15, 04/15 and 05/15", u: "https://www.nps.gov/yose/planyourvisit/lottery.htm" }].concat(np.sources); } }

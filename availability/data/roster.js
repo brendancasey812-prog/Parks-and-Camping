@@ -7,7 +7,7 @@
 (function () {
   const S = (t, u) => ({ t, u });
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const REC6 = { kind: "rolling", months: 6, time: "07:00" }, RC6 = { kind: "rolling", months: 6, time: "08:00" };
+  const REC6 = { kind: "rolling", months: 6, time: "05:00" }, RC6 = { kind: "rolling", months: 6, time: "08:00" };
   const have = new Set(window.SITES.map(s => s.id));
   const add = (label, park, region, o) => {
     let id = slug(o.agencyKey + "-" + park + "-" + label), n = 2; while (have.has(id)) id = slug(o.agencyKey + "-" + park + "-" + label) + "-" + n++;

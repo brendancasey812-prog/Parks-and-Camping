@@ -22,7 +22,7 @@ window.SYSTEMS = {
 };
 const ALL = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const S = (t, u) => ({ t, u });
-const REC6 = { kind: "rolling", months: 6, time: "07:00" };
+const REC6 = { kind: "rolling", months: 6, time: "05:00" };
 const RC6 = { kind: "rolling", months: 6, time: "08:00" };
 const YOSE15 = { kind: "monthly", blockStart: 15, monthsAhead: 5, time: "07:00" };
 window.SITES = [

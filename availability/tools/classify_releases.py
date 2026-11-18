@@ -1,6 +1,6 @@
 # Classify how each Recreation.gov campground releases nights, from two readings of its booking calendar taken on different days.
 #   python3 -I tools/classify_releases.py <reading1.jsonl> <release-day1> <reading2.jsonl> <release-day2> <out.json>
-# A release day is the last day whose 7:00 AM Pacific release had happened when that reading was taken.
+# A release day is the last day whose 5:00 AM Pacific release had happened when that reading was taken.
 # Recreation.gov lets a stay that starts inside the window run up to its maximum stay (usually 14 nights) past it, so the first
 # "not yet released" (NYR) night of a rolling window sits 1-15 nights after the window's last arrival date.
 #   rolling   the first NYR night is 1-15 nights past release-day + N months in BOTH readings, and moved with the calendar

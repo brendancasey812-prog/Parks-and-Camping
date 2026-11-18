@@ -53,3 +53,17 @@ All 40 published windows agree with the site's rule, with one exception: Crystal
 - **Block and whole-season campgrounds (133):** no next release date is published on Recreation.gov, NPS or the Forest Service. The table says "Not published".
 - **73 campgrounds with no calendar served:** they keep the 6-month assumption, marked "(assumed rule)".
 - **Hand-edited windows.js entries:** Hornswoggle and Conklin Park were edited by hand. The next run of `tools/release_rules.py` regenerates `windows.js` from the classifier output, so carry these two forward.
+
+## Release time measured (11/18/2026)
+
+Recreation.gov's calendar API was read every 2 minutes from 11:42 PM PT 11/17 to 5:30 AM PT 11/18 for Crystal Lake (232336) and Black Rock (232473).
+- Crystal Lake: arrival 05/18/2027 still closed at 5:08 AM PST, open at 5:10 AM PST.
+- Black Rock: its edge moved by 5:12 AM PST.
+- Nothing changed between midnight and 5:08 AM.
+
+So the daily rolling release is about 5:00 AM Pacific (8:00 AM Eastern); the API showed it a few minutes later. The site's Recreation.gov rolling rules now use 05:00 instead of the assumed 07:00. These keep 7:00 AM, because NPS publishes that time for them:
+- Yosemite's monthly blocks and 7- and 14-day windows
+- Point Reyes backcountry
+- permits
+
+Raw readings: tools/readings/2026-11-18-release-minute.jsonl.

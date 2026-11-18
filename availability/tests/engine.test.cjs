@@ -17,7 +17,7 @@ const mar1=E.nextReleases(RC,new Date('2027-02-28T20:00:00Z'),1)[0];
 eq('Mar 1 2027 release opens Aug 29 through Sep 1 together',mar1.at.toISOString()+' '+mar1.from+' '+mar1.to,'2027-03-01T16:00:00.000Z 2027-08-29 2027-09-01');
 const dec=E.nextReleases(R6,new Date('2026-12-30T20:00:00Z'),1)[0];
 eq('Dec 31 opens nothing new (no Jun 31); Jan 1 opens Jul 1',dec.at.toISOString()+' '+dec.from+' '+dec.to,'2027-01-01T15:00:00.000Z 2027-07-01 2027-07-01');
-eq('Measured (Recreation.gov, 11/16/2026): May 16 2027 opened Nov 16 2026 7:00 AM',Z(E.releaseFor(R6,'2027-05-16')),'2026-11-16T15:00:00.000Z');
+eq('Measured (Recreation.gov, 11/18/2026): May 18 2027 opened Nov 18 2026 about 5:00 AM PST (seen 5:10)',Z(E.releaseFor({kind:'rolling',months:6,time:'05:00'},'2027-05-18')),'2026-11-18T13:00:00.000Z');
 // Yosemite "five months in advance on the 15th": measured, the 10/15 release opened arrivals through 3/14 and the 11/15 release through 4/14
 eq('Yosemite measured: Nov 15 2026 opens Mar 15 - Apr 14 2027',(()=>{const r=E.releaseFor(Y,'2027-04-01');return Z(r)+' '+r.from+' '+r.to})(),'2026-11-15T15:00:00.000Z 2027-03-15 2027-04-14');
 eq('Yosemite block: Jul 20 2027 opens Mar 15 2027 7:00 AM PDT',Z(E.releaseFor(Y,'2027-07-20')),'2027-03-15T14:00:00.000Z');

@@ -52,7 +52,7 @@ A campground that Recreation.gov lists twice under different names goes in the `
 Recreation.gov does not publish most campgrounds' booking rules, so they are read from each campground's booking calendar and
 compared with the previous week's reading (kept in `tools/readings/<release day>.jsonl`). Run from `availability/`:
 1. `python3 -I tools/measure_windows.py data/federal.js <tmp>/w.json` (writes `<tmp>/w.json.jsonl`, ~10 minutes).
-   Copy it to `tools/readings/<release day>.jsonl` (release day = today if it is after 7:00 AM Pacific, otherwise yesterday).
+   Copy it to `tools/readings/<release day>.jsonl` (release day = today if it is after 5:10 AM Pacific, otherwise yesterday).
 2. `python3 -I tools/classify_releases.py tools/readings/<previous>.jsonl <previous day> tools/readings/<today>.jsonl <today> <tmp>/classes.json`
 3. `python3 -I tools/release_rules.py <tmp>/classes.json data/windows.js <previous day> <today>`
 4. Re-run the audit (the calendar edge must sit 1-15 nights past the last arrival the site says is open) and list in the pull request

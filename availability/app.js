@@ -27,7 +27,7 @@ const fmtWd = d => d.toLocaleDateString([], tzOpt({ weekday: "short" }));
 const fmtDOnly = d => d.toLocaleDateString("en-US", tzOpt({ month: "2-digit", day: "2-digit", year: "numeric" }));   // MM/DD/YYYY
 const isoMdy = iso => { const [y, m, d] = iso.split("-"); return m + "/" + d + "/" + y; };
 const fmtDay = d => d.toLocaleDateString([], tzOpt({ weekday: "short", month: "short", day: "numeric", year: "numeric" }));
-const fmtTime = d => d.toLocaleTimeString("en-US", tzOpt({ hour: "numeric", minute: "2-digit", timeZoneName: "short" }));   // 7:00 AM PST
+const fmtTime = d => d.toLocaleTimeString("en-US", tzOpt({ hour: "numeric", minute: "2-digit", timeZoneName: "short" }));   // 5:00 AM PST
 const timeKey = d => d.toLocaleTimeString("en-GB", tzOpt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }));
 const dateOf = iso => { const p = E.parseISO(iso); return new Date(p.y, p.m - 1, p.d, 12); };
 const fmtShort = iso => dateOf(iso).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
@@ -458,7 +458,7 @@ function editHtml(s) {
     "<fieldset><legend>Peak season</legend>" + mo("peak", s.peak) + '<label>Peak note<input type="text" name="peakNote" value="' + esc(s.peakNote) + '"></label></fieldset>' +
     '<fieldset><legend>Walk-up</legend><label>Walk-up sites<select name="walkup"><option value="">Not known</option><option value="none"' + (s.walkup === "none" ? " selected" : "") + '>Reservation only</option><option value="some"' + (s.walkup === "some" ? " selected" : "") + '>Some walk-up</option><option value="only"' + (s.walkup === "only" ? " selected" : "") + '>Walk-up only</option></select></label><label>Walk-up note<input type="text" name="walkupNote" value="' + esc(s.walkupNote) + '"></label></fieldset>' +
     '<fieldset><legend>Release rule</legend><label>Type<select name="rkind"><option value="rolling"' + (r.kind === "rolling" ? " selected" : "") + '>Rolling (months ahead, daily)</option><option value="days"' + (r.kind === "days" ? " selected" : "") + '>Rolling (days ahead)</option><option value="monthly"' + (r.kind === "monthly" ? " selected" : "") + '>Monthly block</option><option value="none"' + (r.kind === "none" ? " selected" : "") + '>No advance booking</option></select></label>' +
-    '<div class="r2"><label>Months or days ahead<input type="number" name="rn" min="0" max="400" value="' + (r.kind === "rolling" ? r.months : r.kind === "days" ? r.days : r.kind === "monthly" ? r.monthsAhead : "") + '"></label><label>Release time (Pacific)<input type="text" name="rtime" value="' + esc(r.time || "07:00") + '" placeholder="07:00"></label></div>' +
+    '<div class="r2"><label>Months or days ahead<input type="number" name="rn" min="0" max="400" value="' + (r.kind === "rolling" ? r.months : r.kind === "days" ? r.days : r.kind === "monthly" ? r.monthsAhead : "") + '"></label><label>Release time (Pacific)<input type="text" name="rtime" value="' + esc(r.time || "05:00") + '" placeholder="05:00"></label></div>' +
     '<label>Block starts on day (monthly only)<input type="number" name="rblock" min="1" max="28" value="' + (r.blockStart || 15) + '"></label></fieldset>' +
     '<label>Notes<textarea name="notes" rows="3">' + esc(s.notes) + '</textarea></label><div class="pn-act"><button type="submit" class="btn primary">Save</button><button type="button" class="btn" data-act="cancel">Cancel</button><button type="button" class="btn danger" data-act="reset">Reset to source</button></div></form>';
 }
@@ -473,7 +473,7 @@ function undoEdit() { if (!lastEdit) return; const { id, prev } = lastEdit; last
 function saveEdit(form) {
   const id = form.dataset.id, fd = new FormData(form), g = n => fd.get(n);
   const months = n => { const a = fd.getAll(n).map(Number).sort((x, y) => x - y); return a.length ? a : null; };
-  const kind = g("rkind"), rn = +g("rn") || 0, time = /^\d{1,2}:\d{2}$/.test(g("rtime")) ? g("rtime").padStart(5, "0") : "07:00";
+  const kind = g("rkind"), rn = +g("rn") || 0, time = /^\d{1,2}:\d{2}$/.test(g("rtime")) ? g("rtime").padStart(5, "0") : "05:00";
   const rule = kind === "rolling" ? { kind, months: rn || 6, time } : kind === "days" ? { kind, days: rn || 7, time } : kind === "monthly" ? { kind, blockStart: +g("rblock") || 15, monthsAhead: rn || 5, time } : { kind: "none" };
   const next = { open: months("open"), openNote: g("openNote").trim(), peak: months("peak"), peakNote: g("peakNote").trim(), walkup: g("walkup") || null, walkupNote: g("walkupNote").trim(), rule, notes: g("notes").trim() };
   const changed = commitEdit(id, next); editing = false; undoToast(changed ? "Saved. Marked as edited on this device." : "No changes.", changed); render();

@@ -100,7 +100,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
    return on==='true'&&n1===was+1&&ids.includes('pinn-campground')&&ids.includes('chis-scorpion')&&gone});
  await check('Bookable now through: furthest bookable date per campground (rolling moves daily; Furnace Creek block through Nov 21 2027; first-come says no reservations)',async()=>{
    const v=await h.evaluate(()=>{const g=id=>{const c=document.querySelector('#parksBody tr[data-id="'+id+'"] td[data-l="Currently available through"]');return c?c.textContent:null};return [g('deva-furnace-creek'),g('nps-joshua-tree-national-park-ryan'),g('jotr-fcfs--belle')]});
-   const want=await h.evaluate(()=>{const d=Engine.bookableThrough({kind:'rolling',months:6,time:'07:00'},new Date());const [y,m,dd]=d.split('-').map(Number);return String(m).padStart(2,'0')+'/'+String(dd).padStart(2,'0')+'/'+y});
+   const want=await h.evaluate(()=>{const d=Engine.bookableThrough({kind:'rolling',months:6,time:'05:00'},new Date());const [y,m,dd]=d.split('-').map(Number);return String(m).padStart(2,'0')+'/'+String(dd).padStart(2,'0')+'/'+y});
    return /11\/21\/2027/.test(v[0])&&/released block/.test(v[0])&&v[1]&&v[1].startsWith(want)&&/moves daily/.test(v[1])&&/No reservations/.test(v[2]||'No reservations')});
  await check('column order after Type and Region: available through, open date, open time, next date, how it opens, sites, booking site, days out',async()=>{
    const hs=await h.$$eval('#parksTable thead th[data-k]',a=>a.map(x=>x.dataset.k));const i=hs.indexOf('region');

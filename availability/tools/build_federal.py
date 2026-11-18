@@ -116,10 +116,10 @@ def rule(r):
     bd = r.get("block_day")
     if v and u.startswith("MONTH"):
         if bd: return {"kind": "monthly", "blockStart": int(bd), "monthsAhead": v, "time": "07:00"}, True
-        return {"kind": "rolling", "months": v, "time": "07:00"}, True
+        return {"kind": "rolling", "months": v, "time": "05:00"}, True
     if v and u.startswith("DAY"): return {"kind": "days", "days": v, "time": "07:00"}, True
     if v and u.startswith("WEEK"): return {"kind": "days", "days": v * 7, "time": "07:00"}, True
-    return {"kind": "rolling", "months": 6, "time": "07:00"}, False
+    return {"kind": "rolling", "months": 6, "time": "05:00"}, False
 
 def nkey(s):
     s = (s or "").lower()
