@@ -48,7 +48,7 @@ All 40 published windows agree with the site's rule, with one exception: Crystal
 
 ## Needs a decision
 
-- **Crystal Springs (Sequoia & Kings Canyon):** Recreation.gov's record publishes a 2-day window. The site keeps 6 months (assumed). The 2027 calendar shows nothing until 05/26/2027, so neither reading can be confirmed yet.
+- **Crystal Springs (Sequoia & Kings Canyon):** Recreation.gov's record publishes a 2-day window. Changed to 2 days on 11/19/2026 at the owner's request (was 6 months, assumed). The 2027 calendar shows nothing until 05/26/2027, so neither reading can be confirmed yet.
 - **Open time zone label:** summer dates show "PDT", which is correct. The request said "PST". Say if the label should always read PST.
 - **Block and whole-season campgrounds (133):** no next release date is published on Recreation.gov, NPS or the Forest Service. The table says "Not published".
 - **73 campgrounds with no calendar served:** they keep the 6-month assumption, marked "(assumed rule)".

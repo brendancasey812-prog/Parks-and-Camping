@@ -57,6 +57,8 @@
   [["seki-lodgepole", 4], [SEKI + "potwisha", 4], ["seki-azalea", 4], [SEKI + "canyon-view", 4], [SEKI + "sentinel", 4],
    ["seki-dorst", 1], ["seki-cold-springs", 1], [SEKI + "buckeye-flat", 1], [SEKI + "sunset", 1], [SEKI + "sheep-creek", 1], [SEKI + "moraine", 1]]
     .forEach(([id, m]) => fix(id, { rule: { kind: "rolling", months: m, time: "05:00" }, check: ["rule"] }));
+  // Crystal Springs (Grant Grove): Recreation.gov's booking rules publish a 2-day reservation window (checked 11/19/2026); its group sites stay 4 months
+  fix(SEKI + "crystal-springs", { rule: { kind: "days", days: 2, time: "05:00" }, check: ["rule"], sources: [{ t: "Recreation.gov: Crystal Springs booking rules (2-day window)", u: "https://www.recreation.gov/camping/campgrounds/10124445" }] });
 
   // booking windows measured on the Recreation.gov booking calendar (read 11/09 and 11/17/2026: the last night open for booking vs the first not yet released, and whether that edge moved day by day)
   const CAL = (id, rg, note) => [{ t: "Recreation.gov booking calendar, read 11/09 and 11/17/2026: " + note, u: "https://www.recreation.gov/camping/campgrounds/" + rg }];
