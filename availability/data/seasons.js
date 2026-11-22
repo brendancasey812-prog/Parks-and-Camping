@@ -5,7 +5,8 @@
    sitesNote gives the range. Treat every value as "needs checking".
      openDates  when the campground is open (or the reservation season), as text
      peakDates  busiest season; for state parks the default is California State Parks' peak-rate season, May 15 – Sep 15
-     sites      individual campsites at this listing (released for booking unless the note says first-come); null when not found */
+     sites      individual campsites at this listing (released for booking unless the note says first-come); null when not found
+     years      optional: a coming season's dates once published, by year, e.g. {"2027": "May 21 – Sep 12, 2027"} (the Year picker uses them) */
 window.DATA_SEASONS = "2026-11-22";
 window.SEASONS = {
   "yose-upper-pines": {"openDates": "Year-round", "peakDates": "May–Sep", "sites": 236, "sitesNote": "Recreation.gov inventory 235", "src": [{"t": "NPS Yosemite campgrounds table (2026)", "u": "https://www.nps.gov/yose/planyourvisit/campgrounds.htm"}, {"t": "thedyrt yosemite guide"}, {"t": "nationalsitesguide yosemite camping"}], "checked": "2026-11-02"},

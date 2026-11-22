@@ -12,10 +12,13 @@ const when = d => CC.fmtAt(d), day = iso => CC.fmtShort(iso);
 const conf = { good: ["Confirmed", "good"], check: ["Needs checking", "check"] };
 
 // ---------- compute one phase for the chosen date ----------
+// the date each step is worked out for: the first day of the step's season in the chosen Year (today if that has passed)
+const tripFor = p => { const d = CC.st.year + "-" + (p.valid ? p.valid.from : "01-01"), t = CC.todayPT(); return d < t ? t : d; };
 function compute(p, D, now) {
+  D = tripFor(p);
   const r = { phase: p, open: null, close: null, extra: [], approx: false, projected: false, na: "" };
   if (p.kind !== "oneTime" && D < CC.todayPT()) { r.na = "That date has passed."; return r; }
-  if (p.kind !== "oneTime" && !inRange(D.slice(0, 10), p.valid)) { r.na = "Outside this permit's usual season, so this step does not apply to your date."; return r; }
+  if (p.kind !== "oneTime" && !inRange(D.slice(0, 10), p.valid)) { r.na = "Outside this permit's usual season, so this step does not apply yet this year."; return r; }
   if (p.kind === "annual") {
     const Y = E.parseISO(D).y, mk = (x, def) => { const t = x.time || def; return at(Y + "-" + pad(x.m) + "-" + pad(x.d), t); };
     r.open = mk(p.open, "00:00"); r.close = mk(p.close, "23:59"); r.approx = !(p.open.time && p.close.time); r.projected = Y > p.announced;
@@ -40,7 +43,7 @@ function compute(p, D, now) {
   return r;
 }
 function status(r, now) {
-  if (r.na) return { k: "na", t: "Not for your date" };
+  if (r.na) return { k: "na", t: "Not this season" };
   if (now < r.open) return { k: "soon", t: "Opens " + CC.countdown(r.open) };
   if (r.close && now <= r.close) return { k: "open", t: "Open now" };
   if (!r.close) return { k: "open", t: "Open now" };
@@ -119,7 +122,7 @@ function allRows(D, now) {          // one row per step of every permit that pas
 }
 function render() {
   if ($("#vPermits").hidden) return;
-  const D = CC.st.target, now = new Date(), rows = allRows(D, now), steps = PERMITS.reduce((t, x) => t + x.phases.length, 0);
+  const D = CC.st.year, now = new Date(), rows = allRows(D, now), steps = PERMITS.reduce((t, x) => t + x.phases.length, 0);
   $("#pmAll tbody").innerHTML = rows.join("") || '<tr><td colspan="9" class="empty">No permits match. Clear the search or a filter.</td></tr>';
   $("#pmCount").textContent = rows.length + " of " + steps + " steps";
   events = nextEvents(now).filter(e => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return !perm || permOk(perm); });
@@ -129,7 +132,7 @@ function render() {
 document.addEventListener("click", e => {
   const ev = e.target.closest("[data-ev]"); if (ev) { const x = events[+ev.dataset.ev]; CC.download("remind-" + x.id + ".ics", CC.ics(x.title + " opens", x.open, x.rule + " " + x.sub, x.url), "text/calendar"); CC.toast("Reminder saved. It rings 15 minutes before."); return; }
   const rem = e.target.closest("#pmList [data-rem]"); if (rem) {
-    const [pid, phid] = rem.dataset.rem.split("|"), perm = PERMITS.find(x => x.id === pid), ph = perm.phases.find(x => x.id === phid), r = compute(ph, CC.st.target, new Date());
+    const [pid, phid] = rem.dataset.rem.split("|"), perm = PERMITS.find(x => x.id === pid), ph = perm.phases.find(x => x.id === phid), r = compute(ph, CC.st.year, new Date());
     if (r.open) { CC.download("remind-" + phid + ".ics", CC.ics(perm.name + ": " + ph.label + " opens", r.open, perm.park + ". " + ph.what + ". " + (ph.results || ""), perm.url), "text/calendar"); CC.toast("Reminder saved. It rings 15 minutes before."); }
   }
 });

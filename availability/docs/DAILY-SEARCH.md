@@ -7,6 +7,9 @@ information supports, and opens a pull request for the owner to review. Nothing 
 1. **Start fresh.** Fetch `main` into a new branch `data-update/YYYY-MM-DD`.
 2. **Decide what to check.** Every run covers:
    - every row whose season text names a year before the coming season (for example "Apr 21 – Oct 25, 2026" once 2027 dates could exist);
+   - **next season and the season after** (the site's Year picker: 2027 and 2028 now, moving on a year each October): look for newly published
+     season dates, booking-window changes, release schedules and lotteries for either year, and record them as below. The site shows
+     "Estimate: YYYY dates not published yet" until a year's dates are recorded, so each one found removes an estimate;
    - closures and reopenings (rows saying "Closed", "Not opening", "temporarily closed", "no reopening date");
    - permits and lotteries in `data/permits.js` (Half Dome preseason and daily lottery, Yosemite wilderness permits, North Pines early access);
      official dates are in Recreation.gov's data: `www.recreation.gov/api/permitcontent/<permit id>` (`important_dates`; Half Dome 234652, wilderness 445859)
@@ -23,6 +26,8 @@ information supports, and opens a pull request for the owner to review. Nothing 
    If an official host is unreachable from the session, fall back to web search and say so in the pull request.
 4. **Change the data**, never the page code:
    - `data/seasons.js`: `openDates`, `peakDates`, `sites`, `sitesNote`, `src`; set `DATA_SEASONS` to the run date.
+     When a park publishes a season for a coming year, add it under `years` without dropping the current year's text,
+     e.g. `"years": {"2027": "May 21 – Sep 12, 2027", "2028": "May 19 – Sep 10, 2028"}`, and add the page to `src`.
    - `data/campgrounds.js`: per-campground values for split rows, and new campgrounds (`add(...)`).
    - `data/sites.js`: booking rules (months ahead, release time, monthly block day) only when an official page states a change; bump `DATA_CHECKED`.
    - `data/permits.js`: new season dates (`open`, `close`, `announced`), and remove "projected" once a year's dates are published.

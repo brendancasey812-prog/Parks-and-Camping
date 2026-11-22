@@ -349,3 +349,6 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
 }
 .fs-s #csv{min-height:40px}
 @media(min-width:701px){.fs-s[data-s=when]{display:none}.fs-s[data-s=type]{border-top:0}}
+
+/* opening cells: an estimate (the season's dates for that year are not published yet) */
+.when-t.est{color:var(--wait)}

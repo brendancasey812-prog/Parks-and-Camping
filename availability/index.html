@@ -39,7 +39,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
       </form>
       <button id="fsBtn" type="button" class="fsbtn" aria-haspopup="dialog" aria-controls="fsheet" aria-label="Camping settings: filters, quick picks, season and export" title="Settings"><svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z"/><circle cx="12" cy="12" r="3"/></svg><span id="fsCount" class="count-pill" hidden></span></button>
       <div class="when">
-        <label class="mini">Trip date<input id="target" type="date"></label>
+        <label class="mini">Year<select id="year" aria-label="Season year: the opening columns are for the first night of this season"></select></label>
         <label class="mini">Times in<select id="tz"><option value="pt">Pacific</option><option value="local">My time zone</option></select></label>
       </div>
     </header>
@@ -51,7 +51,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
     <div id="fsheet" class="fsheet" role="dialog" aria-modal="true" aria-labelledby="fsTitle" hidden>
       <div class="fs-h"><h2 id="fsTitle">Settings</h2><button id="fsX" type="button" class="fs-x" aria-label="Close settings">✕</button></div>
       <div class="fs-b">
-        <section class="fs-s" data-s="when"><h3>Trip date</h3></section>
+        <section class="fs-s" data-s="when"><h3>Season year</h3></section>
         <section class="fs-s" data-s="type"><h3>Park type</h3></section>
         <section class="fs-s" data-s="quick"><h3>Quick picks</h3></section>
         <section class="fs-s" data-s="cols"><h3>Filter by</h3><div class="fs-grid"></div></section>
@@ -73,9 +73,9 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
             <div class="tbl-act">
               <details class="more" id="filters"><summary>More filters <span id="fCount" class="count-pill" hidden></span></summary>
                 <div class="more-b">
-                  <label class="field">Season<select id="fSeason"><option value="">Any</option><option value="on">Open on my date</option><option value="year">Year-round</option><option value="seasonal">Seasonal only</option></select></label>
+                  <label class="field">Season<select id="fSeason"><option value="">Any</option><option value="on">Open this month</option><option value="year">Year-round</option><option value="seasonal">Seasonal only</option></select></label>
                   <label class="field">Open in month<select id="fMonth"><option value="">Any</option></select></label>
-                  <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak on my date</option><option value="off">Not peak on my date</option><option value="has">Has a defined peak</option></select></label>
+                  <label class="field">Peak season<select id="fPeak"><option value="">Any</option><option value="on">Peak this month</option><option value="off">Not peak this month</option><option value="has">Has a defined peak</option></select></label>
                   <label class="chk"><input type="checkbox" id="fUnk" checked> Keep campgrounds with unknown season, peak or walk-up when those filters are on</label>
                 </div></details>
               <button id="fToggle" type="button" class="btn sm ftog" aria-expanded="false" aria-controls="parksTable">Filters <span id="fhCount" class="count-pill" hidden></span></button>
@@ -90,7 +90,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <th scope="col" data-k="des"><button type="button">Type</button></th>
               <th scope="col" data-k="region"><button type="button">Region</button></th>
               <th scope="col" data-k="thru"><button type="button" title="The furthest arrival date anyone can book right now">Currently available through</button></th>
-              <th scope="col" data-k="date"><button type="button" title="When your trip date opens for booking">Open date</button></th>
+              <th scope="col" data-k="date"><button type="button" title="When booking opens for the first night of the season">Open date</button></th>
               <th scope="col" data-k="time"><button type="button">Open time</button></th>
               <th scope="col" data-k="next"><button type="button" title="The next arrival date to open, and when">Next date available</button></th>
               <th scope="col" data-k="rule"><button type="button">How it opens</button></th>
@@ -110,7 +110,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
               <td><select id="fDes" aria-label="Type"><option value="">All types</option></select></td>
               <td><select aria-label="Region" id="fRegion"><option value="">All regions</option></select></td>
               <td></td>
-              <td><select aria-label="Opens in" id="fAvail"><option value="">Any time</option><option value="open">Already open for my date</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking on my date</option></select></td>
+              <td><select aria-label="Opens in" id="fAvail"><option value="">Any time</option><option value="open">Already open</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking at the start of the season</option></select></td>
               <td></td>
               <td></td>
               <td></td>
@@ -137,13 +137,13 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
           <div class="park-main">
             <div class="park-tools">
               <label class="field grow">Filter campgrounds<input id="cq" type="search" placeholder="Campground name"></label>
-              <div class="seg" id="cMode" role="group" aria-label="Show"><button type="button" data-m="all">All</button><button type="button" data-m="open">Open on my date</button><button type="button" data-m="peak">Peak on my date</button><button type="button" data-m="walk">Walk-up</button></div>
+              <div class="seg" id="cMode" role="group" aria-label="Show"><button type="button" data-m="all">All</button><button type="button" data-m="open">Open this month</button><button type="button" data-m="peak">Peak this month</button><button type="button" data-m="walk">Walk-up</button></div>
             </div>
             <div class="card flush">
               <div class="tw" tabindex="-1"><table class="tbl" id="campTable">
                 <thead><tr>
                   <th scope="col" data-k="name"><button type="button">Campground</button></th>
-                  <th scope="col" data-k="opens"><button type="button">Opens for your date</button></th>
+                  <th scope="col" data-k="opens"><button type="button">Opens for the season</button></th>
                   <th scope="col" data-k="season"><button type="button">Season</button></th>
                   <th scope="col" data-k="peak"><button type="button">Peak season</button></th>
                   <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
@@ -161,12 +161,12 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
 
       <!-- Permits -->
       <section id="vPermits" class="view" hidden>
-        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">Application windows, results and release times. Dates follow the trip date above.</p></div>
+        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">Application windows, results and release times.</p></div>
         <div class="card flush">
           <div class="tbl-top pm-tools" role="search" aria-label="Filter permits">
             <input id="pmQ" type="search" placeholder="Search permits, places or steps" aria-label="Search permits and lotteries">
             <select id="pmLoc" aria-label="Location"><option value="">All locations</option></select>
-            <select id="pmStat" aria-label="Status"><option value="">Any status</option><option value="open">Open now</option><option value="soon">Opens later</option><option value="closed">Closed</option><option value="na">Not for my date</option></select>
+            <select id="pmStat" aria-label="Status"><option value="">Any status</option><option value="open">Open now</option><option value="soon">Opens later</option><option value="closed">Closed</option><option value="na">Not this season</option></select>
             <select id="pmType" aria-label="Type"><option value="">All types</option><option value="lottery">Lottery</option><option value="release">Rolling release</option><option value="window">Application window</option></select>
             <button id="pmClear" type="button" class="btn sm">Clear</button>
             <span id="pmCount" class="pm-count" role="status" aria-live="polite"></span>

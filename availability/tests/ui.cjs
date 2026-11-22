@@ -23,8 +23,8 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  const unfind=async q=>{await q.fill('#q','');await q.waitForTimeout(120)};
  await check('one settings (gear) button holds the extra filters; no filter row or filter bar in the page',async()=>{
    const page=!(await p.isVisible('#parksTable tr.frow'))&&!(await p.isVisible('#fWalk'))&&!(await p.isVisible('#vParks .tbl-top'));await gear(p);
-   const inPanel=await p.isVisible('#fsheet #fWalk')&&await p.isVisible('#fsheet #kindTabs')&&await p.isVisible('#fsheet #sugg')&&await p.isVisible('#fsheet #csv')&&!(await p.isVisible('#fsheet #target'));await ungear(p);
-   return page&&inPanel&&await p.isVisible('#target')});
+   const inPanel=await p.isVisible('#fsheet #fWalk')&&await p.isVisible('#fsheet #kindTabs')&&await p.isVisible('#fsheet #sugg')&&await p.isVisible('#fsheet #csv')&&!(await p.isVisible('#fsheet #year'));await ungear(p);
+   return page&&inPanel&&await p.isVisible('#year')});
  await check('walk-up filter keeps only parks with walk-up',async()=>{await gear(p);await p.uncheck('#fUnk');await p.selectOption('#fWalk','any');await ungear(p);await p.waitForTimeout(150);const r=await parks(p);return r.length>0&&r.every(t=>/walk-up/i.test(t))});
  await check('clear filters restores all',async()=>{const a=(await parks(p)).length;await clearAll(p);await p.waitForTimeout(150);return (await parks(p)).length>a});
  await check('search text filters parks',async()=>{await p.fill('#q','yosemite');await p.press('#q','Enter');await p.waitForTimeout(200);const r=await parks(p);return r.length>=1&&r.every(t=>/yosemite/i.test(t))});
@@ -80,10 +80,15 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('opening is split into days out, day, date and time',async()=>{const r=await prow(h,'yose-upper-pines');return /^\d+ (day|month)|Open now/.test(r['Days out'])&&/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/.test(r.Day)&&/^\d\d\/\d\d\/20\d\d/.test(r['Open date'])&&!/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(r['Open date'])&&/^\d{1,2}:\d\d [AP]M P[SD]T$/.test(r['Open time'])});
  await check('open season, peak season and sites per campground (Pinnacles; Camp 4)',async()=>{const p=await prow(h,'pinn-campground'),c=await prow(h,'yose-camp4');
    return p['Open season']==='Year-round'&&/Mar/.test(p['Peak season'])&&/^149/.test(p.Sites)&&/Apr 15 – Nov 29/.test(c['Open season'])&&/^61/.test(c.Sites)});
- await check('peak season shows MM/DD/YYYY dates for the trip date (state park May 15 – Sep 15; desert Oct – Apr)',async()=>{const y=+(await h.inputValue('#target')).slice(0,4);
+ await check('peak season shows MM/DD/YYYY dates for the chosen year (state park May 15 – Sep 15; desert Oct – Apr)',async()=>{const y=+(await h.inputValue('#year'));
    const sp=(await prow(h,'sp-elk-prairie'))['Peak season'],jt=(await prow(h,'jotr-black-rock'))['Peak season'];
    return new RegExp('^05/15/'+y+' –\\s09/15/'+y).test(sp)&&/May 15 – Sep 15 each year/.test(sp)&&/^10\/01\/20\d\d –\s05\/31\/20\d\d/.test(jt)});
- await check('season dates from an earlier year are flagged for a later trip date',async()=>{const c=(await prow(h,'yose-north-pines'))['Open season'];return /2026 dates; 2027 not published yet/.test(c)});
+ await check('Year picker: the next season and the one after; opening columns follow the year, with estimates until dates are published',async()=>{
+   const ys=await h.$$eval('#year option',a=>a.map(x=>+x.value)),now=new Date(),y0=now.getMonth()>=9?now.getFullYear()+1:now.getFullYear();
+   const ok1=ys.length===2&&ys[0]===y0&&ys[1]===y0+1;
+   const a=await prow(h,'yose-tuolumne');await h.selectOption('#year',String(y0+1));await h.waitForTimeout(250);const b=await prow(h,'yose-tuolumne');await h.selectOption('#year',String(y0));await h.waitForTimeout(250);
+   return ok1&&a['Open date'].startsWith('05/15/'+y0)&&b['Open date'].startsWith('05/15/'+(y0+1))&&/Dates 06\/15\/\d{4} to 07\/14\/\d{4}/.test(a['Open date'])&&/Estimate: \d{4} dates not published yet/.test(b['Open date'])&&/(\d+ months?|\d+ days?)/.test(b['Days out'])});
+ await check('season dates from an earlier year are flagged for a later season',async()=>{const c=(await prow(h,'yose-north-pines'))['Open season'];return /2026 dates; 2027 not published yet/.test(c)});
  await check('official corrections: Crane Flat books 2 weeks ahead; Seacliff shows closed; Whiskeytown lists Oak Bottom',async()=>{const c=await prow(h,'nps-yosemite-national-park-crane-flat'),sc=await prow(h,'sp-seacliff-state-beach-seacliff');
    const wk=await h.$$eval('#parksBody tr[data-park=whiskeytown-national-recreation-area] td[data-l=Campground]',a=>a.map(x=>x.textContent));return /14 days ahead/.test(c['How it opens'])&&/^148/.test(c.Sites)&&/Closed/.test(sc['Open season'])&&wk.some(x=>/Oak Bottom Tent/.test(x))});
  await check('campgrounds named by their own name (Montaña de Oro → Islay Creek, 47 sites; Hazard Canyon horse camp listed)',async()=>{const r=await prow(h,'sp-monta-a-de-oro-state-park-monta-a-de-oro');
