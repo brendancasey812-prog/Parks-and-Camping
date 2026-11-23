@@ -103,6 +103,11 @@
   more("sp-borrego-palm", 638, "Anza-Borrego Desert State Park", [["Vern Whitaker Horse Camp", "equestrian sites"], ["Blair Valley", "primitive, first-come"], ["Culp Valley", "primitive, first-come"], ["Mountain Palm Springs", "primitive, first-come"], ["Sheep Canyon", "primitive, first-come"]]);
   ["blair-valley", "culp-valley", "mountain-palm-springs", "sheep-canyon"].forEach(k => { const r = S.find(s => s.id === "sp-borrego-palm-" + k) || S.find(s => s.id.endsWith("-" + k) && /Anza-Borrego/.test(s.park));
     if (r) Object.assign(r, { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: "Primitive camp: first-come, no reservations (parks.ca.gov)", check: r.check.filter(c => c !== "rule" && c !== "walkup") }); });
+  // 11/23/2026: these campgrounds have no reservation system (park pages: "first-come, first served; there is no reservation system" / "first-come, first-served only")
+  [["sp-red-rock-canyon-state-park-red-rock-canyon", 631, "Ricardo Campground: first-come, no reservations; self-register on arrival (parks.ca.gov)"],
+   ["sp-saddleback-butte-state-park-saddleback-butte", 618, "Family campground first-come only; Joshua Group Camp is reserved on ReserveCalifornia (parks.ca.gov)"]].forEach(([id, pid, note]) => {
+    const r = S.find(s => s.id === id); if (r) Object.assign(r, { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: note, conf: "good", check: r.check.filter(c => c !== "rule" && c !== "walkup"),
+      sources: (r.sources || []).concat([{ t: "parks.ca.gov: " + r.park + " (checked 11/23/2026)", u: "https://www.parks.ca.gov/?page_id=" + pid }]) }); });
   more("sp-butano-state-park-butano", 536, "Butano State Park", [["Butano Trail Camp", "8 backcountry sites"]]);
   more("sp-cuyamaca-rancho-state-park-paso-picacho-green-valley--paso-picacho", 667, "Cuyamaca Rancho State Park", [["Los Caballos Horse Camp", "equestrian sites"]]);
   more("sp-emerald-bay-state-park-eagle-point", 506, "Emerald Bay State Park", [["Boat-in Campground", "boat-in only", "Summer (closed for the 2026 season)"]]);
