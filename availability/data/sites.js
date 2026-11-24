@@ -13,7 +13,7 @@
    conf:   "good" (official page or several agreeing sources) | "check" (secondary or conflicting sources) | "assumed" (system default applied)
    check:  fields to verify: "season" | "peak" | "rule" | "walkup"
    Months are 1-12. */
-window.DATA_CHECKED = "2026-10-26";
+window.DATA_CHECKED = "2026-11-24";
 window.SYSTEMS = {
   rec: { name: "Recreation.gov", url: "https://www.recreation.gov/", tz: "America/Los_Angeles", note: "Federal lands: national parks, forests, BLM. Default rolling 6 months, new date opens 7:00 AM Pacific (10:00 AM Eastern). Individual campgrounds can differ." },
   rc: { name: "ReserveCalifornia", url: "https://www.reservecalifornia.com/", tz: "America/Los_Angeles", note: "California State Parks. Rolling 6 months to the day, new date opens 8:00 AM Pacific." },

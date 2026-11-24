@@ -46,6 +46,9 @@
   [["Oak Bottom Tent", 94, "Year-round", "reservable through Whiskeytown Marinas"], ["Oak Bottom RV", 22, "Year-round", "no hook-ups; reservable through Whiskeytown Marinas"],
    ["Sheep Camp", 4, "Mid-Apr – Oct", ""], ["Peltier Bridge", 9, "Year-round", ""], ["Horse Camp", 2, "Year-round", "only campground for camping with horses"], ["Crystal Creek", 2, "May – Oct", ""]]
     .forEach(([n, sites, open, note]) => add("nps-whiskeytown-national-recreation-area-brandy-creek-dry-creek-group--brandy-creek-primitive", n, {}, { openDates: open, peakDates: "Jun – Aug", sites, sitesNote: note, src: [{ t: "NPS Whiskeytown camping", u: "https://www.nps.gov/whis/planyourvisit/whiskeytown-camping.htm" }] }));
+  // Oak Bottom is booked through the concessioner, Whiskeytown Marinas LLC, not Recreation.gov (NPS camping table, checked 11/24/2026)
+  ["oak-bottom-tent", "oak-bottom-rv"].forEach(k => { const r = S.find(x => x.id === "nps-whiskeytown-national-recreation-area-brandy-creek-dry-creek-" + k);
+    if (r) Object.assign(r, { system: "other", rule: { kind: "none" }, check: ["rule"], notes: "Reservations through Whiskeytown Marinas LLC (the park concessioner), not Recreation.gov" }); });
 
   // ---------- booking rules corrected from official sources (audit 2026-11-02, docs/AUDIT-2026-11-02.md) ----------
   const fix = (id, o) => { const r = S.find(s => s.id === id); if (r) Object.assign(r, o); };
@@ -101,6 +104,10 @@
   const more = (likeId, pid, park, list) => list.forEach(([n, note, open]) => add(likeId, n, {}, { openDates: open || "", peakDates: SP, sites: null, sitesNote: note || "count not found", src: PCS(pid, park) }));
   more("sp-monta-a-de-oro-state-park-monta-a-de-oro", 592, "Montaña de Oro State Park", [["Hazard Canyon Horse Camp", "equestrian sites"]]);
   more("sp-borrego-palm", 638, "Anza-Borrego Desert State Park", [["Vern Whitaker Horse Camp", "equestrian sites"], ["Blair Valley", "primitive, first-come"], ["Culp Valley", "primitive, first-come"], ["Mountain Palm Springs", "primitive, first-come"], ["Sheep Canyon", "primitive, first-come"]]);
+  // daily check 11/24/2026 (parks.ca.gov 592 and 638)
+  Object.assign(SEAS["sp-monta-a-de-oro-state-park-monta-a-de-hazard-canyon-horse-camp"] || {}, { sites: 4, sitesNote: "equestrian only; a horse must be present to camp" });
+  Object.assign(SEAS["sp-borrego-vern-whitaker-horse-camp"] || {}, { openDates: "Oct 1 – May 31 (closed Jun 1 – Sep 30; reservations on ReserveCalifornia)" });
+  Object.assign(SEAS["sp-borrego-sheep-canyon"] || {}, { openDates: "Oct 1 – May 31 (closed Jun 1 – Sep 30)", sitesNote: "primitive, first-come; Coyote Canyon road closed at the 3rd crossing (park notice 11/24/2026)" });
   ["blair-valley", "culp-valley", "mountain-palm-springs", "sheep-canyon"].forEach(k => { const r = S.find(s => s.id === "sp-borrego-palm-" + k) || S.find(s => s.id.endsWith("-" + k) && /Anza-Borrego/.test(s.park));
     if (r) Object.assign(r, { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: "Primitive camp: first-come, no reservations (parks.ca.gov)", check: r.check.filter(c => c !== "rule" && c !== "walkup") }); });
   // 11/23/2026: these campgrounds have no reservation system (park pages: "first-come, first served; there is no reservation system" / "first-come, first-served only")
