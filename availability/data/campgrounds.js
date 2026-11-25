@@ -116,6 +116,7 @@
     const r = S.find(s => s.id === id); if (r) Object.assign(r, { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: note, conf: "good", check: r.check.filter(c => c !== "rule" && c !== "walkup"),
       sources: (r.sources || []).concat([{ t: "parks.ca.gov: " + r.park + " (checked 11/23/2026)", u: "https://www.parks.ca.gov/?page_id=" + pid }]) }); });
   more("sp-butano-state-park-butano", 536, "Butano State Park", [["Butano Trail Camp", "8 backcountry sites"]]);
+  Object.assign(SEAS["sp-butano-state-park-butano-trail-camp"] || {}, { openDates: "Open to backpackers (reservations required)", sites: 8 });   // parks.ca.gov 536, 11/25/2026
   more("sp-cuyamaca-rancho-state-park-paso-picacho-green-valley--paso-picacho", 667, "Cuyamaca Rancho State Park", [["Los Caballos Horse Camp", "equestrian sites"]]);
   more("sp-emerald-bay-state-park-eagle-point", 506, "Emerald Bay State Park", [["Boat-in Campground", "boat-in only", "Summer (closed for the 2026 season)"]]);
   more("sp-folsom-lake-state-recreation-area-beals-point-peninsula--beals-point", 500, "Folsom Lake SRA", [["Black Miners Bar"]]);
@@ -126,6 +127,9 @@
   more("sp-point-mugu-state-park-thornhill-broome-sycamore-canyon--sycamore-canyon", 630, "Point Mugu State Park", [["La Jolla Group Camp", "walk-in group site"]]);
   more("sp-portola-redwoods-state-park-portola-redwoods", 539, "Portola Redwoods State Park", [["Slate Creek Trail Camp", "backcountry"]]);
   more("sp-saddleback-butte-state-park-saddleback-butte", 618, "Saddleback Butte State Park", [["Joshua Group Camp", "group site"]]);
+  // 11/25/2026: the group camp is reserved on ReserveCalifornia (it copied the family campground's first-come rule above)
+  { const r = S.find(s => s.id === "sp-saddleback-butte-state-park-saddleback-joshua-group-camp"); if (r) Object.assign(r, { system: "rc", rule: { kind: "rolling", months: 6, time: "08:00" }, walkup: "none", walkupNote: "Reservations required (parks.ca.gov)", notes: "Group camp, 9–30 people, up to 12 vehicles" });
+    Object.assign(SEAS[r ? r.id : ""] || {}, { openDates: "Year-round (reservations required)", sites: 1, sitesNote: "one group camp, 9–30 people" }); }
   more("sp-salton-sea-state-recreation-area-mecca-beach-corvina-beach--corvina-beach", 639, "Salton Sea SRA", [["Bombay Beach", "", "Closed"], ["Salt Creek", "primitive"]]);
   more("sp-samuel-p-taylor-state-park-samuel-p-taylor", 469, "Samuel P. Taylor State Park", [["Madrone Group Camp", "group site"]]);
   more("sp-silverwood-lake-state-recreation-area-silverwood-lake", 650, "Silverwood Lake SRA", [["Miller Canyon Group Camps", "3 group sites"]]);
@@ -164,25 +168,25 @@
   const FC = { system: "fcfs", rule: { kind: "none" }, walkup: "only", walkupNote: "First-come, first-served", check: ["season", "peak"] };
   const GRP = { notes: "Group camping" };
   const COUNTY = (who, url) => ({ system: "other", rule: { kind: "none" }, check: ["rule", "season", "peak", "walkup"], notes: "Operated by " + who + "; book through their site", sources: [{ t: who, u: url }] });
-  ST(502, "Auburn State Recreation Area", "Sierra Nevada", [["Mineral Bar"], ["Ruck-A-Chucky"], ["Lower Lake Clementine Boat-In", null, "", "boat-in; count not found"]]);
+  ST(502, "Auburn State Recreation Area", "Sierra Nevada", [["Mineral Bar", 15, "Year-round (Oct 15 – Apr 30: 6 sites first-come; all 15 sites with reservations required from 05/15/2027)", "15 sites; 6 first-come in winter"], ["Ruck-A-Chucky", null, "Closed (campground and Driver's Flat Road closed; no reopening date)"], ["Lower Lake Clementine Boat-In", null, "Closed (reservations required when open)", "boat-in; count not found"]]);
   ST(642, "Bolsa Chica State Beach", "Southern California", [["Bolsa Chica RV Campground", 50, "Year-round", "RV only, electric and water hookups; max 40 ft"]]);
   ST(557, "Caswell Memorial State Park", "Central Valley", [["Caswell Memorial", 64, "", "plus group and hike-and-bike sites"]]);
   ST(604, "Emma Wood State Beach", "Southern California", [["North Beach", 90, "Closed since Aug 25, 2025 (construction); no reopening date", "fully self-contained vehicles only; no tents, water or restrooms"],
-    ["Ventura River Group Camp", 5, "Year-round (reservations required)", "group sites, up to 30 people each", GRP]]);
+    ["Ventura River Group Camp", 4, "Year-round (reservations required)", "four developed group sites, up to 30 people each", GRP]]);
   ST(585, "Fort Tejon State Historic Park", "Southern California", [["Group Campground", null, "Year-round (water Apr 16 – Nov 14)", "group camping only; 2 RV spaces with hookups", GRP]]);
   ST(556, "George J. Hatfield State Recreation Area", "Central Valley", [["Hatfield Walk-in", null, "Year-round", "tent-only, short walk from parking; count not found", FC], ["Hatfield Group Site", 1, "Year-round", "up to 25 people", GRP]]);
   ST(421, "Grizzly Creek Redwoods State Park", "North Coast", [["Grizzly Creek Redwoods", 28, "Summer only", "max camper 24 ft; plus group and hike-and-bike sites"]]);
   ST(553, "Indian Grinding Rock State Historic Park", "Sierra Nevada", [["Indian Grinding Rock", null]]);
   ST(437, "Manchester State Park", "North Coast", [["Manchester", null, "Closed for winter; reopens Memorial Day weekend 2027", "first-come in season; environmental sites permanently closed", FC], ["Manchester Group Camp", null, "", "group camp", GRP]]);
   ST(554, "McConnell State Recreation Area", "Central Valley", [["McConnell", null, "Year-round", "max camper 30 ft; plus group sites"]]);
-  ST(435, "Navarro River Redwoods State Park", "North Coast", [["Navarro Beach", null], ["Paul Dimmick", null, "Closed for the season; open May 28 – Sep 7, 2027", "max camper 30 ft"]]);
+  ST(435, "Navarro River Redwoods State Park", "North Coast", [["Navarro Beach", null, "Closed (flooding and high swells; reopens once safe)"], ["Paul Dimmick", null, "Closed for the season; open May 28 – Sep 7, 2027", "max camper 30 ft"]]);
   ST(637, "Palomar Mountain State Park", "Southern California", [["Doane Valley", 31, "Year-round (reservations Apr 1 – Nov 30; first-come Dec 1 – Mar 31)", "sites 1–31; max camper 24 ft"]]);
   ST(504, "Tahoe State Recreation Area", "Sierra Nevada", [["Tahoe State Recreation Area", 23, "Summer; closed for the 2026 season", "trailers to 15 ft, RVs to 18 ft"]]);
   ST(666, "The Forest of Nisene Marks State Park", "Bay Area", [["West Ridge Trail Camp", null, "Closed (no camping in the park)", "backcountry trail camp"]]);
   ST(440, "Westport-Union Landing State Beach", "North Coast", [["Abalone Point and the other bluff campgrounds", 86, "Open now, first-come only (cash or check); Abalone Point closed until Apr 15, 2027", "86 sites in three bluff campgrounds", { walkup: "some", walkupNote: "First-come camping now (cash or check only)" }]]);
-  ST(538, "Castle Rock State Park", "Bay Area", [["Castle Rock Trail Camp", null, "Open (no campfires)", "backcountry; reservation or registration required"]]);
+  ST(538, "Castle Rock State Park", "Bay Area", [["Castle Rock Trail Camp", null, "Open (campfires allowed in the trail camp's fire rings)", "backcountry; reservation or registration required"]]);
   ST(583, "Colonel Allensworth State Historic Park", "Central Valley", [["Colonel Allensworth", 17, "Year-round", "RVs or tents; sites 16 and 17 have hookups"]]);
-  ST(461, "Colusa-Sacramento River State Recreation Area", "Central Valley", [["Colusa-Sacramento River", null, "", "plus en route sites"], ["Group Campsites", null, "", "not reservable online; call Colusa City Hall (530) 329-9198", GRP]]);
+  ST(461, "Colusa-Sacramento River State Recreation Area", "Central Valley", [["Colusa-Sacramento River", null, "", "plus en route sites"], ["Group Campsites", null, "", "not reservable online; call Colusa City Hall (530) 329-9198", { notes: "Group camping; call Colusa City Hall (530) 329-9198 (not reservable online)", system: "other", rule: { kind: "none" } }]]);
   ST(476, "Benicia State Recreation Area", "Bay Area", [["En route sites", 3, "Year-round", "self-contained RVs only; no tents", FC]]);
   ST(617, "Dockweiler State Beach", "Southern California", [["Dockweiler RV Campground", null, "Year-round", "RV hookups; booked 24 hours to 90 days ahead",
     Object.assign(COUNTY("Los Angeles County Beaches and Harbors", "https://beaches.lacounty.gov/"), { rule: { kind: "days", days: 90, time: "00:00" }, check: ["season", "peak", "walkup"] })]]);
@@ -192,7 +196,7 @@
   ST(549, "Wilder Ranch State Park", "Bay Area", [["Wilder Ranch Horse Camp", 6, "Year-round", "equestrian only; call 831-423-9703", FC]]);
   ST(429, "Sinkyone Wilderness State Park", "North Coast", [["Sinkyone primitive campgrounds", null, "", "primitive; no water; roads may be impassable when wet"]]);
   ST(443, "Mendocino Woodlands State Park", "North Coast", [["Mendocino Woodlands group camps", 3, "Year-round", "three cabin camps for groups of 30–200", Object.assign({ system: "other", rule: { kind: "none" }, check: ["rule", "peak"], notes: "Group camping retreat; book through Mendocino Woodlands" })]]);
-  ST(555, "Turlock Lake State Recreation Area", "Central Valley", [["Turlock Lake", null, "Year-round (reservations late Mar – mid-Sep; walk-in the rest of the year)", "plus hike-and-bike sites", { check: ["peak"] }]]);
+  ST(555, "Turlock Lake State Recreation Area", "Central Valley", [["Turlock Lake", null, "Closed (park closed; may reopen as soon as summer 2027 under Stanislaus County operation)", "plus hike-and-bike sites", { check: ["peak"] }]]);
   ST(537, "Lake Del Valle State Recreation Area", "Bay Area", [["Del Valle", null, "", "RV hookups, group sites", COUNTY("East Bay Regional Park District", "https://www.ebparks.org/parks/del-valle")]]);
   ST(430, "Tolowa Dunes State Park", "North Coast", [["Tolowa Dunes", null, "Closed until further notice"]]);
   // reservation drawings and reservation-only seasons (parks.ca.gov, read 11/17/2026)
@@ -206,4 +210,7 @@
   resSeason("sp-palomar-mountain-state-park-doane-valley", [4, 5, 6, 7, 8, 9, 10, 11], "Reservations Apr 1 – Nov 30; first-come Dec 1 – Mar 31", PCS(637, "Palomar Mountain State Park")[0]);
   resSeason("sp-turlock-lake-state-recreation-area-turlock-lake", [3, 4, 5, 6, 7, 8, 9], "Reservations late March to mid-September (6 months ahead); walk-in the rest of the year", PCS(555, "Turlock Lake State Recreation Area")[0]);
   ST(519, "Candlestick Point State Recreation Area", "Bay Area", [["Sunrise Point Campground", null, "", "named on the park page; details not found"]]);
+  // coming seasons published by the parks (the Year picker uses them); daily check 11/25/2026
+  Object.assign(SEAS["sp-manchester-state-park-manchester"] || {}, { years: { 2027: "Memorial Day weekend – Labor Day weekend 2027 (first-come)" } });
+  Object.assign(SEAS["sp-navarro-river-redwoods-state-park-paul-dimmick"] || {}, { years: { 2027: "May 28 – Sep 7, 2027" } });
 })();
