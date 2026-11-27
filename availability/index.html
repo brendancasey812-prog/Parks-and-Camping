@@ -86,42 +86,26 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
             <thead><tr>
               <th scope="col" data-k="name"><button type="button">Park</button></th>
               <th scope="col" data-k="camp"><button type="button">Campground</button></th>
-              <th scope="col" data-k="city"><button type="button">City</button></th>
-              <th scope="col" data-k="des"><button type="button">Type</button></th>
-              <th scope="col" data-k="region"><button type="button">Region</button></th>
-              <th scope="col" data-k="thru"><button type="button" title="The furthest arrival date anyone can book right now">Currently available through</button></th>
               <th scope="col" data-k="date"><button type="button" title="When booking opens for the first night of the season">Open date</button></th>
               <th scope="col" data-k="time"><button type="button">Open time</button></th>
-              <th scope="col" data-k="next"><button type="button" title="The next arrival date to open, and when">Next date available</button></th>
+              <th scope="col" data-k="days"><button type="button" title="How long until booking opens">Days out</button></th>
+              <th scope="col" data-k="openD"><button type="button" title="When the campground is open (its season)">Availability period</button></th>
+              <th scope="col" data-k="thru"><button type="button" title="The furthest arrival date anyone can book right now">Currently available through</button></th>
               <th scope="col" data-k="rule"><button type="button">How it opens</button></th>
-              <th scope="col" data-k="sites"><button type="button">Sites</button></th>
               <th scope="col" data-k="sys"><button type="button">Booking site</button></th>
-              <th scope="col" data-k="days"><button type="button">Days out</button></th>
-              <th scope="col" data-k="wday"><button type="button">Day</button></th>
-              <th scope="col" data-k="openD"><button type="button">Open season</button></th>
-              <th scope="col" data-k="peakD"><button type="button">Peak season</button></th>
-              <th scope="col" data-k="walk"><button type="button">Walk-up</button></th>
-              <th scope="col" data-k="conf"><button type="button">Data</button></th>
+              <th scope="col" data-k="sites"><button type="button" title="Number of campsites">Sites</button></th>
             </tr>
             <tr class="frow">
               <td><input id="fName" type="search" placeholder="Filter parks, campgrounds or towns" aria-label="Filter parks, campgrounds and towns"></td>
               <td><select id="fSaved" aria-label="Saved campgrounds"><option value="">All campgrounds</option><option value="1">Saved only</option></select></td>
-              <td></td>
               <td><select id="fDes" aria-label="Type"><option value="">All types</option></select></td>
               <td><select aria-label="Region" id="fRegion"><option value="">All regions</option></select></td>
-              <td></td>
               <td><select aria-label="Opens in" id="fAvail"><option value="">Any time</option><option value="open">Already open</option><option value="7d">Opens within 7 days</option><option value="30d">Opens within 30 days</option><option value="later">Opens later</option><option value="walk">No advance booking at the start of the season</option></select></td>
+              <td><select aria-label="Walk-up" id="fWalk"><option value="">Any walk-up</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></td>
               <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <td><select aria-label="Data" id="fConf"><option value="">Any data status</option><option value="good">Verified</option><option value="check">Needs checking</option><option value="assumed">Not yet researched</option></select></td>
               <td><select aria-label="Booking site" id="fSys"><option value="">All sites</option><option value="rec">Recreation.gov</option><option value="rc">ReserveCalifornia</option><option value="fcfs">First-come only</option><option value="ty">Travel Yosemite (park lodging)</option></select></td>
               <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td><select aria-label="Walk-up" id="fWalk"><option value="">Any walk-up</option><option value="any">Walk-up sites available</option><option value="none">Reservation only</option><option value="only">Walk-up only</option></select></td>
-              <td><select aria-label="Data" id="fConf"><option value="">Any data status</option><option value="good">Verified</option><option value="check">Needs checking</option><option value="assumed">Not yet researched</option></select></td>
             </tr></thead>
             <tbody id="parksBody"></tbody>
           </table></div>
@@ -164,7 +148,7 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
         <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">When each permit opens for booking, and the trip dates it covers, for the season chosen in Year (top right). Dates from Recreation.gov and the park pages. Filter or sort from the ▾ in each heading.</p></div>
         <div class="card flush">
           <div class="pm-tools"><input id="pmQ" type="search" placeholder="Search permits, places or steps" aria-label="Search permits and lotteries"><span id="pmCount" class="pm-count" role="status" aria-live="polite"></span><button id="pmClear" type="button" class="link-btn" hidden>Clear filters</button></div>
-          <div class="tw" tabindex="-1"><table class="tbl stack" id="pmAll"><thead><tr><th scope="col" data-k="name"><button type="button">Permit</button></th><th scope="col" data-k="loc"><button type="button">Location</button></th><th scope="col" data-k="step"><button type="button">Step</button></th><th scope="col" data-k="type"><button type="button">Type</button></th><th scope="col" data-k="stat"><button type="button">Status</button></th><th scope="col" data-k="odate"><button type="button">Booking opens</button></th><th scope="col" data-k="otime"><button type="button">Open time</button></th><th scope="col" data-k="cdate"><button type="button">Booking closes</button></th><th scope="col" data-k="access"><button type="button">Access dates</button></th><th scope="col" data-k="results"><button type="button">Results</button></th><th scope="col" data-k="sys"><button type="button">Booking site</button></th></tr></thead><tbody></tbody></table></div>
+          <div class="tw" tabindex="-1"><table class="tbl stack" id="pmAll"><thead><tr><th scope="col" data-k="name"><button type="button">Permit</button></th><th scope="col" data-k="step"><button type="button">Step</button></th><th scope="col" data-k="odate"><button type="button" title="When booking opens">Open date</button></th><th scope="col" data-k="otime"><button type="button">Open time</button></th><th scope="col" data-k="stat"><button type="button" title="How long until booking opens">Days out</button></th><th scope="col" data-k="access"><button type="button" title="The trip dates this step covers">Availability period</button></th><th scope="col" data-k="cdate"><button type="button">Booking closes</button></th><th scope="col" data-k="type"><button type="button">How it opens</button></th><th scope="col" data-k="sys"><button type="button">Booking site</button></th></tr></thead><tbody></tbody></table></div>
         </div>
         <div class="card flush"><div class="card-h"><h2>Coming up</h2></div><div class="tw" tabindex="-1"><table class="tbl stack" id="pmSoon"><thead><tr><th scope="col">Permit</th><th scope="col">Location</th><th scope="col">Opens date</th><th scope="col">Opens time</th><th scope="col">Closes</th><th scope="col">Starts in</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody></tbody></table></div></div>
         <div id="pmList" class="pm-list"></div>

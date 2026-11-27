@@ -100,8 +100,8 @@ $("#q").addEventListener("input",e=>{filt.q=e.target.value;refresh()});
 $("#clear").onclick=()=>{$("#q").value="";filt.q="";filt.st.clear();filt.u.clear();filt.d.clear();filt.v.clear();msInstances.forEach(m=>m.draw());refresh()};
 
 // ---------- tabs ----------
-const TAB_SECTION={dashboard:"dashboard",trips:"trips",camping:"camping",passes:"passes",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
-const TAB_GROUP={dashboard:"",trips:"explore",camping:"explore",explore:"explore",grid:"parks",list:"parks",map:"parks"};
+const TAB_SECTION={dashboard:"dashboard",trips:"trips",camping:"camping",permits:"camping",passes:"passes",explore:"explore",grid:"grid",list:"list",map:"map",visited:"visited",about:"about"};
+const TAB_GROUP={dashboard:"",trips:"parks",camping:"",permits:"",explore:"parks",grid:"parks",list:"parks",map:"parks"};
 let currentTab="grid";
 function showTab(t){
   if(t==="about"){toggleDrawer(!document.body.classList.contains("drawer-open"));return}
@@ -112,7 +112,7 @@ function showTab(t){
   $$(".tab[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
   $$(".tab.grp").forEach(b=>b.classList.toggle("active",b.dataset.group===grp));
   $$(".panel").forEach(p=>p.classList.toggle("active",sec==="explore"?(p.id==="tab-list"||p.id==="tab-map"):p.id==="tab-"+sec));
-  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");document.body.classList.toggle("passes",t==="passes");document.body.classList.toggle("camping",t==="camping");if(t==="camping")showCamping();
+  document.body.classList.toggle("explore",t==="explore");document.body.classList.toggle("dash",t==="dashboard");document.body.classList.toggle("trips",t==="trips");document.body.classList.toggle("passes",t==="passes");document.body.classList.toggle("camping",t==="camping"||t==="permits");if(t==="camping"||t==="permits")showCamping(t);
   if(window.TripsApp)t==="trips"?TripsApp.show():TripsApp.hide();
   if(window.Dashboard)t==="dashboard"?Dashboard.show():Dashboard.hide();
   if(window.PassesApp)t==="passes"?PassesApp.show():PassesApp.hide();
@@ -125,11 +125,11 @@ function showTab(t){
   store.set("tab",t);updateMM();
 }
 // ---------- phone header: one compact row; the tabs open from a menu button and the bar hides while you scroll down ----------
-const TAB_LABEL={dashboard:"Dashboard",explore:"Table + Map",trips:"Trip Planner",camping:"Camping",grid:"Park Info",list:"Park List",map:"Park Map",passes:"Passes",visited:"Visited"};
+const TAB_LABEL={dashboard:"Dashboard",explore:"Table + Map",trips:"Trip Planner",camping:"Camping",permits:"Permits",grid:"Park Info",list:"Park List",map:"Park Map",passes:"Passes",visited:"Visited"};
 const phoneMQ=matchMedia("(max-width:700px)");let hintT=0;
 function setNav(on){document.body.classList.toggle("navopen",on);const b=$("#navBtn");if(b)b.setAttribute("aria-expanded",String(on));$("#bnavMore")?.setAttribute("aria-expanded",String(on));if(on){setHd(false);setFS(false)}}
 // phones: bottom tab bar
-const BT_OF={dashboard:"dashboard",explore:"explore",grid:"explore",list:"explore",map:"explore",camping:"camping",trips:"trips"};
+const BT_OF={dashboard:"dashboard",explore:"explore",grid:"explore",list:"explore",map:"explore",camping:"camping",permits:"permits"};
 function syncBnav(t){$$("#bnav [data-bt]").forEach(b=>{const on=b.dataset.bt===(BT_OF[t]||"more");b.classList.toggle("on",on);on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current")})}
 $("#bnav")?.addEventListener("click",e=>{const b=e.target.closest("[data-bt]");if(!b)return;e.stopPropagation();const t=b.dataset.bt;
   if(t==="more"){setNav(!document.body.classList.contains("navopen"));return}setNav(false);
@@ -158,7 +158,11 @@ function setHd(on){const b=document.body,top=$(".top");if(!top||b.classList.cont
   if(t.closest&&t.closest(".tabs,.filters,.mmsheet,.tabmenu,dialog,.drawer"))return;let f=tr.get(t);if(!f){f=headTrack(()=>t.scrollTop);tr.set(t,f)}f()},{capture:true,passive:true})}
 $("#campFrame").addEventListener("load",()=>{try{const w=$("#campFrame").contentWindow;w.addEventListener("scroll",headTrack(()=>w.scrollY),{passive:true})}catch(e){}});
 // Camping tab: the campsite tracker (availability/) shown inside the page, sized to the space under the header
-function showCamping(){const f=$("#campFrame");if(!f.src)f.src=f.dataset.src;requestAnimationFrame(sizeCamping)}
+function showCamping(t){const f=$("#campFrame");   // one Camping app; the Permits tab opens its permits page
+  const want=t==="permits"?"#/permits":null;
+  if(!f.src){f.src=f.dataset.src.split("#")[0]+(want||(f.dataset.src.includes("#")?"#"+f.dataset.src.split("#")[1]:""))}
+  else try{const h=f.contentWindow.location.hash;if(want&&h!==want)f.contentWindow.location.hash=want;else if(!want&&/^#\/permits/.test(h))f.contentWindow.location.hash="#/"}catch(e){}
+  requestAnimationFrame(sizeCamping)}
 function sizeCamping(){const f=$("#campFrame");if(!document.body.classList.contains("camping"))return;
   const hd=phoneMQ.matches&&document.body.classList.contains("hd");const bn=phoneMQ.matches?($("#bnav")?.offsetHeight||0):0;f.style.height=Math.max(320,innerHeight-bn-(hd?0:Math.max(0,f.getBoundingClientRect().top)))+"px"}
 window.addEventListener("resize",sizeCamping);

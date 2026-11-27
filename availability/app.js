@@ -13,7 +13,8 @@ const ptParts = d => { const p = {}; new Intl.DateTimeFormat("en-US", { timeZone
 const todayPT = () => { const p = ptParts(new Date()); return E.iso(p.year, p.month, p.day); };
 const saved = store.get("cc-state", {});
 const st = Object.assign({ year: 0, tz: "pt", q: "", kind: "", sys: "", region: "", avail: "", season: "", month: "", peak: "", walk: "", conf: "", saved: "", unk: true, sort: "name", dir: 1, des: "", csort: "name", cdir: 1, cq: "", cmode: "all", cf: {}, ccf: { park: "", f: {} } }, saved);
-delete st.target;   // no trip date any more: the Year picker sets which season the opening columns are for
+delete st.target;
+Object.keys(st.cf || {}).forEach(k => { if (!["name", "camp", "date", "time", "days", "openD", "thru", "rule", "sys", "sites"].includes(k)) delete st.cf[k]; });   // filters on columns no longer shown   // no trip date any more: the Year picker sets which season the opening columns are for
 const persist = () => store.set("cc-state", st);
 function fmtAt(date, withTime = true) {
   const o = { weekday: "short", month: "short", day: "numeric", year: "numeric" };
@@ -262,6 +263,7 @@ function opensCell(s, c) {
 const NV = '<span class="nv">Not researched</span>', NF = '<span class="nv">Not found</span>';
 // ---------- column filters (Google Sheets style): per column, the values you untick are hidden ----------
 function opensBucket(c) { if (c.at) { if (c.status === "open") return "Open now"; const h = hoursUntil(c.at); return h <= 168 ? "Opens within 7 days" : h <= 720 ? "Opens within 30 days" : "Opens later"; } return STATUS_TEXT[c.status] || ""; }
+const PCOL_SHOWN = new Set(["name", "camp", "date", "time", "days", "openD", "thru", "rule", "sys", "sites"]);
 const PCOL = { name: x => splitName(x.p.name).name, camp: x => x.r.name, city: x => x.r.city || "Not found", thru: x => thruOf(x.r).t, next: x => { const n = nextOf(x.r); return n ? isoMdy(n.from) : "—"; }, des: x => splitName(x.p.name).des || "—", region: x => x.p.region, sys: x => x.sys, rule: x => x.rules.length > 1 ? "Varies by campground" : x.rules[0],
   days: x => opensBucket((x.first || x.calcs[0]).c), wday: x => x.first ? fmtWd(x.first.c.at) : "—", date: x => x.first ? fmtDOnly(x.first.c.at) : "—", time: x => x.first ? fmtTime(x.first.c.at) : "—",
   openD: x => x.openD || "Not found", peakD: x => x.peakD ? peakDatesTxt(x.peakD) : "Not found", sites: x => x.sites == null ? "Not found" : String(x.sites),
@@ -356,20 +358,15 @@ function renderParks() {
     const dc = CONF[x.r.conf][1];
     const nm = splitName(x.p.name), oc = opensCells(x);
     return '<tr class="link" data-park="' + esc(x.p.key) + '" data-id="' + esc(x.r.id) + '"><th scope="row" data-l="Park"><a class="nm link-cell" href="#/park/' + esc(x.p.key) + '" title="' + esc(x.p.name) + '">' + esc(nm.name) + "</a><small>" + esc(x.p.agency) + "</small>" +
-      "</th>" + '<td data-l="Campground" class="cgc">' + starHtml(x.r) + '<a class="cg link-cell" href="#/park/' + esc(x.p.key) + "/" + esc(x.r.id) + '">' + esc(x.r.name) + "</a>" + (x.r.edited ? '<span class="tag edit">Edited</span>' : "") + "</td>" +
-      '<td data-l="City">' + (x.r.city ? esc(x.r.city) : NF) + "</td>" +
-      '<td data-l="Type">' + (nm.des ? '<abbr class="des" title="' + esc(DES_FULL[nm.des] || "Statewide") + '">' + esc(nm.des) + "</abbr>" : "") + '</td><td data-l="Region">' + esc(x.p.region) + '</td>' +
+      "</th>" + '<td data-l="Campground" class="cgc">' + starHtml(x.r) + '<a class="cg link-cell" href="#/park/' + esc(x.p.key) + "/" + esc(x.r.id) + '">' + esc(x.r.name) + "</a>" + (x.r.edited ? '<span class="tag edit">Edited</span>' : "") +
+        '<small class="loc">' + esc([x.r.city, x.p.region].filter(Boolean).join(" · ")) + "</small></td>" +
+      '<td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + '</td><td data-l="Days out">' + oc[0] + "</td>" +
+      '<td data-l="Availability period">' + (x.openD ? openCell(x.openD) : NF) + "</td>" +
       '<td data-l="Currently available through">' + thruCell(x.r) + "</td>" +
-      '<td data-l="Open date">' + oc[2] + '</td><td data-l="Open time">' + oc[3] + "</td>" +
-      '<td data-l="Next date available">' + nextCell(x.r) + "</td>" +
       '<td data-l="How it opens">' + esc(x.rules.length > 1 ? "Varies by campground" : x.rules[0]) + "</td>" +
-      '<td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + "</td>" +
       '<td data-l="Booking site">' + esc(x.sys) + "</td>" +
-      '<td data-l="Days out">' + oc[0] + '</td><td data-l="Day">' + oc[1] + "</td>" +
-      '<td data-l="Open season">' + (x.openD ? openCell(x.openD) : NF) + '</td><td data-l="Peak season">' + (x.peakD ? peakCell(x.peakD) : NF) + "</td>" +
-      '<td data-l="Walk-up">' + (x.walk ? esc(x.walk) : NV) + '</td>' +
-      '<td data-l="Data"><span class="dtl ' + dc + '">' + esc(confLabel(x.r)) + "</span></td></tr>";
-  }).join("") || '<tr><td colspan="18" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
+      '<td data-l="Sites" class="num">' + (x.sites == null ? NF : x.sites.toLocaleString() + (x.sitesMissing ? '<small>' + x.sitesMissing + " not counted</small>" : "")) + "</td></tr>";
+  }).join("") || '<tr><td colspan="10" class="empty">No parks match these filters. Clear a filter to see more.</td></tr>';
   markFiltered("#parksTable", st.cf);
   $("#parksTable").classList.add("stack");
   $$("#parksTable thead th[data-k]").forEach(th => { const on = th.dataset.k === st.sort; if (on) th.setAttribute("aria-sort", st.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
@@ -607,10 +604,11 @@ $("#resetEdits").onclick = () => { if (!Object.keys(edits).length) return; if (c
 // ---------- column menus: sort, search the values, tick which ones to show ----------
 function markFiltered(tbl, cf) { $$(tbl + " thead th[data-k]").forEach(th => th.classList.toggle("filtered", !!(cf[th.dataset.k] && cf[th.dataset.k].length))); }
 let M = null;
+const FINE = matchMedia("(pointer:fine)");
 const MENU_HTML = '<div class="cm-sort"><button type="button" data-cm="asc">Sort A → Z</button><button type="button" data-cm="desc">Sort Z → A</button></div>' +
     '<div class="cm-h">Filter by values</div><div class="cm-sa"><button type="button" data-cm="all">Select all</button><button type="button" data-cm="none">Clear</button><span class="cm-n"></span></div>' +
     '<input type="search" class="cm-q" placeholder="Search" aria-label="Search values"><ul class="cm-l"></ul>' +
-    '<div class="cm-f"><button type="button" class="btn" data-cm="cancel">Cancel</button><button type="button" class="btn primary" data-cm="ok">OK</button></div>';
+    '<div class="cm-f"><button type="button" class="btn" data-cm="reset">Clear filter</button><button type="button" class="btn primary" data-cm="ok">Done</button></div>';
 const menu = document.createElement("div"); menu.className = "cmenu"; menu.hidden = true; menu.setAttribute("role", "dialog"); document.body.appendChild(menu);
 function place(el, anchor, maxW = 300) {
   const r = anchor.getBoundingClientRect(), w = Math.min(maxW, innerWidth - 16); el.style.width = w + "px";
@@ -622,7 +620,7 @@ function openMenu(tbl, k, btn, ext) {
   if (ext) {          // another view's table (Permits): it supplies the values and what OK and Sort do
     M = { ext, k, btn, hidden: new Set(ext.hidden || []), vals: ext.vals };
     menu.setAttribute("aria-label", "Sort and filter " + ext.label);
-    menu.innerHTML = MENU_HTML; drawMenu(); menu.hidden = false; place(menu, btn); menu.querySelector(".cm-q").focus(); return;
+    menu.innerHTML = MENU_HTML; drawMenu(); menu.hidden = false; place(menu, btn); if (FINE.matches) menu.querySelector(".cm-q").focus(); return;
   }
   const park = tbl === "p", cols = park ? PCOL : CCOL, cf = park ? st.cf : campCF(), src = park ? allParkSums : allCamps, cnt = new Map();
   src.filter(x => passCF(x, cols, cf, k)).forEach(x => { const v = cols[k](x); cnt.set(v, (cnt.get(v) || 0) + 1); });
@@ -630,24 +628,31 @@ function openMenu(tbl, k, btn, ext) {
   M = { park, k, btn, cf, hidden: new Set(cf[k] || []), vals: [...cnt].sort((a, b) => String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true })) };
   menu.setAttribute("aria-label", "Sort and filter " + colName(park ? "#parksTable" : "#campTable", k));
   menu.innerHTML = MENU_HTML;
-  drawMenu(); menu.hidden = false; place(menu, btn); menu.querySelector(".cm-q").focus();
+  drawMenu(); menu.hidden = false; place(menu, btn); if (FINE.matches) menu.querySelector(".cm-q").focus();
 }
 const menuShown = () => { const q = menu.querySelector(".cm-q").value.trim().toLowerCase(); return M.vals.map((v, i) => [v, i]).filter(([v]) => !q || String(v[0]).toLowerCase().includes(q)); };
 function drawMenu() {
   const sh = menuShown();
-  menu.querySelector(".cm-l").innerHTML = sh.map(([[v, n], i]) => '<li><label><input type="checkbox" value="' + i + '"' + (M.hidden.has(v) ? "" : " checked") + "><span>" + esc(v || "(blank)") + "</span><em>" + n + "</em></label></li>").join("") || '<li class="cm-none">No matches</li>';
+  menu.querySelector(".cm-l").innerHTML = sh.map(([[v, n], i]) => '<li><label><input type="checkbox" value="' + i + '"' + (M.hidden.has(v) ? "" : " checked") + "><span>" + esc(v || "(blank)") + "</span><em>" + n + '</em></label><button type="button" class="cm-only" data-only="' + i + '">only</button></li>').join("") || '<li class="cm-none">No matches</li>';
   menu.querySelector(".cm-n").textContent = M.vals.filter(([v]) => !M.hidden.has(v)).length + " of " + M.vals.length;
+}
+function applyMenu() {          // filter as you tick: no OK needed
+  if (!M) return; const hid = [...M.hidden];
+  if (M.ext) { M.ext.apply(hid); return; }
+  if (hid.length) M.cf[M.k] = hid; else delete M.cf[M.k]; persist(); render();
 }
 function closeMenu(focus) { if (menu.hidden) return; menu.hidden = true; if (focus && M) M.btn.focus(); M = null; }
 menu.addEventListener("input", e => { if (e.target.matches(".cm-q")) drawMenu(); });
 menu.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".cm-q")) { e.preventDefault(); menu.querySelector('[data-cm="ok"]').click(); } });
-menu.addEventListener("change", e => { const c = e.target; if (c.type !== "checkbox") return; const v = M.vals[+c.value][0]; c.checked ? M.hidden.delete(v) : M.hidden.add(v); drawMenu(); });
+menu.addEventListener("change", e => { const c = e.target; if (c.type !== "checkbox") return; const v = M.vals[+c.value][0]; c.checked ? M.hidden.delete(v) : M.hidden.add(v); drawMenu(); applyMenu(); });
 menu.addEventListener("click", e => {
+  const o = e.target.closest("[data-only]"); if (o) { const keep = M.vals[+o.dataset.only][0]; M.hidden = new Set(M.vals.map(x => x[0]).filter(v => v !== keep)); drawMenu(); applyMenu(); return; }
   const b = e.target.closest("[data-cm]"); if (!b) return; const a = b.dataset.cm;
-  if (a === "all" || a === "none") { menuShown().forEach(([[v]]) => a === "all" ? M.hidden.delete(v) : M.hidden.add(v)); drawMenu(); return; }
-  if (M.ext) { const x = M.ext, btn = M.btn, hid = [...M.hidden]; closeMenu(); if (a === "asc" || a === "desc") x.sort(a === "asc" ? 1 : -1); else if (a === "ok") x.apply(hid); btn.focus(); return; }
+  if (a === "all" || a === "none") { menuShown().forEach(([[v]]) => a === "all" ? M.hidden.delete(v) : M.hidden.add(v)); drawMenu(); applyMenu(); return; }
+  if (a === "reset") { M.hidden = new Set(); drawMenu(); applyMenu(); }
+  if (M.ext) { const x = M.ext, btn = M.btn; closeMenu(); if (a === "asc" || a === "desc") x.sort(a === "asc" ? 1 : -1); btn.focus(); return; }
   if (a === "asc" || a === "desc") { if (M.park) { st.sort = M.k; st.dir = a === "asc" ? 1 : -1; } else { st.csort = M.k; st.cdir = a === "asc" ? 1 : -1; } }
-  if (a === "ok") { if (M.hidden.size) M.cf[M.k] = [...M.hidden]; else delete M.cf[M.k]; }
+  if (a === "ok" || a === "reset") { if (M.hidden.size) M.cf[M.k] = [...M.hidden]; else delete M.cf[M.k]; }
   const btn = M.btn; closeMenu(); if (a !== "cancel") { persist(); render(); }
   const again = $((btn.closest("table").id ? "#" + btn.closest("table").id : "") + ' thead th[data-k="' + btn.closest("th").dataset.k + '"] .fb'); (again || btn).focus();
 });

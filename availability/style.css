@@ -159,7 +159,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 .tbl thead tr.frow td{padding:.35rem .4rem;background:var(--panel);border-bottom:1px solid var(--line-2);position:sticky;top:var(--tap);z-index:1}
 .frow input,.frow select{width:100%;min-width:7rem;min-height:32px;padding:0 .45rem;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:.8rem var(--font)}
 abbr.des{text-decoration:none;font-weight:700;font-size:.8rem;padding:.1rem .45rem;border-radius:6px;background:var(--hover);color:var(--ink-2);cursor:help;white-space:nowrap}
-#parksTable td[data-l="Open date"],#parksTable td[data-l="Open time"]{white-space:nowrap}
+#parksTable td[data-l="Open time"]{white-space:nowrap}
+#parksTable td[data-l="Open date"]{min-width:7.5rem;max-width:11rem}
+#parksTable td[data-l="Days out"]{min-width:6rem;max-width:9rem}
+#parksTable td[data-l="Availability period"]{min-width:8rem;max-width:12rem}
+#parksTable td[data-l="How it opens"]{min-width:9rem;max-width:14rem}
+#pmAll td,#pmAll th{max-width:16rem}
 @media(max-width:860px){
   .tbl.stack thead{position:static;width:auto;height:auto;overflow:visible;clip:auto;display:block}
   .tbl.stack thead tr:first-child{display:none}
@@ -357,3 +362,23 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
 .pm-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;padding:.8rem 1rem;border-bottom:1px solid var(--line)}
 .pm-tools input{flex:1 1 240px;min-width:0}
 .pm-tools .pm-count{margin-left:0}
+
+/* camping table: location under the campground name */
+.cgc .loc{display:block;margin-top:.15rem;color:var(--muted);font-size:.78rem;font-weight:400}
+#pmAll th .loc{display:block;margin-top:.15rem;color:var(--muted);font-size:.78rem;font-weight:400}
+
+/* frozen headings: on desktops each table scrolls in its own area so the headings (and their filters) stay at the top */
+@media(min-width:701px){
+  #vParks .tw,#vPermits .card > .tw:first-of-type,#pmAll{scroll-margin-top:0}
+  #vParks .tw,#vPermits .tw:has(#pmAll){max-height:calc(100dvh - 170px);overflow:auto;overscroll-behavior:contain}
+  #parksTable thead th,#pmAll thead th{position:sticky;top:0;z-index:3;box-shadow:0 1px 0 var(--line-2)}
+}
+/* quicker filter menu: tick to filter, "only" to keep one value, bigger targets on touch */
+.cmenu .cm-l li{display:flex;align-items:center;gap:.3rem}
+.cmenu .cm-l li label{flex:1;min-width:0}
+.cm-only{flex:none;padding:.15rem .5rem;border:1px solid var(--line-2);border-radius:999px;background:none;color:var(--muted);font:600 .72rem var(--font);cursor:pointer;opacity:0}
+.cmenu .cm-l li:hover .cm-only,.cm-only:focus-visible{opacity:1}
+@media(pointer:coarse){.cm-only{opacity:1;padding:.35rem .7rem}.tbl thead .fb{width:34px;height:34px;min-height:34px}.cmenu .cm-l li label{min-height:44px;display:flex;align-items:center}}
+
+/* long Days out labels wrap inside their column */
+#parksTable td[data-l="Days out"] .st,#pmAll td[data-l="Days out"] .st{white-space:normal;display:inline}

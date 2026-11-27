@@ -17,7 +17,8 @@ const tripFor = p => {
   const d = CC.st.year + "-" + (p.valid ? p.valid.from : "01-01"), t = CC.todayPT(), x = d < t ? t : d;
   if (p.kind === "monthsBefore" && !p.valid) return E.addDays(t, Math.round(p.closeMonths * 30.44) + 10);
   if (p.kind !== "weekly") return x;
-  const sun = E.addDays(t, -dow(t)), now = p.leftover ? E.addDays(E.addDays(t, -12), -dow(E.addDays(t, -12))) : sun;   // this week's lottery, or the latest leftovers already released
+  let now = E.addDays(t, -dow(t));                        // this week's lottery
+  if (p.leftover) { now = E.addDays(now, -7); while (at(E.addDays(now, 12), "09:00") > new Date()) now = E.addDays(now, -7); }   // the latest leftovers already on sale (Friday 9:00 AM, 12 days after their lottery opened)
   const cur = E.addDays(now, p.leadDays); return cur > x ? cur : x;
 };
 function compute(p, D, now) {
@@ -60,6 +61,7 @@ function status(r, now) {
 
 // ---------- search and filters (saved in this browser) ----------
 const F = Object.assign({ q: "", cf: {}, sort: "odate", dir: 1 }, (() => { try { return JSON.parse(localStorage.getItem("cc-pm2")) || {}; } catch (e) { return {}; } })());
+Object.keys(F.cf || {}).forEach(k => { if (!["name", "step", "odate", "otime", "stat", "access", "cdate", "type", "sys"].includes(k)) delete F.cf[k]; });   // filters on columns no longer shown
 const saveF = () => { try { localStorage.setItem("cc-pm2", JSON.stringify(F)); } catch (e) {} };
 const loc = perm => { const n = CC.splitName(perm.park); return n.name + (n.des ? " " + n.des : ""); };
 const typeOf = p => p.kind === "days" || p.leftover ? "release" : /lottery/i.test(p.label) || ["weekly", "daily", "oneTime"].includes(p.kind) ? "lottery" : "window";
@@ -149,21 +151,21 @@ function rowHtml(x) {
   const { perm, p, r, s, a } = x;
   const stat = '<span class="st ' + (s.k === "open" ? "open" : s.k === "soon" ? "later" : "none") + '"' + (s.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(s.t) + "</span>";
   const live = r.open && !r.na;
-  return '<tr><th scope="row" data-l="Permit"><button type="button" class="nm" data-goperm="' + esc(perm.id) + '">' + esc(perm.name) + "</button></th>" +
-    '<td data-l="Location">' + esc(loc(perm)) + '</td><td data-l="Step">' + esc(p.label) + (p.what ? '<span class="when-t">' + esc(p.what) + "</span>" : "") + '</td><td data-l="Type">' + TYPE[typeOf(p)] + "</td>" +
-    '<td data-l="Status">' + stat + "</td>" +
-    '<td data-l="Booking opens">' + (live ? "<b>" + esc(dayT(r.open)) + "</b>" + (r.week ? '<span class="when-t">' + (p.leftover ? "" : "Week of ") + esc(r.week) + "</span>" : "") + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + "</td>" +
+  return '<tr><th scope="row" data-l="Permit"><button type="button" class="nm" data-goperm="' + esc(perm.id) + '">' + esc(perm.name) + '</button><small class="loc">' + esc(loc(perm)) + "</small></th>" +
+    '<td data-l="Step">' + esc(p.label) + (p.what ? '<span class="when-t">' + esc(p.what) + "</span>" : "") + "</td>" +
+    '<td data-l="Open date">' + (live ? "<b>" + esc(dayT(r.open)) + "</b>" + (r.week ? '<span class="when-t">' + (p.leftover ? "" : "Week of ") + esc(r.week) + "</span>" : "") + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + "</td>" +
     '<td data-l="Open time">' + (live ? (noTime(p, r) ? '<span class="nv">Not published</span>' : esc(timeT(r.open))) : '<span class="nv">—</span>') + "</td>" +
-    '<td data-l="Booking closes">' + (r.close && !r.na ? esc(dayT(r.close)) + '<span class="when-t">' + esc(timeT(r.close)) + "</span>" : r.na ? '<span class="nv">' + esc(r.na) + "</span>" : "Until booked") + "</td>" +
-    '<td data-l="Access dates">' + (a.t ? "<b>" + esc(a.t) + "</b>" : '<span class="nv">—</span>') + (a.n ? '<span class="when-t">' + esc(a.n) + "</span>" : "") + "</td>" +
-    '<td data-l="Results">' + esc(p.results || "") + '</td><td data-l="Booking site">' + esc(perm.system) + "</td></tr>";
+    '<td data-l="Days out">' + stat + "</td>" +
+    '<td data-l="Availability period">' + (a.t ? "<b>" + esc(a.t) + "</b>" : '<span class="nv">—</span>') + (a.n ? '<span class="when-t">' + esc(a.n) + "</span>" : "") + "</td>" +
+    '<td data-l="Booking closes">' + (r.close && !r.na ? esc(dayT(r.close)) + '<span class="when-t">' + esc(timeT(r.close)) + "</span>" : r.na ? '<span class="nv">' + esc(r.na) + "</span>" : "Until booked") + (p.results ? '<span class="when-t">Results: ' + esc(p.results) + "</span>" : "") + "</td>" +
+    '<td data-l="How it opens">' + TYPE[typeOf(p)] + '</td><td data-l="Booking site">' + esc(perm.system) + "</td></tr>";
 }
 function render() {
   if ($("#vPermits").hidden) return;
   const D = CC.st.year, now = new Date(), steps = PERMITS.reduce((t, x) => t + x.phases.length, 0);
   pmAllRows = stepRows(now);
   const k = F.sort, key = PMSORT[k] || PMCOL[k] || PMCOL.odate, rows = pmAllRows.filter(x => passPM(x)).sort((a, b) => { const va = key(a), vb = key(b); return (typeof va === "number" ? va - vb : String(va).localeCompare(String(vb), undefined, { numeric: true })) * F.dir; });
-  $("#pmAll tbody").innerHTML = rows.map(rowHtml).join("") || '<tr><td colspan="11" class="empty">No permits match. Clear the search or a filter.</td></tr>';
+  $("#pmAll tbody").innerHTML = rows.map(rowHtml).join("") || '<tr><td colspan="9" class="empty">No permits match. Clear the search or a filter.</td></tr>';
   $("#pmCount").textContent = rows.length + " of " + steps + " steps";
   const on = Object.values(F.cf).some(v => v && v.length);
   $("#pmClear").hidden = !on && !F.q;
