@@ -99,11 +99,12 @@
   function ruleText(rule) {
     const t = rule.time ? (() => { const [h, mi] = hm(rule.time); return (h % 12 || 12) + ":" + pad(mi) + " " + (h < 12 ? "AM" : "PM") + " PT"; })() : "";
     if (rule.kind === "rolling") return rule.months + (rule.months === 1 ? " month" : " months") + " ahead, new day opens daily at " + t;
-    if (rule.kind === "days") return rule.days + " days ahead, daily at " + t;
+    if (rule.kind === "days") return rule.days + " days ahead, daily" + (t ? " at " + t : " (time of day not published)");
     if (rule.kind === "block" && !rule.through) return "Released in blocks: next season not released yet; release date not published";
     if (rule.kind === "block") { const [y, m, d] = rule.through.split("-"); return (rule.season ? "Whole season released at once: open through " : "Released in blocks: open through ") + m + "/" + d + "/" + y + "; next release not published"; }
     if (rule.kind === "monthly") return "Monthly on the " + rule.blockStart + "th at " + t + ": opens a month of arrivals reaching " + rule.monthsAhead + " month" + (rule.monthsAhead > 1 ? "s" : "") + " ahead (to the " + (rule.blockStart - 1) + "th)" +
       (rule.holdUntil ? "; this season's general sale starts " + rule.holdUntil.slice(5, 7) + "/" + rule.holdUntil.slice(8) + "/" + rule.holdUntil.slice(0, 4) + " (after the early-access lottery)" : "");
+    if (rule.kind === "lottery") return rule.text || "By lottery";
     return "No advance booking / rule not known";
   }
   const api = { TZ, ptInstant, releaseFor, nextReleases, addMonths, addDays, rollingReleaseDay, bookableThrough, monthsLabel, ruleText, iso, parseISO, tzOffsetMin };

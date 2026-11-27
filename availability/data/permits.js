@@ -44,6 +44,18 @@ window.PERMITS = [
     ],
     sources: [{ t: "Recreation.gov: Yosemite wilderness permits, 2027 dates", u: "https://www.recreation.gov/permits/445859" }, { t: "NPS: Yosemite wilderness permit reservations", u: "https://www.nps.gov/yose/planyourvisit/wpres.htm" }] },
 
+  { id: "yose-hsc-lottery", name: "Yosemite High Sierra Camps lottery (May Lake, Sunrise, Glen Aulin, Merced Lake, Vogelsang)", park: "Yosemite National Park", system: "Travel Yosemite", url: "https://www.travelyosemite.com/stay/high-sierra-camps/high-sierra-camp-lottery",
+    summary: "", fees: "", group: "", conf: "good", check: [],
+    openingsYear: "2027 season (Travel Yosemite)",
+    openings: [
+      { name: "Lottery application", open: "12/01/2026", time: "12:00 AM", close: "12/31/2026 (the form also says 12/30; apply by the 30th)", release: "Winners emailed by end of February 2027; pay within 7 days", hike: "Camps open June – September 2027 (weather dependent)", permits: "Guided and unguided trips; meals-only stays are not in the lottery" },
+      { name: "General availability", open: "After the lottery (spring 2027)", time: "", close: "Until booked", release: "First come, first served", hike: "Remaining 2027 dates", permits: "What the lottery did not fill, plus cancellations" }
+    ],
+    phases: [
+      { id: "hsc-lottery", label: "Lottery (2027 season)", kind: "oneTime", open: "2026-12-01T00:00", close: "2026-12-30T23:59", results: "By end of February 2027", what: "Apply on travelyosemite.com only", note: "" }
+    ],
+    sources: [{ t: "Travel Yosemite: High Sierra Camp Lottery", u: "https://www.travelyosemite.com/stay/high-sierra-camps/high-sierra-camp-lottery" }, { t: "NPS: Yosemite lodging", u: "https://www.nps.gov/yose/planyourvisit/lodging.htm" }] }
+,
   { id: "north-pines-early", name: "North Pines campground early-access lottery", park: "Yosemite National Park", system: "Recreation.gov", url: "https://www.recreation.gov/camping/campgrounds/232449",
     summary: "", fees: "", group: "", conf: "good", check: [],
     openingsYear: "2027 season (Recreation.gov)",

@@ -22,6 +22,7 @@ information supports, and opens a pull request for the owner to review. Nothing 
    | recreation.gov public data (no key): `www.recreation.gov/api/camps/campgrounds/<id>` (booking rules, notices, description) and `www.recreation.gov/api/search/campsites?fq=asset_id:<id>&size=1` (`total` = campsite count) | site counts, booking windows, closures |
    | RIDB API `https://ridb.recreation.gov/api/v1/facilities/<id>` (header `apikey: $RIDB_API_KEY`; also `/facilities/<id>/campsites`) | official facility details and campsite lists for federal campgrounds |
    | parks.ca.gov park pages and campground maps, reservecalifornia.com | state park seasons, closures, site counts |
+   | www.travelyosemite.com/stay/<lodge> and /stay/high-sierra-camps/high-sierra-camp-lottery | Yosemite lodging (rows with system "ty" in data/sites.js): season dates, closures, booking openings, the High Sierra Camp lottery dates (data/permits.js) |
    | Web search | hints only; a value from search alone is marked "needs checking" |
    If an official host is unreachable from the session, fall back to web search and say so in the pull request.
 4. **Change the data**, never the page code:

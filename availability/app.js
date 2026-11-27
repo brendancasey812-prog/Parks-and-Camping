@@ -149,6 +149,7 @@ function calc(s) {
   const r = { at: null, status: "unknown", from: arrival, to: arrival, first: arrival, est: sf.k === "old" };
   if (s.status === "closed") { r.status = "closed"; return r; }
   if (s.resMonths && !s.resMonths.includes(monthOf(arrival))) { r.status = "walk"; return r; }
+  if (s.rule.kind === "lottery") { r.status = "lottery"; return r; }
   if (s.rule.kind === "none") { r.status = s.system === "fcfs" ? "fcfs" : "unknown"; return r; }
   if (s.rule.kind === "block") { r.status = s.rule.through && arrival <= s.rule.through ? "blockopen" : "notyet"; r.through = s.rule.through; return r; }   // released in fixed blocks
   const rel = E.releaseFor(s.rule, arrival); r.at = rel.at; r.from = rel.from; r.to = rel.to;
@@ -157,6 +158,7 @@ function calc(s) {
 // how far ahead the public can book right now (the released dates), for one campground
 function thruOf(s) {
   if (s.status === "closed") return { k: "closed", t: "Closed" };
+  if (s.rule.kind === "lottery") return { k: "none", t: "By lottery" };
   if (s.system === "fcfs" || s.rule.kind === "none") return { k: "none", t: s.system === "fcfs" ? "No reservations (first-come)" : "Not known" };
   const d = E.bookableThrough(s.rule, new Date());
   if (!d) return { k: "none", t: "Not released yet" };
@@ -181,7 +183,7 @@ const thruCell = s => { const x = thruOf(s); return x.k !== "date" ? '<span clas
   x.off ? '<span class="nv">Closed for the season</span><small>window reaches ' + esc(x.t) + "; reopens " + esc(reopens(s)) + "</small>" :
   "<b>" + esc(x.t) + "</b><small>" + ({ block: s.rule.season ? "whole season released" : "released block", monthly: "monthly block; next on the " + s.rule.blockStart + "th", days: "moves daily" }[s.rule.kind] || "moves daily") + (x.assumed ? " (assumed rule)" : "") + "</small>"; };
 const hoursUntil = at => (at - new Date()) / 36e5;
-const STATUS_TEXT = { blockopen: "Open now (released in a block)", notyet: "Not released yet; next release date not published", past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
+const STATUS_TEXT = { lottery: "By lottery (see Permits and lotteries)", blockopen: "Open now (released in a block)", notyet: "Not released yet; next release date not published", past: "That date has passed", closed: "Closed", walk: "No reservations that month", fcfs: "First-come, first-served", unknown: "Release rule not verified" };
 function matches(s, c) {
   const q = st.q.trim().toLowerCase();
   if (q && !(s.name + " " + s.park + " " + s.region + " " + s.agency + " " + (s.city || "") + " " + SYSTEMS[s.system].name).toLowerCase().includes(q)) return false;
@@ -311,7 +313,8 @@ function opensCells(x) {          // days out | date | time, for the first campg
   const c = x.first.c, d = c.status === "open" ? '<span class="st open">Open now</span>' : '<span class="st later" data-cd="' + c.at.getTime() + '" data-bare>' + esc(countdown(c.at).replace(/^in /, "")) + "</span>";
   const span = c.from !== c.to ? '<span class="when-t">Dates ' + esc(isoMdy(c.from)) + " to " + esc(isoMdy(c.to)) + "</span>" : '<span class="when-t">For ' + esc(isoMdy(c.first)) + "</span>";
   const est = c.est ? '<span class="when-t est">Estimate: ' + st.year + " dates not published yet</span>" : "";
-  return [d + varies, esc(fmtWd(c.at)), esc(fmtDOnly(c.at)) + span + est, esc(fmtTime(c.at))];
+  const tm = x.first.r.rule && x.first.r.rule.time ? esc(fmtTime(c.at)) : '<span class="nv">Not published</span>';
+  return [d + varies, esc(fmtWd(c.at)), esc(fmtDOnly(c.at)) + span + est, tm];
 }
 function opensParkCell(x) {
   if (x.sameAt && x.first) return opensCell(x.first.r, x.first.c);

@@ -43,7 +43,7 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  await check('edits persist after reload',async()=>{await p.reload();await p.waitForTimeout(400);await p.locator('#campBody tr').first().click();await p.waitForTimeout(150);return /Test note/.test(await p.textContent('#panel'))||(await p.evaluate(()=>localStorage.getItem('cc-edits')||'')).includes('Test note')});
  await check('reset restores original data',async()=>{await p.click('#panel [data-act=edit]');await p.click('#panel [data-act=reset]');await p.waitForTimeout(200);return !/Test note/.test(await p.textContent('#panel'))});
  await p.goto(URL_+'#/permits');await p.waitForTimeout(300);
- await check('permits: coming-up table and per-permit tables',async()=>(await p.$$('#pmSoon tbody tr')).length>=2&&(await p.$$('#pmList .pm-card')).length===4);   // Half Dome, Yosemite wilderness, North Pines, State Parks drawings
+ await check('permits: coming-up table and per-permit tables',async()=>(await p.$$('#pmSoon tbody tr')).length>=2&&(await p.$$('#pmList .pm-card')).length===5);   // Half Dome, Yosemite wilderness, High Sierra Camps, North Pines, State Parks drawings
  await check('half dome preseason is March 1 to 31',async()=>{const t=await p.textContent('#half-dome');return /Mar 1/.test(t)&&/Mar 31/.test(t)});
  await check('permits: reminder downloads .ics',async()=>{const [d]=await Promise.all([p.waitForEvent('download'),p.click('#pmSoon [data-ev="0"]')]);return /\.ics$/.test(d.suggestedFilename())});
  await p.goto(URL_+'#/data');await p.waitForTimeout(200);
@@ -133,10 +133,10 @@ let n=0,bad=0;const check=async(name,fn)=>{let ok=false,err='';try{ok=!!(await f
  // ---- permits: search, location, status
  await h.goto(URL_+'#/permits');await h.waitForTimeout(300);
  const pm=()=>h.$$eval('#pmAll tbody tr',a=>a.map(r=>r.textContent));
- await check('permits: every step is listed with location, type and split open date / time',async()=>{const r=await pm();return r.length===6&&r.filter(t=>/Yosemite NP/.test(t)).length===5&&r.some(t=>/California State Parks/.test(t))&&await h.isVisible('#pmAll th:has-text("Opens time")')});
+ await check('permits: every step is listed with location, type and split open date / time',async()=>{const r=await pm();return r.length===7&&r.filter(t=>/Yosemite NP/.test(t)).length===6&&r.some(t=>/California State Parks/.test(t))&&await h.isVisible('#pmAll th:has-text("Opens time")')});
  await check('permits: search narrows to Half Dome',async()=>{await h.fill('#pmQ','half dome');await h.waitForTimeout(150);const r=await pm();return r.length===2&&r.every(t=>/Half Dome/.test(t))&&(await h.$$('#pmList .pm-card')).length===1});
  await check('permits: location and status filters; Clear restores',async()=>{await h.fill('#pmQ','');await h.selectOption('#pmLoc','Yosemite NP');await h.selectOption('#pmStat','closed');await h.waitForTimeout(150);const n=(await pm()).length;
-   await h.click('#pmClear');await h.waitForTimeout(150);return n>=0&&n<=5&&(await pm()).length===6&&await h.inputValue('#pmLoc')===''});
+   await h.click('#pmClear');await h.waitForTimeout(150);return n>=0&&n<=6&&(await pm()).length===7&&await h.inputValue('#pmLoc')===''});
  await check('permits: clicking a permit jumps to its card',async()=>{await h.click('#pmAll [data-goperm=yose-wilderness]');await h.waitForTimeout(500);return await h.evaluate(()=>document.activeElement.id)==='yose-wilderness'});
  // ---- embedded (inside the Parks & Camping site)
  await h.goto(URL_+'?embed=1#/');await h.waitForTimeout(400);
