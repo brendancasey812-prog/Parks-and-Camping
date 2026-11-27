@@ -607,6 +607,10 @@ $("#resetEdits").onclick = () => { if (!Object.keys(edits).length) return; if (c
 // ---------- column menus: sort, search the values, tick which ones to show ----------
 function markFiltered(tbl, cf) { $$(tbl + " thead th[data-k]").forEach(th => th.classList.toggle("filtered", !!(cf[th.dataset.k] && cf[th.dataset.k].length))); }
 let M = null;
+const MENU_HTML = '<div class="cm-sort"><button type="button" data-cm="asc">Sort A → Z</button><button type="button" data-cm="desc">Sort Z → A</button></div>' +
+    '<div class="cm-h">Filter by values</div><div class="cm-sa"><button type="button" data-cm="all">Select all</button><button type="button" data-cm="none">Clear</button><span class="cm-n"></span></div>' +
+    '<input type="search" class="cm-q" placeholder="Search" aria-label="Search values"><ul class="cm-l"></ul>' +
+    '<div class="cm-f"><button type="button" class="btn" data-cm="cancel">Cancel</button><button type="button" class="btn primary" data-cm="ok">OK</button></div>';
 const menu = document.createElement("div"); menu.className = "cmenu"; menu.hidden = true; menu.setAttribute("role", "dialog"); document.body.appendChild(menu);
 function place(el, anchor, maxW = 300) {
   const r = anchor.getBoundingClientRect(), w = Math.min(maxW, innerWidth - 16); el.style.width = w + "px";
@@ -614,16 +618,18 @@ function place(el, anchor, maxW = 300) {
   const h = el.offsetHeight, below = r.bottom + 4, above = r.top - 4 - h;   // under the cell if it fits, else above it, else as low as fits
   el.style.top = (below + h <= innerHeight - 8 ? below : above >= 8 ? above : Math.max(8, innerHeight - 8 - h)) + "px";
 }
-function openMenu(tbl, k, btn) {
+function openMenu(tbl, k, btn, ext) {
+  if (ext) {          // another view's table (Permits): it supplies the values and what OK and Sort do
+    M = { ext, k, btn, hidden: new Set(ext.hidden || []), vals: ext.vals };
+    menu.setAttribute("aria-label", "Sort and filter " + ext.label);
+    menu.innerHTML = MENU_HTML; drawMenu(); menu.hidden = false; place(menu, btn); menu.querySelector(".cm-q").focus(); return;
+  }
   const park = tbl === "p", cols = park ? PCOL : CCOL, cf = park ? st.cf : campCF(), src = park ? allParkSums : allCamps, cnt = new Map();
   src.filter(x => passCF(x, cols, cf, k)).forEach(x => { const v = cols[k](x); cnt.set(v, (cnt.get(v) || 0) + 1); });
   (cf[k] || []).forEach(v => { if (!cnt.has(v)) cnt.set(v, 0); });
   M = { park, k, btn, cf, hidden: new Set(cf[k] || []), vals: [...cnt].sort((a, b) => String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true })) };
   menu.setAttribute("aria-label", "Sort and filter " + colName(park ? "#parksTable" : "#campTable", k));
-  menu.innerHTML = '<div class="cm-sort"><button type="button" data-cm="asc">Sort A → Z</button><button type="button" data-cm="desc">Sort Z → A</button></div>' +
-    '<div class="cm-h">Filter by values</div><div class="cm-sa"><button type="button" data-cm="all">Select all</button><button type="button" data-cm="none">Clear</button><span class="cm-n"></span></div>' +
-    '<input type="search" class="cm-q" placeholder="Search" aria-label="Search values"><ul class="cm-l"></ul>' +
-    '<div class="cm-f"><button type="button" class="btn" data-cm="cancel">Cancel</button><button type="button" class="btn primary" data-cm="ok">OK</button></div>';
+  menu.innerHTML = MENU_HTML;
   drawMenu(); menu.hidden = false; place(menu, btn); menu.querySelector(".cm-q").focus();
 }
 const menuShown = () => { const q = menu.querySelector(".cm-q").value.trim().toLowerCase(); return M.vals.map((v, i) => [v, i]).filter(([v]) => !q || String(v[0]).toLowerCase().includes(q)); };
@@ -639,6 +645,7 @@ menu.addEventListener("change", e => { const c = e.target; if (c.type !== "check
 menu.addEventListener("click", e => {
   const b = e.target.closest("[data-cm]"); if (!b) return; const a = b.dataset.cm;
   if (a === "all" || a === "none") { menuShown().forEach(([[v]]) => a === "all" ? M.hidden.delete(v) : M.hidden.add(v)); drawMenu(); return; }
+  if (M.ext) { const x = M.ext, btn = M.btn, hid = [...M.hidden]; closeMenu(); if (a === "asc" || a === "desc") x.sort(a === "asc" ? 1 : -1); else if (a === "ok") x.apply(hid); btn.focus(); return; }
   if (a === "asc" || a === "desc") { if (M.park) { st.sort = M.k; st.dir = a === "asc" ? 1 : -1; } else { st.csort = M.k; st.cdir = a === "asc" ? 1 : -1; } }
   if (a === "ok") { if (M.hidden.size) M.cf[M.k] = [...M.hidden]; else delete M.cf[M.k]; }
   const btn = M.btn; closeMenu(); if (a !== "cancel") { persist(); render(); }
@@ -737,7 +744,7 @@ function render() {
   decorateFilters(); fsDoneText();
   CC.subs.forEach(f => { try { f(); } catch (e) {} });
 }
-const CC = { subs: [], st, fmtAt, fmtShort, fmtDate, fmtDay, fmtTime, splitName, countdown, ics, download, toast, todayPT, esc };
+const CC = { subs: [], colMenu: (k, btn, ext) => { const open = !menu.hidden && M && M.btn === btn; closeMenu(); if (!open) openMenu("x", k, btn, ext); }, st, fmtAt, fmtShort, fmtDate, fmtDay, fmtTime, splitName, countdown, ics, download, toast, todayPT, esc };
 window.CC = CC;
 $("#fMonth").insertAdjacentHTML("beforeend", MONTHS.map((m, i) => '<option value="' + (i + 1) + '">' + m + "</option>").join(""));
 $("#fDes").insertAdjacentHTML("beforeend", [...new Set(BASE.map(s => desOf(s.park)).filter(Boolean))].sort().map(d => '<option value="' + esc(d) + '">' + esc(d) + (DES_FULL[d] ? " · " + esc(DES_FULL[d]) : "") + "</option>").join(""));

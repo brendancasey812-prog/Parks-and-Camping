@@ -13,7 +13,13 @@ const conf = { good: ["Confirmed", "good"], check: ["Needs checking", "check"] }
 
 // ---------- compute one phase for the chosen date ----------
 // the date each step is worked out for: the first day of the step's season in the chosen Year (today if that has passed)
-const tripFor = p => { const d = CC.st.year + "-" + (p.valid ? p.valid.from : "01-01"), t = CC.todayPT(); return d < t ? t : d; };
+const tripFor = p => {
+  const d = CC.st.year + "-" + (p.valid ? p.valid.from : "01-01"), t = CC.todayPT(), x = d < t ? t : d;
+  if (p.kind === "monthsBefore" && !p.valid) return E.addDays(t, Math.round(p.closeMonths * 30.44) + 10);
+  if (p.kind !== "weekly") return x;
+  const sun = E.addDays(t, -dow(t)), now = p.leftover ? E.addDays(E.addDays(t, -12), -dow(E.addDays(t, -12))) : sun;   // this week's lottery, or the latest leftovers already released
+  const cur = E.addDays(now, p.leadDays); return cur > x ? cur : x;
+};
 function compute(p, D, now) {
   D = tripFor(p);
   const r = { phase: p, open: null, close: null, extra: [], approx: false, projected: false, na: "" };
@@ -28,6 +34,8 @@ function compute(p, D, now) {
     const base = E.addDays(D, -p.leadDays), sun = E.addDays(base, -dow(base)), sunY = E.parseISO(sun), md = pad(sunY.m) + "-" + pad(sunY.d);
     const ss = pad(p.seasonStart.m) + "-" + pad(p.seasonStart.d), se = pad(p.seasonEnd.m) + "-" + pad(p.seasonEnd.d);
     if (!(md >= ss || md <= se)) { r.na = "The weekly lottery does not run in that week (it runs mid-November to early May)."; return r; }
+    r.cover = [E.addDays(sun, p.leadDays), E.addDays(sun, p.leadDays + 6)];
+    if (p.leftover) { r.open = at(E.addDays(sun, 12), "09:00"); r.close = null; r.week = "From the lottery of " + day(sun) + " – " + day(E.addDays(sun, 6)); return r; }
     r.open = at(sun, "00:01"); r.close = at(E.addDays(sun, 6), "23:59"); r.week = day(sun) + " – " + day(E.addDays(sun, 6));
     r.extra = [["Results", at(E.addDays(sun, 8), "00:00"), true], ["Accept and pay by", at(E.addDays(sun, 11), "23:59"), true], ["Leftovers open", at(E.addDays(sun, 12), "09:00"), false]];
     r.approx = true;
@@ -51,13 +59,13 @@ function status(r, now) {
 }
 
 // ---------- search and filters (saved in this browser) ----------
-const F = Object.assign({ q: "", loc: "", stat: "", type: "" }, (() => { try { return JSON.parse(localStorage.getItem("cc-pm")) || {}; } catch (e) { return {}; } })());
-const saveF = () => { try { localStorage.setItem("cc-pm", JSON.stringify(F)); } catch (e) {} };
+const F = Object.assign({ q: "", cf: {}, sort: "odate", dir: 1 }, (() => { try { return JSON.parse(localStorage.getItem("cc-pm2")) || {}; } catch (e) { return {}; } })());
+const saveF = () => { try { localStorage.setItem("cc-pm2", JSON.stringify(F)); } catch (e) {} };
 const loc = perm => { const n = CC.splitName(perm.park); return n.name + (n.des ? " " + n.des : ""); };
-const typeOf = p => p.kind === "days" ? "release" : /lottery/i.test(p.label) || ["weekly", "daily", "oneTime"].includes(p.kind) ? "lottery" : "window";
+const typeOf = p => p.kind === "days" || p.leftover ? "release" : /lottery/i.test(p.label) || ["weekly", "daily", "oneTime"].includes(p.kind) ? "lottery" : "window";
 const TYPE = { lottery: "Lottery", release: "Rolling release", window: "Application window" };
 const textOk = (perm, p) => { const q = F.q.trim().toLowerCase(); return !q || [perm.name, perm.park, loc(perm), perm.summary, perm.system, p && p.label, p && p.what].join(" ").toLowerCase().includes(q); };
-const permOk = perm => (!F.loc || loc(perm) === F.loc) && (textOk(perm) || perm.phases.some(p => textOk(perm, p)));
+const permOk = perm => textOk(perm) || perm.phases.some(p => textOk(perm, p));
 const EV_PERM = { "hd-pre": "half-dome", "yw-weekly": "yose-wilderness" };
 const dayT = d => CC.fmtDay(d), timeT = d => CC.fmtTime(d);
 
@@ -95,7 +103,7 @@ function nextEvents(now) {
   const out = [], hd = PERMITS.find(x => x.id === "half-dome").phases[0], y = E.parseISO(CC.todayPT()).y;
   for (const Y of [y, y + 1]) {
     const o = at(Y + "-" + pad(hd.open.m) + "-" + pad(hd.open.d), hd.open.time || "00:00"), c = at(Y + "-" + pad(hd.close.m) + "-" + pad(hd.close.d), hd.close.time || "23:59");
-    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Hiking 05/28 – 10/12 (projected)" : "", open: o, close: c, rule: "Apply 03/01 - 03/31 (closes 4:59 PM Pacific). Results about 04/10.", url: PERMITS[0].url, park: "Yosemite" }); break; }
+    if (now <= c) { out.push({ id: "hd-pre", title: "Half Dome preseason lottery", sub: Y > hd.announced ? "Hiking about 05/15 – 10/13 (projected from 2026)" : "", open: o, close: c, rule: "Apply 03/01 - 03/31 (closes 4:59 PM Pacific). Results about 04/11.", url: PERMITS[0].url, park: "Yosemite" }); break; }
   }
   const yw = PERMITS.find(x => x.id === "yose-wilderness").phases[0];
   let sun = CC.todayPT(); sun = E.addDays(sun, -dow(sun));
@@ -107,24 +115,59 @@ function nextEvents(now) {
   return out.sort((a, b) => a.open - b.open);
 }
 let events = [];
-function allRows(D, now) {          // one row per step of every permit that passes the search and filters
+// ---------- the permits table: one row per step, columns like the camping table ----------
+const STATB = { open: "Open now", soon: "Opens later", closed: "Closed", na: "Not this season" };
+const mdyI = iso => iso.slice(5, 7) + "/" + iso.slice(8, 10) + "/" + iso.slice(0, 4);
+// the trip dates a step covers in the chosen season: its own text, or its valid range in that year
+function accessOf(perm, p, r) {
+  if (p.access) return { t: p.access, n: p.accessNote || "" };
+  if (r.cover) return { t: mdyI(r.cover[0]) + " – " + mdyI(r.cover[1]), n: p.accessNote || "" };
+  if (p.valid) { const Y = CC.st.year, wrap = p.valid.from > p.valid.to; return { t: mdyI(Y + "-" + p.valid.from) + " – " + mdyI((wrap ? Y + 1 : Y) + "-" + p.valid.to) + (r.projected ? " (projected)" : ""), n: p.accessNote || "" }; }
+  const o = perm.openings && perm.openings[0]; return { t: o ? o.hike : "", n: p.accessNote || "" };
+}
+const noTime = (p, r) => r.approx && p.kind === "annual" || (!p.time && ["monthsBefore", "days"].includes(p.kind));
+const PMCOL = {
+  name: x => x.perm.name, loc: x => loc(x.perm), step: x => x.p.label, type: x => TYPE[typeOf(x.p)], stat: x => STATB[x.s.k],
+  odate: x => x.r.open && !x.r.na ? dayT(x.r.open) : "—", otime: x => x.r.open && !x.r.na ? (noTime(x.p, x.r) ? "Not published" : timeT(x.r.open)) : "—",
+  cdate: x => x.r.close && !x.r.na ? dayT(x.r.close) : x.r.na ? "—" : "None", access: x => x.a.t || "—", results: x => x.p.results || "", sys: x => x.perm.system
+};
+const tKey = d => d ? d.getTime() : Infinity;
+const LATE = { closed: 1e15, na: 2e15 };
+const PMSORT = { odate: x => (LATE[x.s.k] || 0) + tKey(!x.r.na && x.r.open), otime: x => x.r.open && !x.r.na ? CC.fmtTime(x.r.open) : "~", cdate: x => tKey(!x.r.na && x.r.close) };
+function stepRows(now) {
   const out = [];
   PERMITS.filter(permOk).forEach(perm => perm.phases.forEach(p => {
     if (!textOk(perm) && !textOk(perm, p)) return;
-    const r = compute(p, D, now), s = status(r, now);
-    if (F.stat && s.k !== F.stat) return; if (F.type && typeOf(p) !== F.type) return;
-    const stat = '<span class="st ' + (s.k === "open" ? "open" : s.k === "soon" ? "later" : "none") + '"' + (s.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(s.t) + "</span>";
-    out.push('<tr><th scope="row" data-l="Permit"><button type="button" class="nm" data-goperm="' + esc(perm.id) + '">' + esc(perm.name) + '</button></th><td data-l="Location">' + esc(loc(perm)) + '</td><td data-l="Step">' + esc(p.label) + '<span class="when-t">' + esc(p.what) + '</span></td><td data-l="Type">' + TYPE[typeOf(p)] +
-      '</td><td data-l="Status">' + stat + '</td><td data-l="Opens date">' + (r.open ? esc(dayT(r.open)) + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + '</td><td data-l="Opens time">' + (r.open ? esc((r.approx && p.kind === "annual" || (!p.time && ["monthsBefore", "days"].includes(p.kind))) ? "Not published" : timeT(r.open)) : '<span class="nv">—</span>') +
-      '</td><td data-l="Closes">' + (r.close ? esc(dayT(r.close)) + '<span class="when-t">' + esc(timeT(r.close)) + "</span>" : r.na ? '<span class="nv">' + esc(r.na) + "</span>" : "None") + '</td><td data-l="Results">' + esc(p.results || "") + "</td></tr>");
+    const r = compute(p, null, now), s = status(r, now);
+    out.push({ perm, p, r, s, a: accessOf(perm, p, r) });
   }));
   return out;
 }
+const passPM = (x, skip) => Object.keys(F.cf).every(k => k === skip || !F.cf[k] || !F.cf[k].length || !PMCOL[k] || !F.cf[k].includes(PMCOL[k](x)));
+let pmAllRows = [];
+function rowHtml(x) {
+  const { perm, p, r, s, a } = x;
+  const stat = '<span class="st ' + (s.k === "open" ? "open" : s.k === "soon" ? "later" : "none") + '"' + (s.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(s.t) + "</span>";
+  const live = r.open && !r.na;
+  return '<tr><th scope="row" data-l="Permit"><button type="button" class="nm" data-goperm="' + esc(perm.id) + '">' + esc(perm.name) + "</button></th>" +
+    '<td data-l="Location">' + esc(loc(perm)) + '</td><td data-l="Step">' + esc(p.label) + (p.what ? '<span class="when-t">' + esc(p.what) + "</span>" : "") + '</td><td data-l="Type">' + TYPE[typeOf(p)] + "</td>" +
+    '<td data-l="Status">' + stat + "</td>" +
+    '<td data-l="Booking opens">' + (live ? "<b>" + esc(dayT(r.open)) + "</b>" + (r.week ? '<span class="when-t">' + (p.leftover ? "" : "Week of ") + esc(r.week) + "</span>" : "") + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + "</td>" +
+    '<td data-l="Open time">' + (live ? (noTime(p, r) ? '<span class="nv">Not published</span>' : esc(timeT(r.open))) : '<span class="nv">—</span>') + "</td>" +
+    '<td data-l="Booking closes">' + (r.close && !r.na ? esc(dayT(r.close)) + '<span class="when-t">' + esc(timeT(r.close)) + "</span>" : r.na ? '<span class="nv">' + esc(r.na) + "</span>" : "Until booked") + "</td>" +
+    '<td data-l="Access dates">' + (a.t ? "<b>" + esc(a.t) + "</b>" : '<span class="nv">—</span>') + (a.n ? '<span class="when-t">' + esc(a.n) + "</span>" : "") + "</td>" +
+    '<td data-l="Results">' + esc(p.results || "") + '</td><td data-l="Booking site">' + esc(perm.system) + "</td></tr>";
+}
 function render() {
   if ($("#vPermits").hidden) return;
-  const D = CC.st.year, now = new Date(), rows = allRows(D, now), steps = PERMITS.reduce((t, x) => t + x.phases.length, 0);
-  $("#pmAll tbody").innerHTML = rows.join("") || '<tr><td colspan="9" class="empty">No permits match. Clear the search or a filter.</td></tr>';
+  const D = CC.st.year, now = new Date(), steps = PERMITS.reduce((t, x) => t + x.phases.length, 0);
+  pmAllRows = stepRows(now);
+  const k = F.sort, key = PMSORT[k] || PMCOL[k] || PMCOL.odate, rows = pmAllRows.filter(x => passPM(x)).sort((a, b) => { const va = key(a), vb = key(b); return (typeof va === "number" ? va - vb : String(va).localeCompare(String(vb), undefined, { numeric: true })) * F.dir; });
+  $("#pmAll tbody").innerHTML = rows.map(rowHtml).join("") || '<tr><td colspan="11" class="empty">No permits match. Clear the search or a filter.</td></tr>';
   $("#pmCount").textContent = rows.length + " of " + steps + " steps";
+  const on = Object.values(F.cf).some(v => v && v.length);
+  $("#pmClear").hidden = !on && !F.q;
+  $$("#pmAll thead th[data-k]").forEach(th => { th.classList.toggle("filtered", !!(F.cf[th.dataset.k] && F.cf[th.dataset.k].length)); if (th.dataset.k === F.sort) th.setAttribute("aria-sort", F.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort"); });
   events = nextEvents(now).filter(e => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return !perm || permOk(perm); });
   $("#pmSoon tbody").innerHTML = events.map((e, i) => { const perm = PERMITS.find(x => x.id === EV_PERM[e.id]); return '<tr><th scope="row" data-l="Permit">' + esc(e.title) + '<span class="when-t">' + esc(e.sub) + '</span></th><td data-l="Location">' + (perm ? esc(loc(perm)) : "") + '</td><td data-l="Opens date"><b>' + esc(dayT(e.open)) + '</b></td><td data-l="Opens time">' + esc(timeT(e.open)) + '</td><td data-l="Closes">' + esc(when(e.close)) + '</td><td data-l="Starts in"><span class="st later" data-cd="' + e.open.getTime() + '">' + esc(CC.countdown(e.open)) + '</span></td><td data-l=""><button type="button" class="btn sm" data-ev="' + i + '">Add reminder</button></td></tr>'; }).join("") || '<tr><td colspan="7" class="empty">Nothing coming up for this search.</td></tr>';
   $("#pmList").innerHTML = PERMITS.filter(permOk).map(p => cardHtml(p, D, now)).join("");
@@ -136,11 +179,23 @@ document.addEventListener("click", e => {
     if (r.open) { CC.download("remind-" + phid + ".ics", CC.ics(perm.name + ": " + ph.label + " opens", r.open, perm.park + ". " + ph.what + ". " + (ph.results || ""), perm.url), "text/calendar"); CC.toast("Reminder saved. It rings 15 minutes before."); }
   }
 });
-$("#pmLoc").insertAdjacentHTML("beforeend", [...new Set(PERMITS.map(loc))].sort().map(l => '<option value="' + esc(l) + '">' + esc(l) + "</option>").join(""));
-const sync = () => { $("#pmQ").value = F.q; $("#pmLoc").value = F.loc; $("#pmStat").value = F.stat; $("#pmType").value = F.type; };
+const sync = () => { $("#pmQ").value = F.q; };
 $("#pmQ").addEventListener("input", e => { F.q = e.target.value; saveF(); render(); });
-[["#pmLoc", "loc"], ["#pmStat", "stat"], ["#pmType", "type"]].forEach(([id, k]) => { $(id).onchange = e => { F[k] = e.target.value; saveF(); render(); }; });
-$("#pmClear").onclick = () => { Object.assign(F, { q: "", loc: "", stat: "", type: "" }); saveF(); sync(); render(); };
+$("#pmClear").onclick = () => { F.q = ""; F.cf = {}; saveF(); sync(); render(); };
+$$("#pmAll thead th[data-k]").forEach(th => {
+  const k = th.dataset.k, label = th.textContent.trim();
+  th.querySelector("button").onclick = () => { if (F.sort === k) F.dir = -F.dir; else { F.sort = k; F.dir = 1; } saveF(); render(); };
+  th.insertAdjacentHTML("beforeend", '<button type="button" class="fb" aria-haspopup="dialog" aria-label="Sort and filter ' + esc(label) + '">▾</button>');
+  th.querySelector(".fb").onclick = e => {
+    e.stopPropagation(); const cnt = new Map();
+    pmAllRows.filter(x => passPM(x, k)).forEach(x => { const v = PMCOL[k](x); cnt.set(v, (cnt.get(v) || 0) + 1); });
+    (F.cf[k] || []).forEach(v => { if (!cnt.has(v)) cnt.set(v, 0); });
+    const vals = [...cnt].sort((a, b) => String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true }));
+    CC.colMenu(k, e.currentTarget, { label, vals, hidden: F.cf[k] || [],
+      sort: dir => { F.sort = k; F.dir = dir; saveF(); render(); },
+      apply: hid => { if (hid.length) F.cf[k] = hid; else delete F.cf[k]; saveF(); render(); } });
+  };
+});
 $("#pmAll").addEventListener("click", e => { const b = e.target.closest("[data-goperm]"); if (!b) return; const c = document.getElementById(b.dataset.goperm); if (c) { c.scrollIntoView({ behavior: "smooth", block: "start" }); c.focus({ preventScroll: true }); } });
 sync();
 CC.subs.push(render);

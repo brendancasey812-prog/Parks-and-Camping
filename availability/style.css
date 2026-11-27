@@ -352,3 +352,8 @@ label.fxw>button.fx{top:auto;bottom:5px;transform:none}
 
 /* opening cells: an estimate (the season's dates for that year are not published yet) */
 .when-t.est{color:var(--wait)}
+
+/* permits: search row above the table, like the camping page */
+.pm-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;padding:.8rem 1rem;border-bottom:1px solid var(--line)}
+.pm-tools input{flex:1 1 240px;min-width:0}
+.pm-tools .pm-count{margin-left:0}

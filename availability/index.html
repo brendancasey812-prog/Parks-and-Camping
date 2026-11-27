@@ -161,17 +161,10 @@ try{var t=JSON.parse(localStorage.getItem(EMBED?"theme":"cc-theme"));if(t==="lig
 
       <!-- Permits -->
       <section id="vPermits" class="view" hidden>
-        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">Application windows, results and release times.</p></div>
+        <div class="page-h"><h1>Permits and lotteries</h1><p class="sub">When each permit opens for booking, and the trip dates it covers, for the season chosen in Year (top right). Dates from Recreation.gov and the park pages. Filter or sort from the ▾ in each heading.</p></div>
         <div class="card flush">
-          <div class="tbl-top pm-tools" role="search" aria-label="Filter permits">
-            <input id="pmQ" type="search" placeholder="Search permits, places or steps" aria-label="Search permits and lotteries">
-            <select id="pmLoc" aria-label="Location"><option value="">All locations</option></select>
-            <select id="pmStat" aria-label="Status"><option value="">Any status</option><option value="open">Open now</option><option value="soon">Opens later</option><option value="closed">Closed</option><option value="na">Not this season</option></select>
-            <select id="pmType" aria-label="Type"><option value="">All types</option><option value="lottery">Lottery</option><option value="release">Rolling release</option><option value="window">Application window</option></select>
-            <button id="pmClear" type="button" class="btn sm">Clear</button>
-            <span id="pmCount" class="pm-count" role="status" aria-live="polite"></span>
-          </div>
-          <div class="tw" tabindex="-1"><table class="tbl stack" id="pmAll"><thead><tr><th scope="col">Permit</th><th scope="col">Location</th><th scope="col">Step</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Opens date</th><th scope="col">Opens time</th><th scope="col">Closes</th><th scope="col">Results</th></tr></thead><tbody></tbody></table></div>
+          <div class="pm-tools"><input id="pmQ" type="search" placeholder="Search permits, places or steps" aria-label="Search permits and lotteries"><span id="pmCount" class="pm-count" role="status" aria-live="polite"></span><button id="pmClear" type="button" class="link-btn" hidden>Clear filters</button></div>
+          <div class="tw" tabindex="-1"><table class="tbl stack" id="pmAll"><thead><tr><th scope="col" data-k="name"><button type="button">Permit</button></th><th scope="col" data-k="loc"><button type="button">Location</button></th><th scope="col" data-k="step"><button type="button">Step</button></th><th scope="col" data-k="type"><button type="button">Type</button></th><th scope="col" data-k="stat"><button type="button">Status</button></th><th scope="col" data-k="odate"><button type="button">Booking opens</button></th><th scope="col" data-k="otime"><button type="button">Open time</button></th><th scope="col" data-k="cdate"><button type="button">Booking closes</button></th><th scope="col" data-k="access"><button type="button">Access dates</button></th><th scope="col" data-k="results"><button type="button">Results</button></th><th scope="col" data-k="sys"><button type="button">Booking site</button></th></tr></thead><tbody></tbody></table></div>
         </div>
         <div class="card flush"><div class="card-h"><h2>Coming up</h2></div><div class="tw" tabindex="-1"><table class="tbl stack" id="pmSoon"><thead><tr><th scope="col">Permit</th><th scope="col">Location</th><th scope="col">Opens date</th><th scope="col">Opens time</th><th scope="col">Closes</th><th scope="col">Starts in</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody></tbody></table></div></div>
         <div id="pmList" class="pm-list"></div>
