@@ -32,7 +32,7 @@ function compute(p, D, now) {
     r.extra = [["Results", at(E.addDays(sun, 8), "00:00"), true], ["Accept and pay by", at(E.addDays(sun, 11), "23:59"), true], ["Leftovers open", at(E.addDays(sun, 12), "09:00"), false]];
     r.approx = true;
   } else if (p.kind === "days") {
-    r.open = at(E.addDays(D, -p.days), p.time);
+    r.open = at(E.addDays(D, -p.days), p.time || "00:00"); if (!p.time) r.approx = true;
   } else if (p.kind === "monthsBefore") {                                         // e.g. a drawing: apply from N months before arrival until M months before
     const a = E.parseISO(D.slice(0, 10)), o = E.rollingReleaseDay(a.y, a.m, a.d, p.openMonths), c = E.rollingReleaseDay(a.y, a.m, a.d, p.closeMonths);
     r.open = at(E.iso(o.y, o.m, o.d), p.time || "00:00"); r.close = at(E.iso(c.y, c.m, c.d), p.time || "00:00"); r.approx = true;
@@ -69,7 +69,7 @@ function phaseRow(perm, p, D, now) {
   let opens = "", closes = "", more = "";
   if (r.na) { opens = '<span class="muted">' + esc(r.na) + "</span>"; }
   else {
-    opens = "<b>" + esc(when(r.open)) + "</b>" + (r.week ? '<span class="when-t">Week of ' + esc(r.week) + "</span>" : "") + (r.approx && p.kind === "annual" ? '<span class="when-t">Exact time not published</span>' : "") + proj;
+    opens = "<b>" + esc(when(r.open)) + "</b>" + (r.week ? '<span class="when-t">Week of ' + esc(r.week) + "</span>" : "") + ((r.approx && p.kind === "annual" || (!p.time && ["monthsBefore", "days"].includes(p.kind))) ? '<span class="when-t">Exact time not published</span>' : "") + proj;
     closes = r.close ? esc(when(r.close)) : "None";
     more = r.extra.map(x => '<span class="when-t">' + esc(x[0]) + ": " + esc(CC.fmtAt(x[1], !x[2])) + "</span>").join("");
   }
@@ -115,7 +115,7 @@ function allRows(D, now) {          // one row per step of every permit that pas
     if (F.stat && s.k !== F.stat) return; if (F.type && typeOf(p) !== F.type) return;
     const stat = '<span class="st ' + (s.k === "open" ? "open" : s.k === "soon" ? "later" : "none") + '"' + (s.k === "soon" ? ' data-pre="Opens " data-cd="' + r.open.getTime() + '"' : "") + ">" + esc(s.t) + "</span>";
     out.push('<tr><th scope="row" data-l="Permit"><button type="button" class="nm" data-goperm="' + esc(perm.id) + '">' + esc(perm.name) + '</button></th><td data-l="Location">' + esc(loc(perm)) + '</td><td data-l="Step">' + esc(p.label) + '<span class="when-t">' + esc(p.what) + '</span></td><td data-l="Type">' + TYPE[typeOf(p)] +
-      '</td><td data-l="Status">' + stat + '</td><td data-l="Opens date">' + (r.open ? esc(dayT(r.open)) + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + '</td><td data-l="Opens time">' + (r.open ? esc(r.approx && p.kind === "annual" ? "Not published" : timeT(r.open)) : '<span class="nv">—</span>') +
+      '</td><td data-l="Status">' + stat + '</td><td data-l="Opens date">' + (r.open ? esc(dayT(r.open)) + (r.projected ? '<span class="when-t">Projected</span>' : "") : '<span class="nv">—</span>') + '</td><td data-l="Opens time">' + (r.open ? esc((r.approx && p.kind === "annual" || (!p.time && ["monthsBefore", "days"].includes(p.kind))) ? "Not published" : timeT(r.open)) : '<span class="nv">—</span>') +
       '</td><td data-l="Closes">' + (r.close ? esc(dayT(r.close)) + '<span class="when-t">' + esc(timeT(r.close)) + "</span>" : r.na ? '<span class="nv">' + esc(r.na) + "</span>" : "None") + '</td><td data-l="Results">' + esc(p.results || "") + "</td></tr>");
   }));
   return out;
