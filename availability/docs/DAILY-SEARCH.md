@@ -14,7 +14,7 @@ information supports, and opens a pull request for the owner to review. Nothing 
    - permits and lotteries in `data/permits.js` (Half Dome preseason and daily lottery, Yosemite wilderness permits, North Pines early access);
      official dates are in Recreation.gov's data: `www.recreation.gov/api/permitcontent/<permit id>` (`important_dates`; Half Dome 234652, wilderness 445859)
      and, for campground lotteries such as North Pines, `www.recreation.gov/api/camps/campgrounds/232449` (`queue_lotteries`: application, early-access and stay dates, UTC);
-   - about a quarter of the remaining rows in turn, so every campground is looked at once a month.
+   - **every other campground, every run** (all rows in data/campgrounds.js, sites.js and seasons.js, plus the Recreation.gov federal list): check each against its official page. Work through them in batches (for example by park or by source site) and note in the pull request any that could not be checked that day and why.
 3. **Look it up**, in this order of trust, and keep the page that settled each value:
    | Source | For |
    |---|---|
