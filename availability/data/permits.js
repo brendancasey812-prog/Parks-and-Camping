@@ -70,7 +70,7 @@ window.PERMITS = [
     phases: [
       { id: "np-lottery", access: "Stays 04/15/2027 – 10/31/2027", label: "Early-access lottery (2027 season)", kind: "oneTime", open: "2026-11-23T07:00", close: "2026-12-14T21:00", results: "Booking 01/02/2027 – 02/01/2027", what: "", note: "" }
     ],
-    sources: [{ t: "Recreation.gov: North Pines Campground (2027 early-access lottery)", u: "https://www.recreation.gov/camping/campgrounds/232449" }, { t: "NPS: North Pines early-access lottery", u: "https://www.nps.gov/yose/planyourvisit/lottery-pilot.htm" }] }
+    sources: [{ t: "Recreation.gov: North Pines Campground (2027 early-access lottery)", u: "https://www.recreation.gov/camping/campgrounds/232449" }, { t: "NPS: North Pines early-access lottery", u: "https://www.nps.gov/yose/planyourvisit/lottery.htm" }] }
 ,
   { id: "ca-drawings", name: "California State Parks reservation drawings", park: "California State Parks", system: "ReserveCalifornia", url: "https://www.reservecalifornia.com/",
     summary: "", fees: "", group: "", conf: "good", check: ["exact drawing dates for each arrival date are listed on ReserveCalifornia"],
