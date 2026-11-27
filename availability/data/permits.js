@@ -44,11 +44,11 @@ window.PERMITS = [
     ],
     sources: [{ t: "Recreation.gov: Yosemite wilderness permits, 2027 dates", u: "https://www.recreation.gov/permits/445859" }, { t: "NPS: Yosemite wilderness permit reservations", u: "https://www.nps.gov/yose/planyourvisit/wpres.htm" }] },
 
-  { id: "yose-hsc-lottery", name: "Yosemite High Sierra Camps lottery (May Lake, Sunrise, Glen Aulin, Merced Lake, Vogelsang)", park: "Yosemite National Park", system: "Travel Yosemite", url: "https://www.travelyosemite.com/stay/high-sierra-camps/high-sierra-camp-lottery",
+  { id: "yose-hsc-lottery", name: "Yosemite High Sierra Camps lottery (Glen Aulin, May Lake, Sunrise)", park: "Yosemite National Park", system: "Travel Yosemite", url: "https://www.travelyosemite.com/stay/high-sierra-camps/high-sierra-camp-lottery",
     summary: "", fees: "", group: "", conf: "good", check: [],
     openingsYear: "2027 season (Travel Yosemite)",
     openings: [
-      { name: "Lottery application", open: "12/01/2026", time: "12:00 AM", close: "12/31/2026 (the form also says 12/30; apply by the 30th)", release: "Winners emailed by end of February 2027; pay within 7 days", hike: "Camps open June – September 2027 (weather dependent)", permits: "Guided and unguided trips; meals-only stays are not in the lottery" },
+      { name: "Lottery application", open: "12/01/2026", time: "12:00 AM", close: "12/31/2026 (the form also says 12/30; apply by the 30th)", release: "Winners emailed by end of February 2027; pay within 7 days", hike: "2027 camps: May Lake Jul 2 – Sep 8; Glen Aulin and Sunrise Jul 9 – Sep 5 (Merced Lake and Vogelsang not offered)", permits: "Unguided stays ($192–$202 adult a night with dinner and breakfast) and the guided 5-day loop ($1,495 adult); meals-only stays are not in the lottery" },
       { name: "General availability", open: "After the lottery (spring 2027)", time: "", close: "Until booked", release: "First come, first served", hike: "Remaining 2027 dates", permits: "What the lottery did not fill, plus cancellations" }
     ],
     phases: [
