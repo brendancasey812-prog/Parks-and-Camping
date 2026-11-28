@@ -140,14 +140,14 @@
   split("sp-humboldt-redwoods-state-park-burlington-albee-creek-hidden-springs", [["Burlington", 57, "Year-round"], ["Albee Creek", null, "Mid-May – mid-Oct", "", "count not confirmed"], ["Hidden Springs", 146, "Mid-Apr – Labor Day"]]);
   split("sp-standish-hickey-state-recreation-area-standish-hickey", [["Rock Creek", 35, "Year-round"], ["Hickey", 63, "May 1 – Oct 15 (reservations)"], ["Redwood", 62, "Jul 1 – Sep 15"]]);
   split("sp-salt-point-state-park-salt-point", [["Gerstle Cove", 30, "Year-round"], ["Woodside", 79, "Seasonal (closed in winter)"]]);
-  split("sp-sonoma-coast-state-park-bodega-dunes-wright-s-beach", [["Bodega Dunes", 81, "Apr – Nov (older park doc)", "", "older doc says 98"], ["Wright's Beach", 27, "Year-round", "", "parks.ca.gov: 27 developed sites"]]);
+  split("sp-sonoma-coast-state-park-bodega-dunes-wright-s-beach", [["Bodega Dunes", 81, "Apr – Nov (older park doc)", "", "older doc says 98"], ["Wright's Beach", 27, "Year-round (closed Nov 16 – 30, 2026 for high surf)", "", "parks.ca.gov: 27 developed sites"]]);
   split("sp-lake-oroville-state-recreation-area-lake-oroville", [["Bidwell Canyon", 75, "Year-round", "", "from site-number ranges"], ["Loafer Creek", 137, "Year-round (reservations Apr 1 – Oct 15)", "", "from site-number ranges"]]);
   split("sp-san-luis-reservoir-state-recreation-area-basalt-medeiros", [["Basalt", 79, "Temporarily closed (dam safety work)"], ["Medeiros", null, "Year-round", "", "primitive, first-come; count not found"]]);
   split("sp-folsom-lake-state-recreation-area-beals-point-peninsula", [["Beals Point", 69, "Year-round"], ["Peninsula", 100, "Apr – Oct", "", "primitive"]]);
   split("sp-calaveras-big-trees-state-park-north-grove-oak-hollow", [["North Grove", 74, "Year-round (limited first-come in winter)"], ["Oak Hollow", 55, "May 15 – Oct 1"]]);
   split("sp-mount-diablo-state-park-mount-diablo", [["Juniper", 27], ["Live Oak", 22, "", "", "one listing 18"], ["Junction", 6, "", "", "first-come"]]);
   split("sp-mount-tamalpais-state-park-pantoll-steep-ravine", [["Pantoll", null, "Year-round", "", "walk-in, first-come; count not found"], ["Steep Ravine", 6, "Year-round", "", "hike-in sites plus 10 cabins"]]);
-  split("sp-henry-w-coe-state-park-dowdy-ranch-hunting-hollow", [["Dowdy Ranch", null, "", "", "count not found"], ["Hunting Hollow", null, "", "", "count not found"]]);
+  split("sp-henry-w-coe-state-park-dowdy-ranch-hunting-hollow", [["Dowdy Ranch", null, "Spring – fall (Dowdy Ranch entrance closed for the season; reopens spring 2027)", "", "count not found"], ["Hunting Hollow", null, "", "", "count not found"]]);
   split("sp-hearst-san-simeon-state-park-washburn-san-simeon-creek", [["San Simeon Creek", 115, "", "", "The Dyrt lists 66"], ["Washburn", 68, "", "", "no showers on site"]]);
   split("sp-pismo-state-beach-north-beach-oceano", [["North Beach", 103, "", "", "tent-focused, no hookups"], ["Oceano", 80, "", "", "hookups; one guide says 82"]]);
   split("sp-point-mugu-state-park-thornhill-broome-sycamore-canyon", [["Thornhill Broome", null, "Closed from Oct 8, 2026 (high tide)", "", "beachfront; count not found"], ["Sycamore Canyon", 58, "", "", "listings 49–113"]]);

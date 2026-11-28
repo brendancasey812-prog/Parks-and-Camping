@@ -66,7 +66,7 @@ window.SITES = [
   { id: "seki-lodgepole", name: "Lodgepole", park: "Sequoia & Kings Canyon National Parks", region: "Sierra Nevada", agency: "NPS", system: "rec", rule: { kind: "monthly", blockStart: 15, monthsAhead: 1, time: "07:00" },
     open: null, openNote: "Not verified", peak: [6, 7, 8, 9], peakNote: "Fills within minutes in summer", walkup: "none", walkupNote: "Not verified",
     conf: "check", check: ["rule", "season", "walkup"], notes: "One source says standard Sequoia/Kings Canyon sites open one month ahead on the 15th at 7:00 AM Pacific. Older sources describe a 6-month window. Confirm on Recreation.gov.",
-    sources: [S("The Dyrt camping guide", "https://www.thedyrt.com/guides/np/sequoia-kings-canyon-national-parks-camping-guide"), S("NPS Sequoia & Kings Canyon", "https://www.nps.gov/seki/planyourvisit/camping.htm")] },
+    sources: [S("The Dyrt camping guide", "https://www.thedyrt.com/guides/np/sequoia-kings-canyon-national-parks-camping-guide"), S("NPS Sequoia & Kings Canyon", "https://www.nps.gov/seki/planyourvisit/campgrounds.htm")] },
   { id: "seki-dorst", name: "Dorst Creek", park: "Sequoia & Kings Canyon National Parks", region: "Sierra Nevada", agency: "NPS", system: "rec", rule: { kind: "none" },
     open: [], openNote: "Closed for 2026 (disaster recovery / hazard-tree work)", peak: null, peakNote: "", walkup: "none", walkupNote: "", status: "closed",
     conf: "check", check: ["rule"], notes: "Recreation.gov says it will not take reservations in 2026.", sources: [S("Recreation.gov Dorst Creek", "https://www.recreation.gov/camping/campgrounds/232460"), S("The Dyrt camping guide", "https://www.thedyrt.com/guides/np/sequoia-kings-canyon-national-parks-camping-guide")] },
